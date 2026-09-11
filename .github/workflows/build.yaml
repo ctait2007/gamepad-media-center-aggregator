@@ -191,6 +191,34 @@ jobs:
         name: ps4-dev-oelf-${{ github.run_number }}
         path: build/GMCA.oelf
 
+  # PS4-only release: a manual "Run workflow" with platform=ps4 publishes just
+  # the pkg as a public download, without waiting on (or requiring) every
+  # other platform to build — unlike upload-release, which needs the whole
+  # matrix plus a version tag and a CHANGELOG entry.
+  upload-ps4-release:
+    needs: [ build-ps4 ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.platform == 'ps4' }}
+    steps:
+    - name: Download pkg
+      uses: actions/download-artifact@v6
+      with:
+        name: GMCA-PS4-${{ github.run_number }}
+        path: assets
+    - name: Publish PS4 build
+      uses: softprops/action-gh-release@v3
+      with:
+        name: "GMCA PS4 build #${{ github.run_number }}"
+        tag_name: "ps4-build-${{ github.run_number }}"
+        body: |
+          Automated PS4-only build (manual dispatch), not a versioned release.
+          Commit: ${{ github.sha }}
+        draft: false
+        prerelease: true
+        files: assets/*.pkg
+
   build-vita:
     runs-on: ubuntu-latest
     if: ${{ inputs.platform == 'psvita' || github.event_name != 'workflow_dispatch' }}
