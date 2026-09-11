@@ -19,6 +19,8 @@ public:
 
     void doRequest() override;
 
+    void willAppear(bool resetState = false) override;
+
     static brls::View* create();
 
 private:
@@ -30,6 +32,11 @@ private:
     // player): the first rebuilt row takes the focus back so the user can
     // see where it landed
     bool restoreFocus = false;
+
+    // retained so willAppear can refresh just this row on every tab revisit,
+    // not only the once-per-app-lifetime onCreate() / after-playback VIDEO_CLOSE
+    // (AttachedView caches the tab, so onCreate never runs twice)
+    RecylingVideo* resumeRow = nullptr;
 
     LoadingSpinner* spinner = nullptr;  // centered overlay while hubs load
     // offline empty state: added to the tab root (definite height) with the

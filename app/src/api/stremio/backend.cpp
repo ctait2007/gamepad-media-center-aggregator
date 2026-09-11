@@ -422,8 +422,14 @@ void StremioBackend::getHomeHubs(
                 if (res.items.empty()) continue;
                 media::Hub h;
                 h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
-                h.hubIdentifier = "home.catalog." + std::to_string(out.Items.size());
                 h.key = catalogKey(pc.first.base, cat.type, cat.id);  // "see all" -> getHubPage
+                // Stable identity (addon base + type + catalog id), NOT the
+                // iteration index: an index shifts if a catalog ahead of it
+                // goes temporarily empty or the addon list is reordered,
+                // silently hiding the wrong row (AppConfig::isHubHidden).
+                // Shared with getSectionHubs' identifier for the same
+                // catalog, so hiding it applies wherever it would appear.
+                h.hubIdentifier = h.key;
                 h.more = true;
                 if ((int)res.items.size() > cnt) res.items.resize(cnt);
                 h.items = std::move(res.items);
@@ -462,8 +468,12 @@ void StremioBackend::getSectionHubs(
                 if (res.items.empty()) continue;
                 media::Hub h;
                 h.title = bestCatalogLabel(loc, pc.first, cat);
-                h.hubIdentifier = "section.catalog." + cat.id;
                 h.key = catalogKey(pc.first.base, cat.type, cat.id);
+                // cat.id alone collides across addons that both name a
+                // catalog e.g. "top" — the base URL is what actually makes
+                // it unique (matches getHomeHubs' identifier for the same
+                // catalog, so hiding it applies wherever it would appear).
+                h.hubIdentifier = h.key;
                 h.more = true;
                 if ((int)res.items.size() > cnt) res.items.resize(cnt);
                 h.items = std::move(res.items);

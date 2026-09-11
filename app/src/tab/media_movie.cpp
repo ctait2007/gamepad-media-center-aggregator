@@ -59,7 +59,10 @@ public:
     SourceRow() {
         this->setAxis(brls::Axis::ROW);
         this->setAlignItems(brls::AlignItems::CENTER);
-        this->setHeight(46);
+        // min, not fixed: addon-provided name/title can contain embedded
+        // newlines (a common Stremio convention), so the row must be able to
+        // grow taller than the single-line default instead of clipping it
+        this->setMinHeight(46);
         this->setCornerRadius(8);
         this->setHighlightCornerRadius(8);
         this->setFocusable(true);
@@ -437,9 +440,16 @@ void MediaMovie::buildSources(const media::Item& item) {
                                      : sourcePill("main/stremio/source/uncached"_i18n, pillBg, greyCol));
         else
             cells.push_back(sourcePill("main/stremio/source/direct"_i18n, pillBg, textCol));
-        // source name (grows) + meta (codec · size)
-        cells.push_back(sourceLabel(m.label, 15, textCol, true));
-        if (!m.detail.empty()) cells.push_back(sourceLabel(m.detail, 13, greyCol));
+        // source name (grows) + release title, verbatim from the addon —
+        // both may embed newlines, so let them wrap instead of clipping
+        auto* nameLabel = sourceLabel(m.label, 15, textCol, true);
+        nameLabel->setSingleLine(false);
+        cells.push_back(nameLabel);
+        if (!m.detail.empty()) {
+            auto* detailLabel = sourceLabel(m.detail, 13, greyCol);
+            detailLabel->setSingleLine(false);
+            cells.push_back(detailLabel);
+        }
         // trailing download glyph: signals the line is downloadable (X button)
         auto* dl = new SVGImage();
         dl->setImageFromSVGRes("icon/ico-download-light.svg");

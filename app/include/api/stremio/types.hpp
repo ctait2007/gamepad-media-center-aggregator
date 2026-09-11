@@ -567,37 +567,6 @@ inline int audioRankVita(const std::string& label) {
     return 0;  // DDP / DTS / TrueHD / Atmos / Opus
 }
 
-/// First "<number> <GB|MB|TB>" found, normalized ("8.4 GB"). Empty if none.
-inline std::string parseSizeLabel(const std::string& text) {
-    static const char* units[] = {"GB", "MB", "TB", "GiB", "MiB"};
-    std::string up = text;
-    for (auto& c : up) c = (char)std::toupper((unsigned char)c);
-    size_t best = std::string::npos;
-    std::string unit;
-    for (auto u : units) {
-        size_t p = up.find(u);
-        if (p != std::string::npos && (best == std::string::npos || p < best)) {
-            best = p;
-            unit = u;
-        }
-    }
-    if (best == std::string::npos) return "";
-    // walk back over an optional space and the number (digits + '.')
-    long i = (long)best - 1;
-    while (i >= 0 && text[i] == ' ') --i;
-    long end = i;
-    while (i >= 0 && (std::isdigit((unsigned char)text[i]) || text[i] == '.' || text[i] == ',')) --i;
-    if (i == end) return "";  // no number before the unit
-    std::string num = text.substr(i + 1, end - i);
-    // require at least one digit (a lone '.'/',' before the unit is not a size)
-    if (std::none_of(num.begin(), num.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) return "";
-    for (auto& c : num) if (c == ',') c = '.';
-    // normalize the binary units to their decimal label (close enough for display)
-    if (unit == "GIB") unit = "GB";
-    else if (unit == "MIB") unit = "MB";
-    return num + " " + unit;
-}
-
 /// Normalized video codec ("HEVC"/"AV1"/"H.264"/"XviD") from name+title; empty
 /// if none. H.264 is tested before XviD: "MPEG-4 AVC" names hit "avc" first.
 inline std::string parseCodecLabel(const std::string& text) {
@@ -661,15 +630,18 @@ inline bool detectDebrid(const std::string& name, bool& cached) {
     return true;
 }
 
-/// Map one Stremio stream to a neutral source row. `addonName` (manifest name)
-/// is the reliable provenance label (the addon brand inside `name` is not always
-/// present). Only `url` streams are playable here; infoHash/ytId/externalUrl are
-/// classified as non-playable (no torrent engine / no browser on console).
+/// Map one Stremio stream to a neutral source row. `label`/`detail` are the
+/// addon's own `name`/`title` verbatim (addons format these deliberately,
+/// e.g. "Torrentio\n1080p ⚡"), falling back to the manifest name when a
+/// stream carries no `name`. Only `url` streams are playable here;
+/// infoHash/ytId/externalUrl are classified as non-playable (no torrent
+/// engine / no browser on console).
 inline media::Media streamToMedia(const StreamOption& s, const std::string& addonName) {
     media::Media m;
     std::string blob = s.name + " " + s.title;
     m.videoResolution = qualityLabel(blob);
-    m.label = addonName;
+    m.label = !s.name.empty() ? s.name : addonName;
+    m.detail = s.title;
 
     if (!s.url.empty()) {
         bool cached = true;
@@ -685,11 +657,6 @@ inline media::Media streamToMedia(const StreamOption& s, const std::string& addo
         // resolveAllStreams reads them (codecRankVita / audioRankVita)
         m.videoCodec = parseCodecLabel(blob);
         m.audioCodec = parseAudioLabel(blob);
-        std::string size = parseSizeLabel(s.title.empty() ? s.name : s.title);
-        std::string detail;
-        if (!m.videoCodec.empty()) detail = m.videoCodec;
-        if (!size.empty()) detail += (detail.empty() ? "" : "  ·  ") + size;
-        m.detail = detail;
     } else if (!s.infoHash.empty()) {
         m.kind = media::SourceKind::Torrent;
     } else if (!s.ytId.empty()) {

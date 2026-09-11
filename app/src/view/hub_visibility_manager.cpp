@@ -166,41 +166,70 @@ void HubVisibilityManager::doRequest() {
                 std::string title = hub.title.empty() ? "main/home/resume"_i18n : hub.title;
                 this->entries.push_back({hub.hubIdentifier, title, AppConfig::instance().isHubHidden(hub.hubIdentifier)});
             }
-            this->fetchHomeHubs();
+            this->fetchSections();
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
             brls::Logger::warning("HubVisibilityManager continueWatching: {}", ex);
-            this->fetchHomeHubs();
+            this->fetchSections();
         });
 }
 
-void HubVisibilityManager::fetchHomeHubs() {
+void HubVisibilityManager::fetchSections() {
+    // Enumerate every catalog row via listSections + getSectionHubs (uncapped)
+    // rather than getHomeHubs, which hard-caps at 8 rows for the Home page —
+    // a curated subset, not the full list this screen needs to manage.
     ASYNC_RETAIN
-    AppConfig::instance().backend().getHomeHubs(
-        50, false,
-        [ASYNC_TOKEN](const media::Container<media::Hub>& r) {
+    AppConfig::instance().backend().listSections(
+        [ASYNC_TOKEN](const media::Container<media::Section>& r) {
             ASYNC_RELEASE
-            for (auto& hub : r.Items) {
-                if (hub.items.empty() || hub.hubIdentifier.empty()) continue;
-                if (hub.hubIdentifier == "home.continue" || hub.hubIdentifier == "home.ondeck") continue;
-                bool exists = false;
-                for (auto& e : this->entries)
-                    if (e.identifier == hub.hubIdentifier) exists = true;
-                if (!exists)
-                    this->entries.push_back({hub.hubIdentifier, hub.title, AppConfig::instance().isHubHidden(hub.hubIdentifier)});
+            if (r.Items.empty()) {
+                this->loaded = true;
+                this->spinner->setSpinning(false);
+                this->rebuild();
+                return;
             }
-            this->loaded = true;
-            this->spinner->setSpinning(false);
-            this->rebuild();
+            this->pendingSections = (int)r.Items.size();
+            for (auto& section : r.Items) {
+                ASYNC_RETAIN
+                AppConfig::instance().backend().getSectionHubs(
+                    section.key, 50,
+                    [ASYNC_TOKEN](const media::Container<media::Hub>& hr) {
+                        ASYNC_RELEASE
+                        for (auto& hub : hr.Items) {
+                            if (hub.items.empty() || hub.hubIdentifier.empty()) continue;
+                            if (hub.hubIdentifier == "home.continue" || hub.hubIdentifier == "home.ondeck") continue;
+                            bool exists = false;
+                            for (auto& e : this->entries)
+                                if (e.identifier == hub.hubIdentifier) exists = true;
+                            if (!exists)
+                                this->entries.push_back(
+                                    {hub.hubIdentifier, hub.title, AppConfig::instance().isHubHidden(hub.hubIdentifier)});
+                        }
+                        this->finishIfDone();
+                    },
+                    [ASYNC_TOKEN](const std::string& ex) {
+                        ASYNC_RELEASE
+                        brls::Logger::warning("HubVisibilityManager sectionHubs: {}", ex);
+                        this->finishIfDone();
+                    });
+            }
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
-            brls::Logger::warning("HubVisibilityManager homeHubs: {}", ex);
+            brls::Logger::warning("HubVisibilityManager listSections: {}", ex);
             this->loaded = true;
             this->spinner->setSpinning(false);
             this->rebuild();
         });
+}
+
+void HubVisibilityManager::finishIfDone() {
+    this->pendingSections--;
+    if (this->pendingSections > 0) return;
+    this->loaded = true;
+    this->spinner->setSpinning(false);
+    this->rebuild();
 }
 
 void HubVisibilityManager::rebuild() {

@@ -33,12 +33,14 @@ private:
     };
 
     void doRequest();
-    void fetchHomeHubs();  // second stage of doRequest(), after Continue Watching
+    void fetchSections();  // second stage of doRequest(), after Continue Watching
+    void finishIfDone();
     void rebuild();
 
     std::vector<Entry> entries;
     bool loaded = false;
     int pendingFocus = 0;
+    int pendingSections = 0;  // outstanding getSectionHubs() calls
 
     brls::Box* rowsBox = nullptr;
     brls::View* focusTarget = nullptr;

@@ -78,9 +78,19 @@ void HomeTab::doRequest() {
     resume->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
     resume->setVisibility(brls::Visibility::GONE);
     this->boxHome->addView(resume);
+    this->resumeRow = resume;
 
     this->doResume(resume);
     this->doHubs();
+}
+
+/// AttachedView caches the tab's view after its first onCreate(), so a plain
+/// tab revisit never re-runs doRequest() — only playback closing (Presenter's
+/// VIDEO_CLOSE hook) happened to force a refresh. Re-pull just Continue
+/// Watching here so newly-played/resumed items show up without a restart.
+void HomeTab::willAppear(bool resetState) {
+    brls::Box::willAppear(resetState);
+    if (!NetworkState::isOffline() && this->resumeRow) this->doResume(this->resumeRow);
 }
 
 void HomeTab::doResume(RecylingVideo* row) {
