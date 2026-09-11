@@ -59,10 +59,7 @@ public:
     SourceRow() {
         this->setAxis(brls::Axis::ROW);
         this->setAlignItems(brls::AlignItems::CENTER);
-        // min, not fixed: addon-provided name/title can contain embedded
-        // newlines (a common Stremio convention), so the row must be able to
-        // grow taller than the single-line default instead of clipping it
-        this->setMinHeight(46);
+        this->setHeight(46);
         this->setCornerRadius(8);
         this->setHighlightCornerRadius(8);
         this->setFocusable(true);
@@ -440,16 +437,22 @@ void MediaMovie::buildSources(const media::Item& item) {
                                      : sourcePill("main/stremio/source/uncached"_i18n, pillBg, greyCol));
         else
             cells.push_back(sourcePill("main/stremio/source/direct"_i18n, pillBg, textCol));
-        // source name (grows) + release title, verbatim from the addon —
-        // both may embed newlines, so let them wrap instead of clipping
-        auto* nameLabel = sourceLabel(m.label, 15, textCol, true);
-        nameLabel->setSingleLine(false);
-        cells.push_back(nameLabel);
+        // source name + release title from the addon, stacked (head over
+        // body) in a column that grows to fill the row: each is flattened to
+        // one line (streamToMedia) and stretches full-width, so it ellipsizes
+        // on overflow instead of the two competing for space on one line
+        auto* textBox = new brls::Box();
+        textBox->setAxis(brls::Axis::COLUMN);
+        textBox->setGrow(1);
+        textBox->setShrink(1);
+        textBox->setJustifyContent(brls::JustifyContent::CENTER);
+        textBox->addView(sourceLabel(m.label, 15, textCol));
         if (!m.detail.empty()) {
             auto* detailLabel = sourceLabel(m.detail, 13, greyCol);
-            detailLabel->setSingleLine(false);
-            cells.push_back(detailLabel);
+            detailLabel->setMarginTop(2);
+            textBox->addView(detailLabel);
         }
+        cells.push_back(textBox);
         // trailing download glyph: signals the line is downloadable (X button)
         auto* dl = new SVGImage();
         dl->setImageFromSVGRes("icon/ico-download-light.svg");

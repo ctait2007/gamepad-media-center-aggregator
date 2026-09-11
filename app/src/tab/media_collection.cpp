@@ -481,8 +481,12 @@ StremioCatalogs::StremioCatalogs(const std::string& sectionKey, const std::strin
     this->inflateFromXMLRes("xml/tabs/stremio_catalogs.xml");
 
     // one tab per catalog of this type (Populaires / Nouveautés / À la une / …)
+    // — catKey is the same identifier Home hubs use (catalogKey), so the
+    // global hide-list (Settings > Home Rows) applies here too: hiding a
+    // catalog removes its dedicated tab, not just its Home/Suggestions row.
     for (auto& t : AppConfig::instance().backend().sectionTabs(sectionKey)) {
         std::string catKey = t.first, type = sectionType;
+        if (AppConfig::instance().isHubHidden(catKey)) continue;
         auto* item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
         item->setFontSize(18);

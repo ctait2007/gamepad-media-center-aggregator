@@ -630,18 +630,43 @@ inline bool detectDebrid(const std::string& name, bool& cached) {
     return true;
 }
 
+/// Addons format name/title as several lines (provider tag, quality, codec,
+/// size, seeders, language flags, …) meant for a UI that stacks them; GMCA's
+/// source row is one line per field, so a raw multi-line blob renders as an
+/// ugly, unpredictably-tall wall of text that varies wildly addon to addon.
+/// Collapsing each field onto one line, joined by a plain separator, gives
+/// every addon's text the same normalized shape (and the Label ellipsizes it
+/// if still too wide, rather than wrapping into a tall block).
+inline std::string flattenAddonText(const std::string& text) {
+    std::string out;
+    size_t pos = 0;
+    while (pos <= text.size()) {
+        size_t nl = text.find_first_of("\r\n", pos);
+        std::string line = text.substr(pos, nl == std::string::npos ? std::string::npos : nl - pos);
+        size_t start = line.find_first_not_of(' ');
+        if (start != std::string::npos) {
+            size_t end = line.find_last_not_of(' ');
+            if (!out.empty()) out += "  ·  ";
+            out += line.substr(start, end - start + 1);
+        }
+        if (nl == std::string::npos) break;
+        pos = nl + 1;
+    }
+    return out;
+}
+
 /// Map one Stremio stream to a neutral source row. `label`/`detail` are the
-/// addon's own `name`/`title` verbatim (addons format these deliberately,
-/// e.g. "Torrentio\n1080p ⚡"), falling back to the manifest name when a
-/// stream carries no `name`. Only `url` streams are playable here;
-/// infoHash/ytId/externalUrl are classified as non-playable (no torrent
-/// engine / no browser on console).
+/// addon's own `name`/`title`, flattened to one normalized line each
+/// (flattenAddonText), falling back to the manifest name when a stream
+/// carries no `name`. Only `url` streams are playable here; infoHash/ytId/
+/// externalUrl are classified as non-playable (no torrent engine / no
+/// browser on console).
 inline media::Media streamToMedia(const StreamOption& s, const std::string& addonName) {
     media::Media m;
     std::string blob = s.name + " " + s.title;
     m.videoResolution = qualityLabel(blob);
-    m.label = !s.name.empty() ? s.name : addonName;
-    m.detail = s.title;
+    m.label = flattenAddonText(!s.name.empty() ? s.name : addonName);
+    m.detail = flattenAddonText(s.title);
 
     if (!s.url.empty()) {
         bool cached = true;

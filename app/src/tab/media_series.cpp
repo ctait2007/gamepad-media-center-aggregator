@@ -33,27 +33,6 @@ using namespace brls::literals;  // for _i18n
 
 namespace {
 
-/// Dropdown options are plain single-line strings — flatten any embedded
-/// newlines from the addon's raw name/title (a common Stremio convention)
-/// into a safe separator instead of letting them break the option layout.
-std::string flattenLine(const std::string& text) {
-    std::string out;
-    out.reserve(text.size());
-    bool lastWasSpace = false;
-    for (char c : text) {
-        if (c == '\n' || c == '\r') {
-            if (!out.empty() && !lastWasSpace) {
-                out += " · ";
-                lastWasSpace = true;
-            }
-            continue;
-        }
-        out += c;
-        lastWasSpace = (c == ' ');
-    }
-    return out;
-}
-
 /// Stremio/Nuvio only: an episode has no detail page to host an inline source
 /// list like MediaMovie's (movie/source/*, buildSources()), so clicking one
 /// used to skip straight to PlayerView, silently auto-picking the first
@@ -95,9 +74,10 @@ void playWithSourcePicker(const media::Item& item, const std::string& title) {
                 std::string status = m.kind == media::SourceKind::Debrid
                                           ? (m.cached ? "main/stremio/source/cached"_i18n : "main/stremio/source/uncached"_i18n)
                                           : "main/stremio/source/direct"_i18n;
-                // head (m.label) + body (m.detail), verbatim from the addon
-                std::string display = flattenLine(m.label);
-                if (!m.detail.empty()) display += " — " + flattenLine(m.detail);
+                // head (m.label) + body (m.detail), already flattened to one
+                // line each by streamToMedia
+                std::string display = m.label;
+                if (!m.detail.empty()) display += " — " + m.detail;
                 names.push_back(fmt::format("[{}] {} — {}", q, status, display));
                 playableIdx.push_back((int)i);
             }
