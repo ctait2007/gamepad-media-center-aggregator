@@ -4,20 +4,23 @@
     Nuvio speaks the Stremio addon protocol, so every navigation, catalog,
     item-detail, playback and subtitle verb below just forwards to an internal
     stremio::StremioBackend — reused UNCHANGED, per MULTI_BACKEND.md. Only the
-    account layer differs: sign-in, profile selection and addon-list resync go
-    through Nuvio's Supabase backend (api/nuvio/auth.hpp, api/nuvio/sync.hpp)
-    instead of api.strem.io. See tab/nuvio_add.cpp for sign-in + profile pick.
+    account layer differs: sign-in, profile selection, addon-list resync, and
+    watch progress/history go through Nuvio's Supabase backend
+    (api/nuvio/auth.hpp, api/nuvio/sync.hpp, api/nuvio/progress.hpp) instead of
+    api.strem.io. See tab/nuvio_add.cpp for sign-in + profile pick.
 
-    STAGE 1 scope: navigation/playback (delegated) + read-only addon sync.
-    markWatched/markUnwatched are pure virtual on media::Backend and are
-    stage-1 no-ops; library/progress sync (watchlist, watched flag, continue
-    watching, reportProgress) lands in stage 2 and will replace them plus flip
-    the relevant Capabilities flags below.
+    Watch history (this pass): Continue Watching, progress-aware Next Up
+    (resume an in-progress episode, advance to the next fresh one, or Replay
+    once the whole show is finished), and mark watched/unwatched — all backed
+    by ProgressStore (watch_progress + watched_items). Library/watchlist
+    ("My List") sync is a separate, not-yet-done piece: caps().listKind stays
+    None and canList/listWatchlist/etc. stay unoverridden (base no-ops).
 */
 
 #pragma once
 
 #include "api/backend.hpp"
+#include "api/nuvio/progress.hpp"
 #include "api/stremio/backend.hpp"
 
 namespace nuvio {
@@ -44,9 +47,10 @@ public:
         media::OnError error) override {
         delegate.getSectionHubs(sectionId, count, then, error);
     }
-    void getContinueWatching(int count, media::Then<media::Container<media::Hub>> then, media::OnError error) override {
-        delegate.getContinueWatching(count, then, error);
-    }
+    // Nuvio-specific: built from ProgressStore (watch_progress), not
+    // delegated — the delegate's own implementation calls Stremio's account
+    // datastore, which a Nuvio connection has no valid token for. See backend.cpp.
+    void getContinueWatching(int count, media::Then<media::Container<media::Hub>> then, media::OnError error) override;
     void getLibraryGrid(const std::string& sectionId, const media::GridQuery& q, size_t start, size_t size,
         media::Then<media::Container<media::Item>> then, media::OnError error) override {
         delegate.getLibraryGrid(sectionId, q, start, size, then, error);
@@ -69,9 +73,10 @@ public:
         media::OnError error) override {
         delegate.getAllEpisodes(showId, includeStreams, then, error);
     }
-    void getNextUp(const std::string& showId, std::function<void(media::Item, bool)> then, media::OnError error) override {
-        delegate.getNextUp(showId, then, error);
-    }
+    // Nuvio-specific: progress-aware (see backend.cpp) — the delegate's own
+    // implementation is a stage-1 Stremio stub that always offers episode 1.
+    void getNextUp(
+        const std::string& showId, std::function<void(media::Item, bool)> then, media::OnError error) override;
     void getExtras(const std::string& id, media::Then<media::Container<media::Item>> then, media::OnError error) override {
         delegate.getExtras(id, then, error);
     }
@@ -108,9 +113,9 @@ public:
         delegate.getPlaylistItems(playlistId, start, size, then, error);
     }
 
-    // ---- item actions: watched-flag sync lands in stage 2 ---------------------
-    void markWatched(const std::string& id) override {}
-    void markUnwatched(const std::string& id) override {}
+    // ---- item actions: watched_items sync (see backend.cpp) -------------------
+    void markWatched(const std::string& id) override;
+    void markUnwatched(const std::string& id) override;
 
     // ---- playback: unchanged, delegated ---------------------------------------
     media::PlaybackSource resolvePlayback(
@@ -126,6 +131,9 @@ public:
     // Nuvio-branded wording (the delegate's own hint says "your Stremio
     // account" — wrong here), see backend.cpp.
     std::string subtitleMenuHint() const override;
+    // Nuvio-specific: pushes to watch_progress, throttled (see backend.cpp).
+    void reportProgress(const std::string& id, media::PlayState state, int64_t posMs, int64_t durMs,
+        const std::string& sessionId) override;
 
     // ---- url helpers: unchanged, delegated ------------------------------------
     std::string imageUrl(const std::string& path, int width = 0, int height = 0) const override {
@@ -137,6 +145,7 @@ public:
 private:
     media::Capabilities caps_;
     stremio::StremioBackend delegate;
+    ProgressStore progressStore;
 };
 
 }  // namespace nuvio
