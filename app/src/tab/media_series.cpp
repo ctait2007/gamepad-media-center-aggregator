@@ -26,9 +26,77 @@
 #include "utils/offline_library.hpp"
 #include "utils/network_state.hpp"
 #include "tab/remote_view.hpp"
+#include <borealis.hpp>
 #include <fmt/ranges.h>
 
 using namespace brls::literals;  // for _i18n
+
+namespace {
+
+/// Stremio/Nuvio only: an episode has no detail page to host an inline source
+/// list like MediaMovie's (movie/source/*, buildSources()), so clicking one
+/// used to skip straight to PlayerView, silently auto-picking the first
+/// accessible stream. This fetches full detail (populates item.media, same
+/// fresh fetch buildSources relies on) and, when there is a real choice,
+/// offers a compact picker (a Dropdown, same pattern as the profile pickers)
+/// before opening the player with the chosen version — Plex/Jellyfin keep
+/// their existing direct-to-player behavior (no addon-protocol source list to
+/// choose from).
+void playWithSourcePicker(const media::Item& item, const std::string& title) {
+    std::string seriesId = item.grandparentRatingKey;
+    // Passed explicitly (rather than left on whichever Item ends up handed to
+    // PlayerView) so the picker path's fresh getItemDetail() re-fetch — whose
+    // own viewOffset addons know nothing about — can't clobber a resume
+    // position computed by the caller (e.g. Next Up's progress-aware resume).
+    int64_t resumeMs = item.viewOffset;
+    auto openPlayer = [seriesId, title, resumeMs](const media::Item& toPlay, int versionIndex) {
+        PlayerView* view = new PlayerView(toPlay, resumeMs, versionIndex);
+        view->setTitie(title);
+        if (!seriesId.empty()) view->setSeries(seriesId);
+        brls::sync([view]() { brls::Application::giveFocus(view); });
+    };
+
+    auto backendType = AppConfig::instance().backend().type();
+    if (backendType != media::BackendType::Stremio && backendType != media::BackendType::Nuvio) {
+        openPlayer(item, -1);
+        return;
+    }
+
+    AppConfig::instance().backend().getItemDetail(
+        item.ratingKey, true,
+        [openPlayer](const media::Item& full) {
+            std::vector<int> playableIdx;
+            std::vector<std::string> names;
+            for (size_t i = 0; i < full.media.size(); i++) {
+                const media::Media& m = full.media[i];
+                if (!m.playable()) continue;
+                std::string q = m.videoResolution.empty() ? "SD" : m.videoResolution;
+                std::string status = m.kind == media::SourceKind::Debrid
+                                          ? (m.cached ? "main/stremio/source/cached"_i18n : "main/stremio/source/uncached"_i18n)
+                                          : "main/stremio/source/direct"_i18n;
+                names.push_back(fmt::format("[{}] {} — {}", q, status, m.label));
+                playableIdx.push_back((int)i);
+            }
+            if (names.empty()) {
+                Dialog::show("main/stremio/source/none"_i18n);
+                return;
+            }
+            auto* dropdown = new brls::Dropdown(
+                "main/media/choose_source"_i18n, names, [](int) {}, 0,
+                [full, playableIdx, openPlayer](int selected) {
+                    if (selected < 0) return;
+                    openPlayer(full, playableIdx[(size_t)selected]);
+                });
+            brls::Application::pushActivity(new brls::Activity(dropdown));
+            brls::sync([]() {
+                auto stack = brls::Application::getActivitiesStack();
+                if (!stack.empty()) brls::Application::giveFocus(stack.back()->getDefaultFocus());
+            });
+        },
+        [](const std::string& ex) { Dialog::show(ex); });
+}
+
+}  // namespace
 
 class EpisodeCardCell : public BaseCardCell {
 public:
@@ -213,13 +281,11 @@ public:
             return;
         }
 
-        PlayerView* view = new PlayerView(item);
-        view->setTitie(item.grandparentTitle.empty()
-                           ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
-                           : fmt::format("{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index,
-                                 item.title));
-        if (!item.grandparentRatingKey.empty()) view->setSeries(item.grandparentRatingKey);
-        brls::sync([view]() { brls::Application::giveFocus(view); });
+        std::string title = item.grandparentTitle.empty()
+                                ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
+                                : fmt::format("{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index,
+                                      item.title);
+        playWithSourcePicker(item, title);
     }
 
     void onContextMenu(brls::Box* recycler, size_t index) {
@@ -579,13 +645,11 @@ void MediaSeries::doPlay() {
     // would otherwise resume at the episode's residual viewOffset (player_view.cpp:101)
     plex::Item item = this->onDeck;
     if (this->replay) item.viewOffset = 0;
-    PlayerView* view = new PlayerView(item);
-    view->setTitie(item.grandparentTitle.empty()
-                       ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
-                       : fmt::format(
-                             "{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index, item.title));
-    if (!item.grandparentRatingKey.empty()) view->setSeries(item.grandparentRatingKey);
-    brls::sync([view]() { brls::Application::giveFocus(view); });
+    std::string title = item.grandparentTitle.empty()
+                             ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
+                             : fmt::format(
+                                   "{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index, item.title);
+    playWithSourcePicker(item, title);
 }
 
 void MediaSeries::doDownloadSeries() {

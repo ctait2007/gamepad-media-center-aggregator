@@ -532,16 +532,6 @@ inline std::string qualityLabel(const std::string& text) {
     return "SD";
 }
 
-/// Sort rank for a resolution label (higher = better; CAM/SD low).
-inline int qualityRank(const std::string& label) {
-    if (label == "4K") return 6;
-    if (label == "1440p") return 5;
-    if (label == "1080p") return 4;
-    if (label == "720p") return 3;
-    if (label == "480p" || label == "SD") return 2;
-    return 1;  // CAM
-}
-
 /// PS Vita sort rank. The hardware H.264 decoder tops out at 1080p and 4K
 /// hard-crashes the GPU (blue light), while 1080p remux bitrates stutter on the
 /// Vita's limited CPU/IO. So every <=720p source outranks 1080p, which stays

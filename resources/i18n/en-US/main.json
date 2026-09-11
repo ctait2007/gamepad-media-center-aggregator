@@ -57,6 +57,7 @@
     "speed_up": "Current speed {}"
   },
   "media": {
+    "choose_source": "Choose a source",
     "sort": "Sort",
     "sort_by": "Sort By",
     "filter": "Filter",

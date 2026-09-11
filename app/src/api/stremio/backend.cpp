@@ -203,13 +203,13 @@ std::string buildCatalogUrl(const std::string& base, const std::string& type, co
 }
 
 /// Fan out /stream across the addons serving (type,id) and return EVERY source
-/// as a neutral media::Media row (parsed quality/codec/size/kind/cache), ordered
-/// playable-first by quality (cached debrid before uncached), then the non-
-/// playable sources (torrent/external/youtube) by quality. The order is stable
-/// so the index the detail page shows matches the one PlayerView re-resolves at
-/// play time. Debrid addons resolve infoHash -> a real url server-side, landing
-/// here as a playable Direct/Debrid row; infoHash-only/ytId/externalUrl stay
-/// non-playable (no local torrent client / browser on console).
+/// as a neutral media::Media row (parsed quality/codec/size/kind/cache), in the
+/// order the addons themselves returned them — GMCA does not re-rank sources
+/// (an addon like Torrentio already orders by its own quality/seeder/cache
+/// heuristics; re-sorting here just fights that). Debrid addons resolve
+/// infoHash -> a real url server-side, landing here as a playable
+/// Direct/Debrid row; infoHash-only/ytId/externalUrl stay non-playable (no
+/// local torrent client / browser on console).
 std::vector<media::Media> resolveAllStreams(
     AddonEngine& engine, const std::string& stremioType, const std::string& stremioId) {
     std::vector<media::Media> all;
@@ -241,25 +241,24 @@ std::vector<media::Media> resolveAllStreams(
                   }),
         all.end());
 #endif
-    std::stable_sort(all.begin(), all.end(), [](const media::Media& x, const media::Media& y) {
-        if (x.playable() != y.playable()) return x.playable();  // playable first
 #if defined(__PSV__)
-        // decodable video codec first (H.264 explicit > unknown; the
-        // no-decoder codecs were erased above, this is a safety net), then
-        // decodable audio (an eac3/dts/truehd/opus track plays SILENT on the
-        // Vita ffmpeg build), then quality
+    // Vita hardware/perf safety net — NOT the addon-order-preserving policy
+    // this function otherwise follows (see docstring above). An eac3/dts/
+    // truehd/opus audio track plays SILENT on the Vita ffmpeg build, and
+    // field testing showed 1080p remux bitrates stutter on the Vita's
+    // limited CPU/IO even though the hardware decoder can technically handle
+    // them (see qualityRankVita) — so decodable codecs and <=720p are
+    // preferred among the remaining (already codec/resolution-filtered
+    // above) candidates, rather than left to the addon's own order.
+    std::stable_sort(all.begin(), all.end(), [](const media::Media& x, const media::Media& y) {
         int cx = codecRankVita(x.videoCodec), cy = codecRankVita(y.videoCodec);
         if (cx != cy) return cx > cy;
         int ax = audioRankVita(x.audioCodec), ay = audioRankVita(y.audioCodec);
         if (ax != ay) return ax > ay;
         int qx = qualityRankVita(x.videoResolution), qy = qualityRankVita(y.videoResolution);
-#else
-        int qx = qualityRank(x.videoResolution), qy = qualityRank(y.videoResolution);
-#endif
-        if (qx != qy) return qx > qy;                           // then best quality
-        if (x.playable() && x.cached != y.cached) return x.cached;  // then cached debrid first
-        return false;
+        return qx > qy;
     });
+#endif
     return all;
 }
 
