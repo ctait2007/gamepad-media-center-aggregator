@@ -114,6 +114,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {LIBRARY_SORT, {"library_sort"}},
     {SIDEBAR_LAYOUT, {"sidebar_layout"}},
     {HIDDEN_HUBS, {"hidden_hubs"}},
+    {HUB_ORDER, {"hub_order"}},
 
     {HINT_FORWARDER, {"hint_forwarder"}},
     {HINT_FORWARDER_GMCA, {"hint_forwarder_gmca"}},
@@ -606,6 +607,10 @@ void AppConfig::setHubHidden(const std::string& hubIdentifier, bool hidden) {
         list.erase(std::remove(list.begin(), list.end(), hubIdentifier), list.end());
     this->setItem(HIDDEN_HUBS, list);
 }
+
+std::vector<std::string> AppConfig::getHubOrder() { return this->getItem<std::vector<std::string>>(HUB_ORDER, {}); }
+
+void AppConfig::setHubOrder(const std::vector<std::string>& order) { this->setItem(HUB_ORDER, order); }
 
 media::BackendType AppConfig::backendTypeFromString(const std::string& type) {
     if (type == "jellyfin") return media::BackendType::Jellyfin;

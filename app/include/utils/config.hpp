@@ -163,6 +163,13 @@ public:
         /// AppConfig::isHubHidden/setHubHidden. JSON: [hubIdentifier, ...]
         HIDDEN_HUBS,
 
+        /// Global (not per-server) display order of non-hidden hub identifiers
+        /// — see AppConfig::getHubOrder/setHubOrder. Same identifier space as
+        /// HIDDEN_HUBS; an identifier absent from this list (e.g. a newly
+        /// discovered catalog) sorts after every listed one, in discovery
+        /// order. JSON: [hubIdentifier, ...]
+        HUB_ORDER,
+
         /// HOME tile install prompt (forwarder NSP) already shown at first
         /// launch in application mode (Switch).
         HINT_FORWARDER,
@@ -289,6 +296,12 @@ public:
     bool isHubHidden(const std::string& hubIdentifier);
     /// Adds/removes a hub identifier from the global hidden set and persists.
     void setHubHidden(const std::string& hubIdentifier, bool hidden);
+    /// Saved display order of non-hidden hub identifiers (see HUB_ORDER).
+    /// Callers stable_sort their own hub list by an id's position here
+    /// (missing ids sort last, in whatever order they were already in).
+    std::vector<std::string> getHubOrder();
+    /// Replaces the saved hub order and persists.
+    void setHubOrder(const std::vector<std::string>& order);
     const std::vector<AppRemote>& getRemotes() const { return this->remotes; }
     void addRemote(const AppRemote& r);
     void updateRemote(size_t index, const AppRemote& r);

@@ -407,10 +407,16 @@ void StremioBackend::getHomeHubs(
             for (auto& p : engine.catalogsForType("series")) cats.push_back(p);
 
             media::Container<media::Hub> out;
-            const size_t maxHubs = 8;
             for (auto& pc : cats) {
-                if (out.Items.size() >= maxHubs) break;
                 const Catalog& cat = pc.second;
+                std::string key = catalogKey(pc.first.base, cat.type, cat.id);
+                // Skip hidden catalogs before paying for the fetch — getHomeHubs
+                // is Home-only (Settings' own catalog list uses getSectionHubs,
+                // which must keep returning hidden ones so they stay manageable
+                // there), so it's always correct to drop them here. No row-count
+                // cap: Home shows every non-hidden catalog now, not a curated
+                // top N — AppConfig::getHubOrder (home_tab.cpp) decides position.
+                if (AppConfig::instance().isHubHidden(key)) continue;
                 std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
                 CatalogResult res;
                 try {
@@ -422,7 +428,7 @@ void StremioBackend::getHomeHubs(
                 if (res.items.empty()) continue;
                 media::Hub h;
                 h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
-                h.key = catalogKey(pc.first.base, cat.type, cat.id);  // "see all" -> getHubPage
+                h.key = key;  // "see all" -> getHubPage
                 // Stable identity (addon base + type + catalog id), NOT the
                 // iteration index: an index shifts if a catalog ahead of it
                 // goes temporarily empty or the addon list is reordered,

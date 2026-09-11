@@ -348,7 +348,7 @@
     },
     "hidden_rows": {
       "header": "Home Rows",
-      "description": "Show or hide rows (Continue Watching, catalogs, …) wherever they appear — Home, the Movie/Show suggestion tabs, and their own catalog tabs. This setting applies to every connection.",
+      "description": "Reorder and hide rows (Continue Watching, catalogs, …). Reordering applies to Home; hiding applies wherever a row appears — Home, the Movie/Show suggestion tabs, and their own catalog tabs. Shown rows always sort above hidden ones. This setting applies to every connection.",
       "empty": "No rows to organize yet — connect and browse a bit first"
     },
     "others": {
