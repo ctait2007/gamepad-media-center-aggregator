@@ -65,7 +65,7 @@ set(PROJECT_TITLEID "0500474D43410000")
 set(PROJECT_AUTHOR "thcolin")
 set(PACKAGE_NAME "fun.thcolin.gmca")
 set(VITA_TITLEID "GMCA00001")
-set(PSN_TITLE_ID "GMCANUVIO")
+set(PSN_TITLE_ID "GMCA00002")
 # VITA_VERSION is the Vita package version (2-digit MM.NN, independent of the
 # main version). Bumped every Vita release so the package version never
 # regresses; 00.23 shipped with the broken v1.0.3 VPK, 00.24 is the first that
