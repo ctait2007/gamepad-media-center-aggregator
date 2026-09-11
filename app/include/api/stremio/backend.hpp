@@ -28,6 +28,12 @@ public:
     media::BackendType type() const override { return media::BackendType::Stremio; }
     const media::Capabilities& caps() const override { return caps_; }
 
+    /// Access to the underlying addon engine. Exposed so a delegating backend
+    /// that reuses this engine but has its own account API (see
+    /// nuvio::NuvioBackend) can replace how the addon list gets (re)synced —
+    /// see AddonEngine::resyncAddons.
+    AddonEngine& addonEngine() { return engine; }
+
     // ---- navigation ----------------------------------------------------------
     void listSections(media::Then<media::Container<media::Section>> then, media::OnError error) override;
     std::vector<std::pair<std::string, std::string>> sectionTabs(const std::string& sectionId) override;

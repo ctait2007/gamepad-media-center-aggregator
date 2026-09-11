@@ -53,6 +53,14 @@ static const ThemeColors kStremio = {
     /* light */ {{0x5E, 0x45, 0xC9}, {0x7B, 0x5B, 0xF5}, {0xFF, 0xFF, 0xFF}, {0x6B, 0x53, 0xC9}},
 };
 
+// ---- NUVIO ------------------------------------------------------------------
+// UNVERIFIED placeholder (see theme_palette.hpp) — a teal distinct from every
+// other backend's accent, not a checked brand color.
+static const ThemeColors kNuvio = {
+    /* dark  */ {{0x14, 0xB8, 0xA6}, {0x5E, 0xEA, 0xD4}, {0x00, 0x1A, 0x17}, {0x6E, 0xD9, 0xCB}},
+    /* light */ {{0x0F, 0x87, 0x79}, {0x14, 0xB8, 0xA6}, {0x00, 0x1A, 0x17}, {0x0C, 0x6B, 0x60}},
+};
+
 const ThemeColors& defaultPalette() { return kDefault; }
 
 const ThemeColors& backendPalette(media::BackendType type) {
@@ -61,6 +69,7 @@ const ThemeColors& backendPalette(media::BackendType type) {
         case media::BackendType::Jellyfin: return kJellyfin;
         case media::BackendType::Emby: return kEmby;
         case media::BackendType::Stremio: return kStremio;
+        case media::BackendType::Nuvio: return kNuvio;
     }
     return kPlex;
 }

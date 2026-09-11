@@ -24,4 +24,5 @@ private:
     BRLS_BIND(brls::DetailCell, cellJellyfin, "type/jellyfin");
     BRLS_BIND(brls::DetailCell, cellEmby, "type/emby");
     BRLS_BIND(brls::DetailCell, cellStremio, "type/stremio");
+    BRLS_BIND(brls::DetailCell, cellNuvio, "type/nuvio");
 };

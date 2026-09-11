@@ -431,11 +431,27 @@
       "password": "Password",
       "connect": "Connect",
       "invalid": "Enter your email and password"
+    },
+    "nuvio": {
+      "title": "Sign in to Nuvio",
+      "url": "Backend URL",
+      "email": "Email",
+      "password": "Password",
+      "connect": "Connect",
+      "invalid": "Enter your email and password",
+      "bad_credentials": "Wrong email or password",
+      "no_profile": "No profile found on this account",
+      "wrong_pin": "Wrong PIN"
     }
   },
   "empty": {
     "title": "Nothing to show",
     "error": "Unable to load"
+  },
+  "nuvio": {
+    "subtitle": {
+      "none": "No subtitles available. Install a subtitles addon (e.g. OpenSubtitles) in your Nuvio account to get some here."
+    }
   },
   "stremio": {
     "subtitle": {

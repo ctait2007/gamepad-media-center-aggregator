@@ -57,6 +57,10 @@
             <brls:DetailCell
                 id="type/stremio"
                 title="Stremio" />
+
+            <brls:DetailCell
+                id="type/nuvio"
+                title="Nuvio" />
         </brls:Box>
 
     </brls:Box>

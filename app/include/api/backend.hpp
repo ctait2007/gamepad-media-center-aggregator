@@ -30,7 +30,7 @@ template <typename T>
 using Then = std::function<void(T)>;
 
 /// Backend kind (also the discriminant persisted in AppServer::type)
-enum class BackendType { Plex, Jellyfin, Emby, Stremio };
+enum class BackendType { Plex, Jellyfin, Emby, Stremio, Nuvio };
 
 /// Content kind requested by the UI (each backend maps onto its own encoding:
 /// Plex type=1|2, Jellyfin includeItemTypes=Movie|Series, Stremio movie|series).

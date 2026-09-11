@@ -90,13 +90,14 @@ MediaMovie::MediaMovie(const plex::Item& item, bool localContext)
     // Inflate the tab from the XML file
     this->inflateFromXMLRes("xml/tabs/movie.xml");
 
-    // Backs playback before doMovie resolves; non-Stremio backends are always
-    // playable (Stremio defers until its sources are resolved).
+    // Backs playback before doMovie resolves; non-addon-protocol backends are
+    // always playable (Stremio/Nuvio defer until their sources are resolved).
     this->movieItem = item;
-    bool stremioBackend = AppConfig::instance().backend().type() == media::BackendType::Stremio;
+    auto backendType = AppConfig::instance().backend().type();
+    bool stremioBackend = backendType == media::BackendType::Stremio || backendType == media::BackendType::Nuvio;
     this->hasPlayableSource = !stremioBackend;
-    // Stremio has no Lire/version buttons — the inline source list is the play
-    // UI. Hide them up front so they never flash before doMovie resolves.
+    // Stremio/Nuvio have no Lire/version buttons — the inline source list is
+    // the play UI. Hide them up front so they never flash before doMovie resolves.
     if (stremioBackend) {
         this->btnPlay->setVisibility(brls::Visibility::GONE);
         this->btnSource->setVisibility(brls::Visibility::GONE);
@@ -582,8 +583,9 @@ void MediaMovie::applyMovie(const media::Item& item) {
     this->movieItem = item;  // resolved detail backs per-source playback
     this->viewOffsetMs = item.viewOffset;
 
-    if (AppConfig::instance().backend().type() == media::BackendType::Stremio) {
-        // Stremio: no Lire/version buttons — the inline source list is the
+    auto backendType = AppConfig::instance().backend().type();
+    if (backendType == media::BackendType::Stremio || backendType == media::BackendType::Nuvio) {
+        // Stremio/Nuvio: no Lire/version buttons — the inline source list is the
         // play/download UI (built here; sets hasPlayableSource). Collapse
         // the now-empty buttons row so it leaves no gap between the genres
         // and the synopsis; initWatchlist re-shows it if Favoris appears.

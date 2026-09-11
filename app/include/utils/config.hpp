@@ -5,6 +5,7 @@
 #include <borealis/core/theme.hpp>
 #include <nlohmann/json.hpp>
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <optional>
 
@@ -30,7 +31,7 @@ public:
     static void checkUpdate(int delay = 2000, bool showUpToDateDialog = false);
 
     inline static std::shared_ptr<std::atomic_bool> updating = std::make_shared<std::atomic_bool>(true);
-    inline static std::string git_repo = "thcolin/gamepad-media-center-aggregator";
+    inline static std::string git_repo = "ctait2007/gamepad-media-center-aggregator";
 
     /// Real path of the running NRO (argv[0] provided by hbloader or the
     /// forwarder), filled in main(). THIS is the file the auto-update must
@@ -48,8 +49,12 @@ struct AppUser {
     std::string access_token;
     std::string server_id;  // clientIdentifier of the last used server
     std::string thumb;      // avatar (absolute plex.tv URL)
+    // Nuvio only: profile_index (1-6) this connection selects. All Nuvio data
+    // (addons, library, progress) is scoped to a profile, not the account.
+    int nuvio_profile_index = 0;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AppUser, id, name, access_token, server_id, thumb);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+    AppUser, id, name, access_token, server_id, thumb, nuvio_profile_index);
 
 /// A known media server. `access_token` is the server access token (Plex: from
 /// /api/v2/resources; Jellyfin: AccessToken from authentication). urls.front()
@@ -60,12 +65,23 @@ struct AppServer {
     std::string id;  // clientIdentifier (machine id) / Jellyfin server Id / Stremio account user id
     std::string access_token;
     std::vector<std::string> urls;
-    std::string type = "plex";  // plex | jellyfin | emby | stremio
-    // Stremio only: transport URLs (…/manifest.json) of the installed addons,
-    // either entered manually or synced from the account's addon collection.
+    std::string type = "plex";  // plex | jellyfin | emby | stremio | nuvio
+    // Stremio/Nuvio: transport URLs (…/manifest.json) of the installed addons,
+    // either entered manually (Stremio) or synced from the account's addon
+    // collection (Stremio: addonCollectionGet; Nuvio: the `addons` table).
     std::vector<std::string> addons;
+    // Nuvio only: Supabase session. `access_token` (above) is the current
+    // short-lived bearer token; `nuvio_refresh_token` rotates on every use (the
+    // old one is rejected the moment a new one is issued) and must be persisted
+    // immediately after each refresh; `nuvio_expires_at` (epoch seconds) drives
+    // proactive refresh; `nuvio_publishable_key` is the anon key discovered
+    // from /.well-known/nuvio at sign-in, cached so it needn't be re-fetched.
+    std::string nuvio_refresh_token;
+    std::string nuvio_publishable_key;
+    int64_t nuvio_expires_at = 0;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AppServer, id, name, access_token, urls, type, addons);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AppServer, id, name, access_token, urls, type, addons,
+    nuvio_refresh_token, nuvio_publishable_key, nuvio_expires_at);
 
 struct AppRemote {
     std::string name;
@@ -243,6 +259,20 @@ public:
     /// Stremio only: replace the active server's addon list (after an account
     /// collection re-sync) and persist. No-op when unchanged or not logged in.
     void setStremioAddons(const std::vector<std::string>& addons);
+    /// Nuvio only: refresh token of the active server's Supabase session.
+    /// Empty for other backends / when not logged in.
+    const std::string& getNuvioRefreshToken() const;
+    /// Nuvio only: publishable (anon) key cached at sign-in.
+    const std::string& getNuvioPublishableKey() const;
+    /// Nuvio only: epoch-seconds expiry of the current access token (getToken()).
+    int64_t getNuvioExpiresAt() const;
+    /// Nuvio only: profile_index (1-6) of the active connection.
+    int getNuvioProfileIndex() const;
+    /// Nuvio only: replaces the active server's access/refresh token pair and
+    /// expiry (sign-in or a proactive/401 refresh) and persists immediately —
+    /// Supabase refresh tokens are single-use, so a delayed persist could
+    /// strand the connection on a token Nuvio will never accept again.
+    void setNuvioSession(const std::string& accessToken, const std::string& refreshToken, int64_t expiresAt);
     /// Active media backend (built lazily from the active server's type).
     /// The UI talks to this; it never formats a provider URL itself.
     media::Backend& backend();

@@ -864,7 +864,7 @@ void MediaSeries::doNextup() {
             this->btnPlay->setVisibility(brls::Visibility::VISIBLE);
 
             auto& be = AppConfig::instance().backend();
-            if (be.type() == media::BackendType::Stremio) {
+            if (be.type() == media::BackendType::Stremio || be.type() == media::BackendType::Nuvio) {
                 // Honest Play: resolve the next episode's sources, then enable
                 // (playable) or mute + relabel (no playable source). Never hide
                 // it — hiding a focused button strands the focus highlight.

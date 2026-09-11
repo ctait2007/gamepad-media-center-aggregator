@@ -46,6 +46,7 @@ constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
 #include "api/plex/backend.hpp"
 #include "api/jellyfin/backend.hpp"
 #include "api/stremio/backend.hpp"
+#include "api/nuvio/backend.hpp"
 #include "api/http.hpp"
 #include "utils/config.hpp"
 #include "utils/theme_palette.hpp"
@@ -576,6 +577,9 @@ media::Backend& AppConfig::backend() {
             case media::BackendType::Stremio:
                 this->activeBackend = new stremio::StremioBackend();
                 break;
+            case media::BackendType::Nuvio:
+                this->activeBackend = new nuvio::NuvioBackend();
+                break;
             case media::BackendType::Plex:
                 this->activeBackend = new plex::PlexBackend();
                 break;
@@ -588,6 +592,7 @@ media::BackendType AppConfig::backendTypeFromString(const std::string& type) {
     if (type == "jellyfin") return media::BackendType::Jellyfin;
     if (type == "emby") return media::BackendType::Emby;
     if (type == "stremio") return media::BackendType::Stremio;
+    if (type == "nuvio") return media::BackendType::Nuvio;
     return media::BackendType::Plex;
 }
 
@@ -610,6 +615,47 @@ void AppConfig::setStremioAddons(const std::vector<std::string>& addons) {
     }
 }
 
+const std::string& AppConfig::getNuvioRefreshToken() const {
+    static const std::string empty;
+    if (this->user == this->users.end()) return empty;
+    for (auto& s : this->servers)
+        if (s.id == this->user->server_id) return s.nuvio_refresh_token;
+    return empty;
+}
+
+const std::string& AppConfig::getNuvioPublishableKey() const {
+    static const std::string empty;
+    if (this->user == this->users.end()) return empty;
+    for (auto& s : this->servers)
+        if (s.id == this->user->server_id) return s.nuvio_publishable_key;
+    return empty;
+}
+
+int64_t AppConfig::getNuvioExpiresAt() const {
+    if (this->user == this->users.end()) return 0;
+    for (auto& s : this->servers)
+        if (s.id == this->user->server_id) return s.nuvio_expires_at;
+    return 0;
+}
+
+int AppConfig::getNuvioProfileIndex() const {
+    if (this->user == this->users.end()) return 1;
+    return this->user->nuvio_profile_index > 0 ? this->user->nuvio_profile_index : 1;
+}
+
+void AppConfig::setNuvioSession(const std::string& accessToken, const std::string& refreshToken, int64_t expiresAt) {
+    if (this->user == this->users.end()) return;
+    for (auto& s : this->servers) {
+        if (s.id != this->user->server_id) continue;
+        s.access_token = accessToken;
+        s.nuvio_refresh_token = refreshToken;
+        s.nuvio_expires_at = expiresAt;
+        this->server_token = accessToken;  // keep the in-memory active token in sync
+        this->save();
+        return;
+    }
+}
+
 bool AppConfig::checkLogin() {
     auto is_user = [this](const AppUser& u) { return u.id == this->user_id; };
     this->user = std::find_if(this->users.begin(), this->users.end(), is_user);
@@ -624,8 +670,9 @@ bool AppConfig::checkLogin() {
     // unreachable LAN address no longer blocks a reachable remote/relay one while
     // roaming (GH #36). Stremio has no single reachable "server" (it aggregates
     // remote addons + an optional account); skip the probe, accept the stored one.
-    std::string url = it->type == "stremio" ? (it->urls.empty() ? std::string() : it->urls.front())
-                                            : plex::raceConnections(it->urls, it->access_token);
+    std::string url = (it->type == "stremio" || it->type == "nuvio")
+                           ? (it->urls.empty() ? std::string() : it->urls.front())
+                           : plex::raceConnections(it->urls, it->access_token);
     if (url.empty()) {
         brls::Logger::warning("AppConfig checkLogin: aucun endpoint joignable pour {}", it->name);
         return false;
@@ -703,6 +750,11 @@ bool AppConfig::addServer(const AppServer& s) {
         if (s.id == o.id) {
             if (!s.name.empty()) o.name = s.name;
             if (!s.access_token.empty()) o.access_token = s.access_token;
+            // Nuvio: a fresh sign-in issues a brand-new refresh token — an old
+            // stored one left in place here would be a stale, unusable session.
+            if (!s.nuvio_refresh_token.empty()) o.nuvio_refresh_token = s.nuvio_refresh_token;
+            if (!s.nuvio_publishable_key.empty()) o.nuvio_publishable_key = s.nuvio_publishable_key;
+            if (s.nuvio_expires_at > 0) o.nuvio_expires_at = s.nuvio_expires_at;
             this->server_token = o.access_token;
             // remove old url
             for (auto it = o.urls.begin(); it != o.urls.end(); ++it) {
@@ -730,6 +782,7 @@ void AppConfig::addUser(const AppUser& u, const std::string& url) {
         it->access_token = u.access_token;
         it->server_id = u.server_id;
         it->thumb = u.thumb;
+        it->nuvio_profile_index = u.nuvio_profile_index;
     } else {
         it = this->users.insert(it, u);
     }

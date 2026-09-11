@@ -10,6 +10,7 @@
 #include "tab/plex_add.hpp"
 #include "tab/jellyfin_add.hpp"
 #include "tab/stremio_add.hpp"
+#include "tab/nuvio_add.hpp"
 
 using namespace brls::literals;  // for _i18n
 
@@ -31,6 +32,10 @@ ServerTypeChoose::ServerTypeChoose() {
     });
     this->cellStremio->registerClickAction([](brls::View* view) {
         view->present(new StremioAdd());
+        return true;
+    });
+    this->cellNuvio->registerClickAction([](brls::View* view) {
+        view->present(new NuvioAdd());
         return true;
     });
 }

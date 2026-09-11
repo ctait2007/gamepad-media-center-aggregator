@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <functional>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -20,6 +21,16 @@ namespace stremio {
 
 class AddonEngine {
 public:
+    /// Invoked once at the start of ensureLoaded(), before loading manifests:
+    /// refreshes the account's addon collection and calls
+    /// AppConfig::setStremioAddons() with the fresh list (or does nothing,
+    /// keeping the stored list, e.g. offline/expired token — never throws).
+    /// StremioBackend sets this to its own account API (addonCollectionGet) in
+    /// its constructor; a backend that reuses this engine but has its own
+    /// account API (NuvioBackend, the `addons` table) replaces it with its own.
+    /// Unset = no resync, just load whatever AppConfig already has.
+    std::function<void()> resyncAddons;
+
     /// Fetch + parse every configured manifest exactly once. Called from inside
     /// a brls::async body (a backend verb), so it may block on HTTP. A manifest
     /// that fails to load is logged and skipped — never fatal.

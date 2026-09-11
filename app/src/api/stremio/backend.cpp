@@ -303,6 +303,26 @@ std::vector<media::Stream> resolveAllSubtitles(
 }  // namespace
 
 StremioBackend::StremioBackend() {
+    // Re-sync the account's addon collection at the start of every
+    // ensureLoaded() (see AddonEngine::resyncAddons). Stremio (re)configures an
+    // addon by REPLACING its transportUrl (e.g. Torrentio's debrid apikey lives
+    // in the URL path) and the official clients pull the collection at every
+    // startup — a list snapshotted at login goes stale and keeps serving
+    // raw-torrent streams instead of debrid links (GH #46). On failure
+    // (offline, expired key) keep the stored list; an empty collection is
+    // ignored too (a live account always has the default addons) rather than
+    // wiping a working list.
+    engine.resyncAddons = []() {
+        const std::string& authKey = AppConfig::instance().getToken();
+        if (authKey.empty()) return;
+        try {
+            std::vector<std::string> fresh = fetchAddonCollection(authKey);
+            if (!fresh.empty()) AppConfig::instance().setStremioAddons(fresh);
+        } catch (const std::exception& ex) {
+            brls::Logger::warning("stremio: addon collection sync failed: {}", ex.what());
+        }
+    };
+
     // Browsable catalogs + composed home rows + ratings, always on. The account-
     // backed features (library = watchlist, watched flag, progress sync, continue
     // watching) are gated on a connected account (authKey persisted as the server

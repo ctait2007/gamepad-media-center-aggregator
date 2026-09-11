@@ -14,6 +14,10 @@
       Jellyfin #00A4DC  (official accent; #AA5CC3 = logo-gradient purple)
       Emby     #52B54B  (official green, from Emby's own dark skin)
       Stremio  #7B5BF5  (vivid logo-gradient purple)
+
+    Nuvio's accent is NOT a verified brand color (unlike the ones above) — no
+    official brand asset was available to check against; pick a real one and
+    update theme_palette.cpp if you have it.
 */
 
 #pragma once
