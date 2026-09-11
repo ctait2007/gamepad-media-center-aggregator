@@ -25,6 +25,7 @@ void SuggestShow::doRequest() {
             this->box->clearViews();
             for (auto& hub : r.Items) {
                 if (hub.items.empty()) continue;
+                if (AppConfig::instance().isHubHidden(hub.hubIdentifier)) continue;
                 RecylingVideo* row = new RecylingVideo();
                 row->setTitle(hub.title);
                 // landscape thumbnails for episodes/clips, posters otherwise

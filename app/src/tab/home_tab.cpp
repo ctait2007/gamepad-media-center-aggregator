@@ -90,6 +90,7 @@ void HomeTab::doResume(RecylingVideo* row) {
             ASYNC_RELEASE
             for (auto& hub : r.Items) {
                 if (hub.items.empty()) continue;
+                if (AppConfig::instance().isHubHidden(hub.hubIdentifier)) continue;
                 std::string title = hub.title.empty() ? "main/home/resume"_i18n : hub.title;
                 row->setTitle(title);
                 // truncated hub (more=1): "+" card to the full page
@@ -119,6 +120,7 @@ void HomeTab::doHubs() {
                 if (hub.items.empty()) continue;
                 // in case the server returns them despite excludeContinueWatching
                 if (hub.hubIdentifier == "home.continue" || hub.hubIdentifier == "home.ondeck") continue;
+                if (AppConfig::instance().isHubHidden(hub.hubIdentifier)) continue;
 
                 // playlist hubs mix audio/photo/video: only video playlists
                 // are playable in pleNx

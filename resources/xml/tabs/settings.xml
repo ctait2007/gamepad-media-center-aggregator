@@ -23,6 +23,11 @@
                 id="setting/libraries"
                 marginBottom="16px" />
 
+            <DisclosureCell
+                title="@i18n/main/setting/hidden_rows/header"
+                id="setting/hidden_rows"
+                marginBottom="16px" />
+
             <brls:Header
                 width="auto"
                 height="auto"

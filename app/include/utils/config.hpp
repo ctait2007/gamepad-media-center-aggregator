@@ -158,6 +158,11 @@ public:
         /// { "<serverId>": { "order": [ids...], "hidden": [ids...] } }
         SIDEBAR_LAYOUT,
 
+        /// Global (not per-server) set of hub identifiers hidden from every
+        /// hub-rendering tab (Home, Movie/Show suggestions) — see
+        /// AppConfig::isHubHidden/setHubHidden. JSON: [hubIdentifier, ...]
+        HIDDEN_HUBS,
+
         /// HOME tile install prompt (forwarder NSP) already shown at first
         /// launch in application mode (Switch).
         HINT_FORWARDER,
@@ -276,6 +281,14 @@ public:
     /// Active media backend (built lazily from the active server's type).
     /// The UI talks to this; it never formats a provider URL itself.
     media::Backend& backend();
+
+    /// True if this hub (by its stable hubIdentifier, e.g. "home.continue" or
+    /// "section.catalog.{id}") is hidden from every hub-rendering tab (Home,
+    /// Movie/Show suggestions). Global (not per-server) — see setHubHidden()
+    /// and view/hub_visibility_manager.hpp.
+    bool isHubHidden(const std::string& hubIdentifier);
+    /// Adds/removes a hub identifier from the global hidden set and persists.
+    void setHubHidden(const std::string& hubIdentifier, bool hidden);
     const std::vector<AppRemote>& getRemotes() const { return this->remotes; }
     void addRemote(const AppRemote& r);
     void updateRemote(size_t index, const AppRemote& r);

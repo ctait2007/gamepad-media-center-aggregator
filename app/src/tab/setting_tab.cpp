@@ -25,6 +25,7 @@
 #include "view/mpv_core.hpp"
 #include "view/selector_cell.hpp"
 #include "view/library_manager.hpp"
+#include "view/hub_visibility_manager.hpp"
 #include "api/plex.hpp"
 #include "api/media/langs.hpp"
 #include "utils/dialog.hpp"
@@ -450,6 +451,13 @@ void SettingTab::onCreate() {
         for (brls::View* v = view; v; v = v->getParent())
             if (auto* f = dynamic_cast<MainTabFrame*>(v)) frame = f;
         if (frame) ui::presentDetail(view, new LibraryManager(frame));
+        return true;
+    });
+
+    // Show/hide hub rows (Home + Movie/Show suggestions) — global, not tied
+    // to a MainTabFrame like LibraryManager (no sidebar to live-preview into).
+    btnHiddenRows->registerClickAction([](brls::View* view) -> bool {
+        ui::presentDetail(view, new HubVisibilityManager());
         return true;
     });
 }
