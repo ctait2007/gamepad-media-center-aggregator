@@ -1,5 +1,5 @@
 <brls:Box
-    highlightCornerRadius="16"
+    highlightCornerRadius="14"
     axis="column"
     width="auto"
     height="auto">
@@ -9,8 +9,8 @@
         id="more/card/box"
         axis="column"
         focusable="true"
-        highlightCornerRadius="16"
-        cornerRadius="12"
+        highlightCornerRadius="14"
+        cornerRadius="10"
         backgroundColor="@theme/color/grey_1"
         alignItems="center"
         justifyContent="center"

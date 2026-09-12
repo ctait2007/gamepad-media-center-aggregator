@@ -54,15 +54,11 @@ static const ThemeColors kStremio = {
 };
 
 // ---- NUVIO ------------------------------------------------------------------
-// Verified against NuvioMedia/NuvioTV's own theme tokens (Color.kt/
-// PrimitiveTokens.kt/ThemeColors.kt): its default "White" theme has no
-// colored accent at all — secondary/focusRing are near-white/white, onSecondary
-// a near-black. Light variant follows every other theme's own pattern
-// (inverted toward a darker neutral for legibility on a light background),
-// since Nuvio itself has no light-mode equivalent to check against.
+// UNVERIFIED placeholder (see theme_palette.hpp) — a teal distinct from every
+// other backend's accent, not a checked brand color.
 static const ThemeColors kNuvio = {
-    /* dark  */ {{0xF5, 0xF5, 0xF5}, {0xFF, 0xFF, 0xFF}, {0x11, 0x11, 0x11}, {0xE0, 0xE0, 0xE0}},
-    /* light */ {{0x4D, 0x4D, 0x4D}, {0x9E, 0x9E, 0x9E}, {0xFF, 0xFF, 0xFF}, {0x80, 0x80, 0x80}},
+    /* dark  */ {{0x14, 0xB8, 0xA6}, {0x5E, 0xEA, 0xD4}, {0x00, 0x1A, 0x17}, {0x6E, 0xD9, 0xCB}},
+    /* light */ {{0x0F, 0x87, 0x79}, {0x14, 0xB8, 0xA6}, {0x00, 0x1A, 0x17}, {0x0C, 0x6B, 0x60}},
 };
 
 const ThemeColors& defaultPalette() { return kDefault; }

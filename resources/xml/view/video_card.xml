@@ -1,5 +1,5 @@
 <brls:Box
-    highlightCornerRadius="16"
+    highlightCornerRadius="14"
     axis="column"
     width="auto"
     height="auto">
@@ -9,8 +9,8 @@
         id="video/card/pic_box"
         axis="row"
         focusable="true"
-        highlightCornerRadius="16"
-        cornerRadius="12"
+        highlightCornerRadius="14"
+        cornerRadius="10"
         backgroundColor="@theme/color/grey_1"
         grow="1">
 
@@ -33,7 +33,7 @@
             id="video/card/picture"
             grow="1"
             scalingType="fill"
-            cornerRadius="12" />
+            cornerRadius="10" />
 
         <!-- focus "play" affordance for cards that start playback on select
              (continue-watching, episodes, clips): a light orange wash over the
@@ -48,7 +48,7 @@
             width="100%"
             height="100%"
             visibility="gone"
-            cornerRadius="12"
+            cornerRadius="10"
             alignItems="center"
             justifyContent="center">
             <brls:Box

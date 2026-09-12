@@ -986,14 +986,10 @@ void AppConfig::initThemes() {
     // applyTheme(std::nullopt) call at the end of this function and the hooks in
     // checkLogin()/addUser()/ServerList. Theme::addColor overrides the borealis
     // values (theme.cpp), no submodule patch needed.
-    // Background/surface/grey values below are snapped to NuvioMedia/NuvioTV's
-    // own published dark-theme tokens (PrimitiveTokens.kt/ThemeColorPalette
-    // defaults) rather than invented — chosen because those are the reference
-    // the "look like Nuvio" reskin is matching against.
     auto& dark = brls::Theme::getDarkTheme();
-    dark.addColor("brls/background", nvgRGB(13, 13, 13));            // Nuvio neutral950
-    dark.addColor("brls/sidebar/background", nvgRGB(13, 13, 13));    // flush with background: no distinct rail panel, matching Nuvio's floating icon rail
-    dark.addColor("brls/highlight/background", nvgRGB(48, 48, 48));  // Nuvio White theme's focusBackground
+    dark.addColor("brls/background", nvgRGB(13, 14, 17));
+    dark.addColor("brls/sidebar/background", nvgRGB(16, 18, 22));
+    dark.addColor("brls/highlight/background", nvgRGB(30, 33, 39));
     // press pulse: near-transparent light gray (orange suggested a
     // selection, not a press)
     dark.addColor("brls/click_pulse", nvgRGBA(255, 255, 255, 24));
@@ -1026,17 +1022,17 @@ void AppConfig::initThemes() {
     this->addColor(brls::ThemeVariant::DARK, "color/pill", nvgRGBA(255, 255, 255, 22));
     // surfaces placed over the background (content cards, PIN code panel...)
     this->addColor(brls::ThemeVariant::LIGHT, "color/surface", nvgRGB(255, 255, 255));
-    this->addColor(brls::ThemeVariant::DARK, "color/surface", nvgRGB(36, 36, 36));  // Nuvio backgroundCard
+    this->addColor(brls::ThemeVariant::DARK, "color/surface", nvgRGB(22, 24, 29));
     // banner fade towards the background (transparent -> background color)
     this->addColor(brls::ThemeVariant::LIGHT, "color/fade_0", nvgRGBA(235, 235, 235, 0));
     this->addColor(brls::ThemeVariant::LIGHT, "color/fade_1", nvgRGB(235, 235, 235));
-    this->addColor(brls::ThemeVariant::DARK, "color/fade_0", nvgRGBA(13, 13, 13, 0));
-    this->addColor(brls::ThemeVariant::DARK, "color/fade_1", nvgRGB(13, 13, 13));
+    this->addColor(brls::ThemeVariant::DARK, "color/fade_0", nvgRGBA(13, 14, 17, 0));
+    this->addColor(brls::ThemeVariant::DARK, "color/fade_1", nvgRGB(13, 14, 17));
     // 用于骨架屏背景色
     this->addColor(brls::ThemeVariant::LIGHT, "color/grey_1", nvgRGB(245, 246, 247));
-    this->addColor(brls::ThemeVariant::DARK, "color/grey_1", nvgRGB(26, 26, 26));  // Nuvio backgroundElevated
+    this->addColor(brls::ThemeVariant::DARK, "color/grey_1", nvgRGB(26, 28, 33));
     this->addColor(brls::ThemeVariant::LIGHT, "color/grey_2", nvgRGB(245, 245, 245));
-    this->addColor(brls::ThemeVariant::DARK, "color/grey_2", nvgRGB(51, 51, 51));  // Nuvio neutral750
+    this->addColor(brls::ThemeVariant::DARK, "color/grey_2", nvgRGB(51, 53, 55));
     this->addColor(brls::ThemeVariant::LIGHT, "color/grey_3", nvgRGBA(200, 200, 200, 16));
     this->addColor(brls::ThemeVariant::DARK, "color/grey_3", nvgRGBA(160, 160, 160, 160));
     this->addColor(brls::ThemeVariant::LIGHT, "color/danger", nvgRGB(198, 28, 28));
@@ -1048,7 +1044,7 @@ void AppConfig::initThemes() {
     this->addColor(brls::ThemeVariant::DARK, "color/line", nvgRGB(100, 100, 100));
     // 深浅配色通用的灰色字体颜色
     this->addColor(brls::ThemeVariant::LIGHT, "font/grey", nvgRGB(148, 153, 160));
-    this->addColor(brls::ThemeVariant::DARK, "font/grey", nvgRGB(179, 179, 179));  // Nuvio textSecondary (neutral400)
+    this->addColor(brls::ThemeVariant::DARK, "font/grey", nvgRGB(148, 153, 160));
 
     // establish the neutral pleNx DEFAULT accent for all pre-connection screens;
     // checkLogin()/addUser() re-apply the connected backend's palette afterwards.
@@ -1131,8 +1127,7 @@ void AppConfig::initThemes() {
     brls::getStyle().addMetric("brls/header/rectangle_margin", 0);
     brls::getStyle().addMetric("brls/header/font_size", 24);
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
-    // 16 (not 12): the halo extends ~5 px beyond the frame, so its arc must
-    // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)
-    // to hug it.
-    brls::getStyle().addMetric("brls/highlight/corner_radius", 16);
+    // 14 (not 10): the halo extends ~5 px beyond the frame, so its arc must
+    // be wider than the posters' cornerRadius 10 to hug it.
+    brls::getStyle().addMetric("brls/highlight/corner_radius", 14);
 }

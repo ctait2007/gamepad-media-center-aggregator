@@ -15,10 +15,9 @@
       Emby     #52B54B  (official green, from Emby's own dark skin)
       Stremio  #7B5BF5  (vivid logo-gradient purple)
 
-    Nuvio     #F5F5F5 (verified against NuvioMedia/NuvioTV's own open-source
-                        theme tokens — its default "White" theme, an
-                        intentionally monochrome/near-white identity, not a
-                        colored brand mark like the others above)
+    Nuvio's accent is NOT a verified brand color (unlike the ones above) — no
+    official brand asset was available to check against; pick a real one and
+    update theme_palette.cpp if you have it.
 */
 
 #pragma once
