@@ -39,7 +39,10 @@ void AddonEngine::ensureLoaded() {
     addons.reserve(transports.size());
     for (const auto& transport : transports) {
         try {
-            nlohmann::json j = getSync(transport);
+            // NOT `transport` verbatim: a stored url may be a base without the
+            // /manifest.json suffix (Nuvio's addons table stores it that way),
+            // and GETting the base returns the addon's landing page, not JSON.
+            nlohmann::json j = getSync(manifestFromTransport(transport));
             if (j.empty()) {
                 brls::Logger::warning("stremio: empty manifest from {}", transport);
                 continue;

@@ -129,8 +129,21 @@ int main(int argc, char* argv[]) {
         std::string logPath = conf.configDir() + "/gmca.log";
         if (FILE* logFile = std::fopen(logPath.c_str(), "w+")) {
             std::setvbuf(logFile, nullptr, _IOLBF, 0);  // survive a crash, see -o above
-            brls::Logger::setLogOutput(logFile);
             brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
+            brls::Logger::setThreadSafeLogging(true);   // backend verbs log from worker threads
+            // Subscribe to the log EVENT rather than Logger::setLogOutput():
+            // on PS4 (and PSV/Android) borealis writes straight to the platform
+            // debug channel — sceKernelDebugOutText — and never touches the
+            // FILE* that setLogOutput installs, so a log file opened that way
+            // stays empty forever. The event fires on every platform.
+            brls::Logger::getLogEvent()->subscribe(
+                [logFile](brls::Logger::TimePoint, brls::LogLevel level, const std::string& msg) {
+                    static const char* names[] = {"ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE"};
+                    int i = (int)level;
+                    std::fprintf(logFile, "[%s] %s\n", (i >= 0 && i < 5) ? names[i] : "?", msg.c_str());
+                });
+            brls::Logger::info("GMCA {} on {} — debug log started", AppVersion::getVersion(),
+                AppVersion::getPlatform());
         }
     }
 

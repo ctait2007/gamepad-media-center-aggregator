@@ -76,16 +76,51 @@ inline std::string encodeURIComponent(const std::string& s) {
 }
 
 /// transportUrl -> base (strips a trailing `/manifest.json`).
+/// Splits an addon url once at '?' into {path, query} (query keeps its '?',
+/// or is empty). Configurable addons carry their settings either in the path
+/// (torrentio style) or in a query string, and the /manifest.json suffix sits
+/// on the PATH — so the two must be handled separately.
+inline std::pair<std::string, std::string> splitAddonQuery(const std::string& url) {
+    std::string s = url;
+    const std::string blank = " \t\r\n";
+    s.erase(0, s.find_first_not_of(blank) == std::string::npos ? 0 : s.find_first_not_of(blank));
+    size_t end = s.find_last_not_of(blank);
+    if (end != std::string::npos) s.erase(end + 1);
+
+    size_t q = s.find('?');
+    std::string path = q == std::string::npos ? s : s.substr(0, q);
+    std::string query = q == std::string::npos ? std::string() : s.substr(q);
+    while (!path.empty() && path.back() == '/') path.pop_back();
+    return {path, query};
+}
+
+/// True if `path` ends with "/manifest.json" (case-insensitive).
+inline bool endsWithManifest(const std::string& path) {
+    static const std::string suffix = "/manifest.json";
+    if (path.size() < suffix.size()) return false;
+    return std::equal(suffix.rbegin(), suffix.rend(), path.rbegin(),
+        [](char a, char b) { return std::tolower((unsigned char)a) == std::tolower((unsigned char)b); });
+}
+
 inline std::string baseFromTransport(const std::string& transportUrl) {
     static const std::string suffix = "/manifest.json";
-    if (transportUrl.size() >= suffix.size() &&
-        transportUrl.compare(transportUrl.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        return transportUrl.substr(0, transportUrl.size() - suffix.size());
-    }
+    auto [path, query] = splitAddonQuery(transportUrl);
     // Tolerate a base already passed without /manifest.json, or a trailing slash.
-    std::string b = transportUrl;
-    if (!b.empty() && b.back() == '/') b.pop_back();
-    return b;
+    if (endsWithManifest(path)) path.erase(path.size() - suffix.size());
+    return path + query;
+}
+
+/// The url to GET the manifest from, for a stored addon url in EITHER form.
+/// Stremio's account API hands back a transportUrl that already ends in
+/// /manifest.json; Nuvio's `addons` table stores the BASE url with that suffix
+/// stripped (see NuvioTV's AddonSyncService, which strips it on write and
+/// re-appends it on read). Fetching a base url verbatim gets the addon's
+/// landing page instead of its manifest — a 404, or HTML that fails to parse
+/// as JSON — leaving the engine with no addons at all.
+inline std::string manifestFromTransport(const std::string& transportUrl) {
+    auto [path, query] = splitAddonQuery(transportUrl);
+    if (endsWithManifest(path)) return path + query;
+    return path + "/manifest.json" + query;
 }
 
 /// Parse a Stremio `runtime` string into milliseconds. Accepts the common
