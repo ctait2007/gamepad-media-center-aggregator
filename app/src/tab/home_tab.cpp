@@ -348,7 +348,10 @@ void HomeTab::onCreate() {
         return true;
     };
 
-    this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, actionRefresh);
+    // Triangle, not BUTTON_BACK: on PS4 BUTTON_BACK is the TOUCHPAD, which the
+    // hint bar drew as a bare "S" glyph and which nobody would think to press.
+    // SDL reports DualShock Triangle as BUTTON_Y.
+    this->registerAction("hints/refresh"_i18n, brls::BUTTON_Y, actionRefresh);
     this->registerAction(KeyBind::getRefresh(), actionRefresh);
 
     this->doRequest();

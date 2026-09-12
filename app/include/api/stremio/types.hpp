@@ -726,6 +726,9 @@ inline media::Media streamToMedia(const StreamOption& s, const std::string& addo
     m.videoResolution = qualityLabel(blob);
     m.label = flattenAddonText(!s.name.empty() ? s.name : addonName);
     m.detail = flattenAddonText(s.title);
+    m.labelRaw = !s.name.empty() ? s.name : addonName;
+    m.detailRaw = s.title;
+    m.addonName = addonName;
 
     if (!s.url.empty()) {
         bool cached = true;

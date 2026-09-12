@@ -1,5 +1,6 @@
 #include "activity/player_view.hpp"
 #include "tab/media_movie.hpp"
+#include "tab/source_list.hpp"
 #include "view/h_recycling.hpp"
 #include "view/icon_button.hpp"
 #include "view/video_card.hpp"
@@ -95,13 +96,12 @@ MediaMovie::MediaMovie(const plex::Item& item, bool localContext)
     this->movieItem = item;
     auto backendType = AppConfig::instance().backend().type();
     bool stremioBackend = backendType == media::BackendType::Stremio || backendType == media::BackendType::Nuvio;
-    this->hasPlayableSource = !stremioBackend;
-    // Stremio/Nuvio have no Lire/version buttons — the inline source list is
-    // the play UI. Hide them up front so they never flash before doMovie resolves.
-    if (stremioBackend) {
-        this->btnPlay->setVisibility(brls::Visibility::GONE);
-        this->btnSource->setVisibility(brls::Visibility::GONE);
-    }
+    // Stremio/Nuvio no longer resolve sources to open this page, so whether a
+    // playable one exists is not knowable here — Play always works and the
+    // source list answers that question after the user asks it.
+    this->hasPlayableSource = true;
+    // Still no version selector on the addon backends: the source list is it.
+    if (stremioBackend) this->btnSource->setVisibility(brls::Visibility::GONE);
 
     this->labelTitle->setText(item.title);
     Image::load(this->imagePoster, item.thumb, 325);
@@ -131,8 +131,17 @@ MediaMovie::MediaMovie(const plex::Item& item, bool localContext)
             RemoteView::play(local, title, "Local");
             return true;
         }
-        // Enabled: play the best source. Muted (Stremio, no playable source):
-        // explain why instead of launching a player that would just fail.
+        auto bt = AppConfig::instance().backend().type();
+        if (bt == media::BackendType::Stremio || bt == media::BackendType::Nuvio) {
+            // Addon backends: pressing Play is what triggers the /stream
+            // fan-out, inside the source list. Opening this page no longer
+            // pays for it.
+            std::string title = this->movieItem.year
+                                     ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
+                                     : this->movieItem.title;
+            ui::presentDetail(this, new SourceList(this->movieItem, title, this->viewOffsetMs));
+            return true;
+        }
         if (this->hasPlayableSource) {
             this->playSource(-1);
         } else {
@@ -292,9 +301,12 @@ void MediaMovie::doMovie() {
     }
 
     ASYNC_RETAIN
-    // detail (full: streams/chapters/markers)
+    // full=false on purpose: `full` fans /stream out to every addon, which is
+    // by far the slowest call in the app and pointless while merely browsing.
+    // SourceList performs it when Play is pressed. Plex/Jellyfin ignore the
+    // flag for streams (they carry media[] in the meta response anyway).
     AppConfig::instance().backend().getItemDetail(
-        this->itemId, true,
+        this->itemId, false,
         [ASYNC_TOKEN](const media::Item& item) {
             ASYNC_RELEASE
             this->applyMovie(item);
@@ -330,193 +342,6 @@ void MediaMovie::downloadSource(int mediaIndex) {
     }
     dm.addDownload(this->movieItem, m.parts.front().key);
     brls::Application::notify("main/download/queued"_i18n);
-}
-
-void MediaMovie::buildSources(const media::Item& item) {
-    this->sourcesBox->clearViews();
-    this->sourcesBox->setVisibility(brls::Visibility::GONE);
-    this->noticeBox->clearViews();
-    this->noticeBox->setVisibility(brls::Visibility::GONE);
-    this->firstSourceRow = nullptr;
-    this->scroll->setScrollTopAnchor(nullptr);  // cleared; re-set below if rows exist
-    auto theme = brls::Application::getTheme();
-    NVGcolor pillBg = theme.getColor("color/pill");
-    NVGcolor textCol = theme.getColor("brls/text");
-    NVGcolor greyCol = theme.getColor("font/grey");
-    NVGcolor goldBg = theme.getColor("color/app");
-    NVGcolor goldFg = theme.getColor("brls/button/primary_enabled_text");
-
-    int playable = 0, torrents = 0, links = 0;
-    for (auto& m : item.media) {
-        if (m.playable()) playable++;
-        else if (m.kind == media::SourceKind::Torrent) torrents++;
-        else links++;  // External / Youtube
-    }
-    this->hasPlayableSource = playable > 0;
-
-    std::vector<SourceRow*> rows;     // collected to wire D-pad navigation between lines
-    std::vector<std::string> rowIds;  // matching ids (View has no getId() accessor)
-    auto makeRow = [&](std::vector<brls::View*> cells) -> SourceRow* {
-        auto* row = new SourceRow();
-        for (auto* c : cells) row->addView(c);
-        std::string id = "movie/source/" + std::to_string(rows.size());
-        row->setId(id);
-        rows.push_back(row);
-        rowIds.push_back(id);
-        this->sourcesBox->addView(row);
-        return row;
-    };
-
-    if (item.media.empty()) {
-        // No sources at all (Stremio has no Lire button): an INFO notice — a
-        // tinted, accent-bordered card with an info glyph — so it reads as a
-        // system message and no longer blends into the grey synopsis above it.
-        NVGcolor accent = theme.getColor("color/app");
-        NVGcolor tint = accent;
-        tint.a = 0.12f;
-        NVGcolor border = accent;
-        border.a = 0.55f;
-
-        auto* notice = new brls::Box();
-        notice->setAxis(brls::Axis::COLUMN);
-        notice->setAlignItems(brls::AlignItems::CENTER);
-        notice->setCornerRadius(10);
-        notice->setHighlightCornerRadius(10);
-        notice->setBackgroundColor(tint);
-        notice->setBorderColor(border);
-        notice->setBorderThickness(1.5f);
-        notice->setPadding(18, 18, 18, 18);
-        // Focusable so the D-pad can land on it: with no Play button and no
-        // source rows, focus would otherwise drop to the cast row with no way
-        // back up. Keep its accent border/tint; only hide the default dark
-        // highlight background (the focus ring still shows).
-        notice->setFocusable(true);
-        notice->setHideHighlightBackground(true);
-        notice->setId("movie/source/0");
-
-        auto* icon = new SVGImage();
-        icon->setImageFromSVGRes("icon/ico-info.svg");
-        icon->setWidth(22);
-        icon->setHeight(22);
-        icon->setMarginBottom(10);
-        notice->addView(icon);
-
-        auto* msg = sourceLabel("main/stremio/source/none"_i18n, 14, textCol);
-        msg->setSingleLine(false);
-        msg->setWidthPercentage(100);
-        msg->setHorizontalAlign(brls::HorizontalAlign::CENTER);
-        notice->addView(msg);
-
-        // The notice sits ABOVE the synopsis (its own container); the source
-        // list (when present) is below it.
-        this->noticeBox->addView(notice);
-        // Same D-pad wiring as a source row: page top anchor (focusing it scrolls
-        // to the top), reached from Favoris above, leading to the cast below.
-        notice->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
-        this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/source/0");
-        this->firstSourceRow = notice;
-        this->scroll->setScrollTopAnchor(notice);
-        this->noticeBox->setVisibility(brls::Visibility::VISIBLE);
-        return;
-    }
-
-    // Playable rows first (ordered best-first by the backend). A = play this
-    // release, X = download it. Capped so the list never buries the synopsis.
-    const int MAX_PLAYABLE_ROWS = 12;
-    int shown = 0;
-    for (size_t i = 0; i < item.media.size(); i++) {
-        const media::Media& m = item.media[i];
-        if (!m.playable()) continue;
-        if (shown >= MAX_PLAYABLE_ROWS) break;
-        std::vector<brls::View*> cells;
-        // quality chip
-        cells.push_back(sourcePill(m.videoResolution.empty() ? "SD" : m.videoResolution, pillBg, textCol));
-        // status chip: cached debrid (gold) / uncached debrid / direct
-        if (m.kind == media::SourceKind::Debrid)
-            cells.push_back(m.cached ? sourcePill("main/stremio/source/cached"_i18n, goldBg, goldFg)
-                                     : sourcePill("main/stremio/source/uncached"_i18n, pillBg, greyCol));
-        else
-            cells.push_back(sourcePill("main/stremio/source/direct"_i18n, pillBg, textCol));
-        // source name + release title from the addon, stacked (head over
-        // body) in a column that grows to fill the row: each is flattened to
-        // one line (streamToMedia) and stretches full-width, so it ellipsizes
-        // on overflow instead of the two competing for space on one line
-        auto* textBox = new brls::Box();
-        textBox->setAxis(brls::Axis::COLUMN);
-        textBox->setGrow(1);
-        textBox->setShrink(1);
-        textBox->setJustifyContent(brls::JustifyContent::CENTER);
-        textBox->addView(sourceLabel(m.label, 15, textCol));
-        if (!m.detail.empty()) {
-            auto* detailLabel = sourceLabel(m.detail, 13, greyCol);
-            detailLabel->setMarginTop(2);
-            textBox->addView(detailLabel);
-        }
-        cells.push_back(textBox);
-        // trailing download glyph: signals the line is downloadable (X button)
-        auto* dl = new SVGImage();
-        dl->setImageFromSVGRes("icon/ico-download-light.svg");
-        dl->setWidth(17);
-        dl->setHeight(17);
-        dl->setMarginLeft(12);
-        cells.push_back(dl);
-
-        SourceRow* row = makeRow(cells);
-        int idx = (int)i;
-        row->registerClickAction([this, idx](brls::View*) {
-            this->playSource(idx);
-            return true;
-        });
-        // A = play this release (relabel the default "OK" hint to "Lire")
-        row->updateActionHint(brls::BUTTON_A, "main/media/play"_i18n);
-        // X = download this exact release (hint shown in the action bar)
-        row->registerAction("main/download/start"_i18n, brls::BUTTON_X, [this, idx](brls::View*) {
-            this->downloadSource(idx);
-            return true;
-        });
-        shown++;
-    }
-    if (playable > shown) {
-        auto* l = sourceLabel(fmt::format(fmt::runtime("main/stremio/source/more"_i18n), playable - shown), 13, greyCol);
-        l->setMarginBottom(6);
-        this->sourcesBox->addView(l);
-    }
-
-    // Non-playable groups: one explanatory, selectable summary row each (A = why).
-    if (torrents > 0) {
-        SourceRow* row = makeRow({sourcePill("main/stremio/source/torrent_badge"_i18n, pillBg, greyCol),
-            sourceLabel(fmt::format(fmt::runtime("main/stremio/source/torrents"_i18n), torrents), 14, greyCol, true)});
-        row->registerClickAction([](brls::View*) {
-            Dialog::show("main/stremio/source/torrents_help"_i18n);
-            return true;
-        });
-    }
-    if (links > 0) {
-        SourceRow* row = makeRow({sourcePill("main/stremio/source/link_badge"_i18n, pillBg, greyCol),
-            sourceLabel(fmt::format(fmt::runtime("main/stremio/source/links"_i18n), links), 14, greyCol, true)});
-        row->registerClickAction([](brls::View*) {
-            Dialog::show("main/stremio/source/links_help"_i18n);
-            return true;
-        });
-    }
-
-    // D-pad wiring: the source rows live in the info column; the cast frame
-    // below does not geometrically overlap them, so the up/down jumps must be
-    // explicit (the old Play button used the same custom DOWN route to the cast).
-    for (size_t i = 0; i < rows.size(); i++) {
-        if (i > 0) rows[i]->setCustomNavigationRoute(brls::FocusDirection::UP, rowIds[i - 1]);
-        if (i + 1 < rows.size()) rows[i]->setCustomNavigationRoute(brls::FocusDirection::DOWN, rowIds[i + 1]);
-    }
-    if (!rows.empty()) {
-        rows.back()->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
-        this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, rowIds.front());
-        this->firstSourceRow = rows.front();
-        // First row = scroll's top anchor: focusing it scrolls to the top (poster
-        // + synopsis stay visible) instead of centering it — on open and when
-        // navigating back up. The rest of the page centers normally.
-        this->scroll->setScrollTopAnchor(rows.front());
-    }
-    this->sourcesBox->setVisibility(brls::Visibility::VISIBLE);
 }
 
 // Renders the fiche from an Item — shared by the server and local-catalog
@@ -602,10 +427,17 @@ void MediaMovie::applyMovie(const media::Item& item) {
         // play/download UI (built here; sets hasPlayableSource). Collapse
         // the now-empty buttons row so it leaves no gap between the genres
         // and the synopsis; initWatchlist re-shows it if Favoris appears.
-        this->btnPlay->setVisibility(brls::Visibility::GONE);
+        // The inline source list is gone: sources are not fetched to render
+        // this page any more, so there is nothing to list here. Play is the
+        // affordance, and it opens SourceList.
         this->btnSource->setVisibility(brls::Visibility::GONE);
-        if (this->btnPlay->getParent()) this->btnPlay->getParent()->setVisibility(brls::Visibility::GONE);
-        this->buildSources(item);
+        this->sourcesBox->setVisibility(brls::Visibility::GONE);
+        this->noticeBox->setVisibility(brls::Visibility::GONE);
+        this->btnPlay->setMuted(false);
+        this->btnPlay->setVisibility(brls::Visibility::VISIBLE);
+        if (this->btnPlay->getParent()) this->btnPlay->getParent()->setVisibility(brls::Visibility::VISIBLE);
+        this->btnPlay->setText(
+            item.viewOffset > 0 ? misc::sec2Time(item.viewOffset / 1000) : "main/media/play"_i18n);
     } else {
         this->sourcesBox->setVisibility(brls::Visibility::GONE);
         this->hasPlayableSource = true;
@@ -638,12 +470,11 @@ void MediaMovie::applyMovie(const media::Item& item) {
     ASYNC_RETAIN
     brls::sync([ASYNC_TOKEN]() {
         ASYNC_RELEASE
-        // Focus a VISIBLE target: the first selectable release (Stremio) or the
-        // Play button (Plex/Jellyfin). Stremio with zero sources hides btnPlay,
-        // so focusing it would strand the highlight; fall back to Favoris, else
-        // let borealis pick (cast/related).
-        brls::View* target = this->firstSourceRow;
-        if (!target && this->btnPlay->getVisibility() == brls::Visibility::VISIBLE) target = this->btnPlay;
+        // Focus a VISIBLE target: Play on every backend now that the inline
+        // release list is gone (it was the Stremio focus target). Fall back to
+        // Favoris, else let borealis pick (cast/related).
+        brls::View* target = nullptr;
+        if (this->btnPlay->getVisibility() == brls::Visibility::VISIBLE) target = this->btnPlay;
         if (!target && this->btnWatchlist->getVisibility() == brls::Visibility::VISIBLE) target = this->btnWatchlist;
         if (target) brls::Application::giveFocus(target);
     });

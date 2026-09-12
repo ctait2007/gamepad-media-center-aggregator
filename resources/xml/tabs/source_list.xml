@@ -1,0 +1,108 @@
+<brls:Box
+    width="auto"
+    height="auto"
+    axis="column">
+
+    <!-- item art behind everything, heavily dimmed: it identifies what you are
+         about to play without competing with the source text (NuvioTV's stream
+         screen does the same). Absolute so it never affects the layout. -->
+    <brls:Box
+        positionType="absolute"
+        positionTop="0"
+        positionLeft="0"
+        width="100%"
+        height="100%">
+        <brls:Image
+            id="source/backdrop"
+            width="100%"
+            height="100%"
+            scalingType="fill" />
+        <brls:Rectangle
+            positionType="absolute"
+            positionTop="0"
+            positionLeft="0"
+            width="100%"
+            height="100%"
+            color="#0D0D0DE0" />
+    </brls:Box>
+
+    <brls:Box
+        axis="row"
+        grow="1"
+        width="100%"
+        paddingLeft="@style/main/content_padding_sides"
+        paddingRight="@style/main/content_padding_sides"
+        paddingTop="@style/main/content_padding_top_bottom"
+        paddingBottom="@style/main/content_padding_top_bottom">
+
+        <!-- left: what you picked -->
+        <brls:Box
+            axis="column"
+            width="34%"
+            justifyContent="center"
+            alignItems="center"
+            paddingRight="32">
+            <brls:Label
+                id="source/title"
+                fontSize="34"
+                horizontalAlign="center"
+                marginBottom="10" />
+            <brls:Label
+                id="source/subtitle"
+                fontSize="21"
+                horizontalAlign="center"
+                textColor="@theme/brls/text"
+                marginBottom="6" />
+            <brls:Label
+                id="source/meta"
+                fontSize="17"
+                horizontalAlign="center"
+                textColor="@theme/font/grey" />
+        </brls:Box>
+
+        <!-- right: filters over the source cards -->
+        <brls:Box
+            axis="column"
+            grow="1">
+
+            <brls:Box
+                id="source/filters"
+                axis="row"
+                marginBottom="16"
+                alignItems="center" />
+
+            <brls:Box
+                id="source/message"
+                axis="column"
+                alignItems="center"
+                justifyContent="center"
+                visibility="gone"
+                grow="1">
+                <brls:Label
+                    id="source/message/label"
+                    fontSize="19"
+                    horizontalAlign="center"
+                    textColor="@theme/font/grey" />
+            </brls:Box>
+
+            <brls:ScrollingFrame
+                id="source/scroll"
+                grow="1"
+                scrollingBehavior="centered">
+                <brls:Box
+                    id="source/list"
+                    axis="column"
+                    width="100%"
+                    height="auto" />
+            </brls:ScrollingFrame>
+
+        </brls:Box>
+    </brls:Box>
+
+    <ButtonClose
+        id="source/close"
+        positionType="absolute"
+        positionTop="10"
+        positionRight="10" />
+
+</brls:Box>

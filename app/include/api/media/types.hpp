@@ -200,6 +200,14 @@ struct Media {
     // ---- source presentation (Stremio picker; empty/default on Plex/Jellyfin) ----
     std::string label;   // primary line: source/addon name (+ release group)
     std::string detail;  // secondary line: codec · size · seeders (our own re-render)
+    // The addon's text exactly as it sent it, newlines intact. `label`/`detail`
+    // above are the same content flattened to one line for compact pickers;
+    // the full-screen source list renders these instead, because addons lay
+    // their streams out over several lines on purpose (quality, codec, size,
+    // language) and flattening throws that structure away.
+    std::string labelRaw;
+    std::string detailRaw;
+    std::string addonName;  // which addon produced this stream (source filter)
     SourceKind kind = SourceKind::Direct;
     bool cached = true;  // debrid cache hint (best-effort; ⚡ vs pending). false = uncached
     // A source is directly playable iff it carries a real URL (parts[0].key).

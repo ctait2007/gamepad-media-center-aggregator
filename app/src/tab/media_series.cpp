@@ -7,6 +7,7 @@
 #include "api/plex/watchlist.hpp"
 #include "api/backend.hpp"
 #include "tab/media_series.hpp"
+#include "tab/source_list.hpp"
 #include "view/h_recycling.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "view/icon_button.hpp"
@@ -42,7 +43,7 @@ namespace {
 /// before opening the player with the chosen version — Plex/Jellyfin keep
 /// their existing direct-to-player behavior (no addon-protocol source list to
 /// choose from).
-void playWithSourcePicker(const media::Item& item, const std::string& title) {
+void playWithSourcePicker(brls::View* from, const media::Item& item, const std::string& title) {
     std::string seriesId = item.grandparentRatingKey;
     // Passed explicitly (rather than left on whichever Item ends up handed to
     // PlayerView) so the picker path's fresh getItemDetail() re-fetch — whose
@@ -59,6 +60,15 @@ void playWithSourcePicker(const media::Item& item, const std::string& title) {
     auto backendType = AppConfig::instance().backend().type();
     if (backendType != media::BackendType::Stremio && backendType != media::BackendType::Nuvio) {
         openPlayer(item, -1);
+        return;
+    }
+
+    // Addon backends: hand off to SourceList, which performs the /stream
+    // fan-out itself and shows the results full screen. Selecting an episode
+    // is exactly the moment that cost is worth paying — and the old inline
+    // Dropdown could not show the addons' own multi-line stream text.
+    if (from) {
+        ui::presentDetail(from, new SourceList(item, title, resumeMs));
         return;
     }
 
@@ -289,7 +299,7 @@ public:
                                 ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
                                 : fmt::format("{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index,
                                       item.title);
-        playWithSourcePicker(item, title);
+        playWithSourcePicker(recycler, item, title);
     }
 
     void onContextMenu(brls::Box* recycler, size_t index) {
@@ -653,7 +663,7 @@ void MediaSeries::doPlay() {
                              ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
                              : fmt::format(
                                    "{} · S{}E{} — {}", item.grandparentTitle, item.parentIndex, item.index, item.title);
-    playWithSourcePicker(item, title);
+    playWithSourcePicker(this, item, title);
 }
 
 void MediaSeries::doDownloadSeries() {
@@ -931,39 +941,14 @@ void MediaSeries::doNextup() {
             this->btnPlay->setText(fromStart ? "main/media/replay"_i18n : "main/media/play"_i18n);
             this->btnPlay->setVisibility(brls::Visibility::VISIBLE);
 
-            auto& be = AppConfig::instance().backend();
-            if (be.type() == media::BackendType::Stremio || be.type() == media::BackendType::Nuvio) {
-                // Honest Play: resolve the next episode's sources, then enable
-                // (playable) or mute + relabel (no playable source). Never hide
-                // it — hiding a focused button strands the focus highlight.
-                bool fs = fromStart;
-                this->nextPlayable = false;
-                this->btnPlay->setMuted(true);
-                this->btnPlay->setText("main/stremio/source/unavailable"_i18n);
-                std::string epId = item.ratingKey;
-                ASYNC_RETAIN
-                be.getItemDetail(
-                    epId, true,
-                    [ASYNC_TOKEN, fs](const media::Item& full) {
-                        ASYNC_RELEASE
-                        bool playable = false;
-                        for (auto& m : full.media)
-                            if (m.playable()) {
-                                playable = true;
-                                break;
-                            }
-                        this->onDeck = full;  // resolved (carries sources)
-                        this->nextPlayable = playable;
-                        this->btnPlay->setMuted(!playable);
-                        this->btnPlay->setText(playable
-                                ? (fs ? "main/media/replay"_i18n : "main/media/play"_i18n)
-                                : "main/stremio/source/unavailable"_i18n);
-                    },
-                    nullptr);
-            } else {
-                this->nextPlayable = true;
-                this->btnPlay->setMuted(false);
-            }
+            // Play is always live now. This used to resolve the next episode's
+            // sources here — a full /stream fan-out across every addon — purely
+            // to decide whether to grey the button out, which meant every show
+            // page paid the slowest call in the app before you had asked for
+            // anything. SourceList answers "is there a playable source?" when
+            // Play is actually pressed, and says so there.
+            this->nextPlayable = true;
+            this->btnPlay->setMuted(false);
         },
         nullptr);
 }

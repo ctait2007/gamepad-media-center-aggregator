@@ -492,7 +492,7 @@
     },
     "source": {
       "unavailable": "No playable source",
-      "none": "No stream for this title. Install a stream addon (with a debrid service) in your Stremio account to play it here.",
+      "none": "No sources available for this item.",
       "cached": "Cached",
       "uncached": "Download",
       "direct": "Direct",
@@ -502,7 +502,11 @@
       "links": "{} external link(s) — not playable here",
       "more": "+{} more playable source(s)",
       "torrents_help": "These sources are raw torrents. This platform has no torrent client: install a debrid-enabled addon (Torrentio + Real-Debrid, Comet, MediaFusion…) in your Stremio account to get playable links.",
-      "links_help": "These sources are external links (browser or third-party service) that cannot be played directly in the app on this platform."
+      "links_help": "These sources are external links (browser or third-party service) that cannot be played directly in the app on this platform.",
+      "loading": "Finding sources…",
+      "failed": "Could not load sources. Press Triangle to try again.",
+      "refresh": "Refresh",
+      "all": "All"
     }
   }
 }

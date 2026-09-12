@@ -58,7 +58,6 @@ private:
     void updateDownloadButton();
     /// Builds the inline Stremio source list (one row per source) and wires the
     /// Play button's enabled/muted state. No-op for single-file backends.
-    void buildSources(const media::Item& item);
     /// Opens the player on a specific source row (item.media[mediaIndex]).
     void playSource(int mediaIndex);
     /// Queues a download of a specific source row (Stremio: X on a release line).
@@ -75,7 +74,6 @@ private:
     std::string itemId;
     media::Item movieItem;  // resolved detail (sources/title) — backs source playback
     bool hasPlayableSource = false;
-    brls::View* firstSourceRow = nullptr;  // default focus target (Stremio release list)
     media::Item listItem;  // item backing the personal-list (watchlist/favorite) button
     bool localContext = false;  // opened from the offline downloads area
     bool watchlisted = false;
