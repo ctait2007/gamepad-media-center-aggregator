@@ -41,8 +41,13 @@ private:
 
     void fetchResume();
     void fetchHubs();
-    void joinFetch();    // decrements pendingJoins; renders once both land
     void renderRows();   // sorts pendingRows by saved order, builds the views
+    /// Splices a Continue Watching row into an ALREADY rendered Home, at the
+    /// position the saved order puts it in. Used when it resolves after the
+    /// hub rows did — which is the normal case, not the exception (see
+    /// fetchHubs' comment on brls::async being a single serial thread).
+    void insertResumeRow(const RowData& row);
+    RecylingVideo* buildRow(const RowData& row);
     void refreshResumeRow();
     void tryRestoreFocus();
 
@@ -52,7 +57,10 @@ private:
     bool restoreFocus = false;
 
     std::vector<RowData> pendingRows;
-    int pendingJoins = 0;
+    // identifiers of the rows currently in boxHome, in display order — lets a
+    // late Continue Watching row find the index it belongs at without a
+    // full (flickering, focus-losing) rebuild
+    std::vector<std::string> renderedIds;
     std::string hubsError;  // set by fetchHubs()'s error branch, shown after render
     // guards doRequest() against a second, overlapping call: the tab's FIRST
     // activation runs onCreate() (which calls doRequest(), kicking off async

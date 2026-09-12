@@ -67,14 +67,25 @@ void NuvioBackend::getContinueWatching(
             media::Hub h;
             h.title = title;
             h.hubIdentifier = "home.continue";
-            for (auto& row : rows) {
-                std::string ratingKey = ratingKeyFor(row.contentId, row.contentType, row.season, row.episode);
-                media::Item item = resolveMeta(delegate.addonEngine(), ratingKey);
-                // Unresolvable id (addon gone, wrong prefix, transient error):
-                // skip this row rather than failing the whole list.
+            // Resolved concurrently, in input order. Each row needs its own
+            // addon /meta round trip, and brls::async is a SINGLE serial
+            // thread: doing these one after another held that thread — and so
+            // every other backend call queued behind it, the Home hub rows
+            // included — for the sum of every lookup.
+            auto resolved = stremio::parallelMap<WatchProgressRow, media::Item>(
+                rows, [this](const WatchProgressRow& row) -> media::Item {
+                    std::string ratingKey =
+                        ratingKeyFor(row.contentId, row.contentType, row.season, row.episode);
+                    media::Item item = resolveMeta(delegate.addonEngine(), ratingKey);
+                    // Unresolvable id (addon gone, wrong prefix, transient
+                    // error): skip this row rather than failing the whole list.
+                    if (item.ratingKey.empty()) return media::Item{};
+                    item.viewOffset = row.positionMs;
+                    if (row.durationMs > 0) item.duration = row.durationMs;
+                    return item;
+                });
+            for (auto& item : resolved) {
                 if (item.ratingKey.empty()) continue;
-                item.viewOffset = row.positionMs;
-                if (row.durationMs > 0) item.duration = row.durationMs;
                 h.items.push_back(std::move(item));
             }
             if (!h.items.empty()) out.Items.push_back(std::move(h));

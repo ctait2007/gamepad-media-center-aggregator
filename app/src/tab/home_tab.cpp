@@ -77,13 +77,21 @@ void HomeTab::doRequest() {
     this->resumeRow = nullptr;
 
     this->pendingRows.clear();
+    this->renderedIds.clear();
     this->hubsError.clear();
     this->loading = true;
     this->rendered = false;
     int gen = ++this->requestGen;
-    this->pendingJoins = 2;
-    this->fetchResume();
+    // ORDER MATTERS, and not for style: brls::async is a SINGLE background
+    // thread draining its queue serially, so whichever backend verb is queued
+    // first runs to completion before the other one starts. The hub rows are
+    // the whole screen, so they go first; Continue Watching (which on some
+    // backends resolves every row through its own HTTP meta lookup, and used
+    // to hold the hubs behind it for as long as that took — leaving Home
+    // blank the entire time) queues behind them and splices itself in when it
+    // lands.
     this->fetchHubs();
+    this->fetchResume();
 
     // Continue Watching resolves each row through addon meta lookups (and,
     // on some backends, a remote round trip with its own — much longer —
@@ -141,15 +149,21 @@ void HomeTab::fetchResume() {
                 row.items = hub.items;
                 if (hub.more && !hub.key.empty()) row.moreKey = hub.key;
                 row.isResume = true;
-                this->pendingRows.push_back(std::move(row));
+                // hubs already on screen (the normal case): splice it in at
+                // its saved position. Otherwise it joins the pending list and
+                // renderRows() places it.
+                if (this->rendered)
+                    this->insertResumeRow(row);
+                else
+                    this->pendingRows.push_back(std::move(row));
                 break;  // only one Continue Watching hub is meaningful
             }
-            this->joinFetch();
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
+            // Continue Watching is additive: its failure must never keep the
+            // rest of Home off the screen.
             brls::Logger::warning("home continueWatching: {}", ex);
-            this->joinFetch();
         });
 }
 
@@ -181,29 +195,22 @@ void HomeTab::fetchHubs() {
                 if (hub.more && !hub.key.empty()) row.moreKey = hub.key;
                 this->pendingRows.push_back(std::move(row));
             }
-            this->joinFetch();
+            this->loading = false;
+            if (!this->rendered) this->renderRows();
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
+            this->loading = false;
             this->hubsError = ex;
-            this->joinFetch();
+            if (!this->rendered) this->renderRows();
+
+            std::string msg = this->hubsError;
+            this->hubsError.clear();
+            auto dialog = new brls::Dialog(msg);
+            dialog->addButton("hints/retry"_i18n, [this]() { brls::sync([this]() { this->doRequest(); }); });
+            dialog->addButton("hints/cancel"_i18n, []() {});
+            dialog->open();
         });
-}
-
-void HomeTab::joinFetch() {
-    if (--this->pendingJoins > 0) return;
-    if (this->rendered) return;  // the fallback timeout in doRequest() already rendered
-    this->loading = false;
-    this->renderRows();
-
-    if (!this->hubsError.empty()) {
-        std::string ex = this->hubsError;
-        this->hubsError.clear();
-        auto dialog = new brls::Dialog(ex);
-        dialog->addButton("hints/retry"_i18n, [this]() { brls::sync([this]() { this->doRequest(); }); });
-        dialog->addButton("hints/cancel"_i18n, []() {});
-        dialog->open();
-    }
 }
 
 void HomeTab::renderRows() {
@@ -220,33 +227,59 @@ void HomeTab::renderRows() {
         });
 
     for (auto& row : this->pendingRows) {
-        RecylingVideo* view = new RecylingVideo();
-        view->setTitle(row.title);
-        float frameHeight = brls::getStyle()["app/card/poster/row"];
-        view->setFrameHeight(frameHeight);
-        if (row.isResume) {
-            view->setItemWidth(brls::getStyle()["app/card/poster/width"]);
-            this->resumeRow = view;
-        } else {
-            // playlists AND music (artist/album/track): SQUARE covers (1:1)
-            // — width = image height of the row (frame - 55 of labels,
-            // video_card.xml metrics); everything else keeps 2:3 posters
-            const std::string& t0 = row.items.front().type;
-            bool square = t0 == plex::mediaTypePlaylist || t0 == plex::mediaTypeArtist ||
-                          t0 == plex::mediaTypeAlbum || t0 == plex::mediaTypeTrack;
-            view->setItemWidth(square ? frameHeight - 55 : brls::getStyle()["app/card/poster/width"]);
-        }
-        view->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
-        // truncated hub (more=1): "+" card to the full page
-        if (!row.moreKey.empty())
-            view->setItems(row.items, row.title, row.moreKey);
-        else
-            view->setItems(row.items);
-        this->boxHome->addView(view);
+        this->boxHome->addView(this->buildRow(row));
+        this->renderedIds.push_back(row.identifier);
     }
 
     this->spinner->setSpinning(false);
     this->tryRestoreFocus();
+}
+
+RecylingVideo* HomeTab::buildRow(const RowData& row) {
+    RecylingVideo* view = new RecylingVideo();
+    view->setTitle(row.title);
+    float frameHeight = brls::getStyle()["app/card/poster/row"];
+    view->setFrameHeight(frameHeight);
+    if (row.isResume) {
+        view->setItemWidth(brls::getStyle()["app/card/poster/width"]);
+        this->resumeRow = view;
+    } else {
+        // playlists AND music (artist/album/track): SQUARE covers (1:1)
+        // — width = image height of the row (frame - 55 of labels,
+        // video_card.xml metrics); everything else keeps 2:3 posters
+        const std::string& t0 = row.items.front().type;
+        bool square = t0 == plex::mediaTypePlaylist || t0 == plex::mediaTypeArtist ||
+                      t0 == plex::mediaTypeAlbum || t0 == plex::mediaTypeTrack;
+        view->setItemWidth(square ? frameHeight - 55 : brls::getStyle()["app/card/poster/width"]);
+    }
+    view->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
+    // truncated hub (more=1): "+" card to the full page
+    if (!row.moreKey.empty())
+        view->setItems(row.items, row.title, row.moreKey);
+    else
+        view->setItems(row.items);
+    return view;
+}
+
+void HomeTab::insertResumeRow(const RowData& row) {
+    if (row.items.empty()) return;
+    // index it belongs at among the rows already on screen: the first one the
+    // saved order ranks AFTER it (unlisted identifiers rank last, so an
+    // unplaced Continue Watching lands at the end rather than jumping the queue)
+    std::vector<std::string> order = AppConfig::instance().getHubOrder();
+    auto rank = [&order](const std::string& id) { return std::find(order.begin(), order.end(), id); };
+    auto mine = rank(row.identifier);
+
+    size_t idx = this->renderedIds.size();
+    for (size_t i = 0; i < this->renderedIds.size(); i++) {
+        if (mine < rank(this->renderedIds[i])) {
+            idx = i;
+            break;
+        }
+    }
+
+    this->boxHome->addView(this->buildRow(row), idx);
+    this->renderedIds.insert(this->renderedIds.begin() + idx, row.identifier);
 }
 
 void HomeTab::refreshResumeRow() {
