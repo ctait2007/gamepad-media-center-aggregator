@@ -20,6 +20,7 @@
         paddingBottom="24"
         paddingLeft="18"
         paddingRight="18"
+        cornerRadius="20"
         backgroundColor="@theme/color/surface"
         alignItems="stretch">
 

@@ -2,7 +2,7 @@
      (gold) for the in-progress item, state badge + size on the right.
      Variants driven by DownloadCard::setItem (download_tab.cpp). -->
 <brls:Box
-    highlightCornerRadius="14"
+    highlightCornerRadius="16"
     cornerRadius="12"
     backgroundColor="@theme/color/surface"
     paddingTop="13"

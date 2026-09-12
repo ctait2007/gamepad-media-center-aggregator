@@ -955,6 +955,38 @@ index 59ec77bb..546db73f 100644
      // Misc
      this->registerStringXMLAttribute("title", [this](std::string value) {
          this->getAppletFrameItem()->title = value;
+diff --git a/library/lib/platforms/desktop/desktop_font.cpp b/library/lib/platforms/desktop/desktop_font.cpp
+index ddac8a54..334dd17e 100644
+--- a/library/lib/platforms/desktop/desktop_font.cpp
++++ b/library/lib/platforms/desktop/desktop_font.cpp
+@@ -21,7 +21,7 @@
+ #include <borealis/core/assets.hpp>
+ #include <borealis/platforms/desktop/desktop_font.hpp>
+ 
+-#define INTER_FONT_PATH BRLS_ASSET("font/switch_font.ttf")
++#define INTER_FONT_PATH BRLS_ASSET("font/inter.ttf")
+ #define INTER_ICON_PATH BRLS_ASSET("font/switch_icons.ttf")
+ 
+ namespace brls
+@@ -75,6 +75,18 @@ void DesktopFontLoader::loadFonts()
+         }
+     }
+ 
++    // GMCA: the text font is now Inter (Nuvio's typeface). The font it replaced
++    // still ships and is kept in the chain so any glyph Inter lacks resolves
++    // where it used to. (It is NOT what draws the bottom bar's controller
++    // glyphs — those are U+E0E0.. and come from the keymap font below. Inter as
++    // shipped by Google Fonts maps that same private-use range to its own
++    // numerator digits, which is why "B Back" first rendered as "5 Back"; the
++    // fix is in the asset, whose PUA cmap entries are stripped.)
++    if (loadFont("legacy_fallback", BRLS_ASSET("font/switch_font.ttf")))
++    {
++        nvgAddFallbackFontId(vg, Application::getFont(FONT_REGULAR), Application::getFont("legacy_fallback"));
++    }
++
+     if (loadFont(FONT_CHINESE_SIMPLIFIED, BRLS_ASSET("font/chinese_fallback.ttf")))
+     {
+         nvgAddFallbackFontId(vg, Application::getFont(FONT_REGULAR), Application::getFont(FONT_CHINESE_SIMPLIFIED));
 diff --git a/library/lib/platforms/glfw/glfw_input.cpp b/library/lib/platforms/glfw/glfw_input.cpp
 index 9b31fcfa..00bb8f3c 100644
 --- a/library/lib/platforms/glfw/glfw_input.cpp

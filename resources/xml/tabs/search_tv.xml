@@ -27,7 +27,7 @@
             alignItems="center"
             paddingLeft="14"
             paddingRight="14"
-            cornerRadius="10"
+            cornerRadius="12"
             highlightCornerRadius="10"
             backgroundColor="@theme/color/grey_1">
             <SVGImage
@@ -53,7 +53,7 @@
                 grow="1"
                 alignItems="center"
                 justifyContent="center"
-                cornerRadius="8"
+                cornerRadius="12"
                 highlightCornerRadius="8"
                 backgroundColor="@theme/color/grey_2">
                 <SVGImage
@@ -68,7 +68,7 @@
                 marginLeft="8"
                 alignItems="center"
                 justifyContent="center"
-                cornerRadius="8"
+                cornerRadius="12"
                 highlightCornerRadius="8"
                 backgroundColor="@theme/color/grey_2">
                 <SVGImage
@@ -83,7 +83,7 @@
                 marginLeft="8"
                 alignItems="center"
                 justifyContent="center"
-                cornerRadius="8"
+                cornerRadius="12"
                 highlightCornerRadius="8"
                 backgroundColor="@theme/color/grey_2">
                 <SVGImage
@@ -98,7 +98,7 @@
                 marginLeft="8"
                 alignItems="center"
                 justifyContent="center"
-                cornerRadius="8"
+                cornerRadius="12"
                 highlightCornerRadius="8"
                 backgroundColor="@theme/color/grey_2">
                 <SVGImage

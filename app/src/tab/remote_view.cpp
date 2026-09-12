@@ -82,7 +82,7 @@ public:
         if (brls::Application::getThemeVariant() == brls::ThemeVariant::LIGHT)
             brls::Application::getTheme().addColor("brls/clear", nvgRGBA(235, 235, 235, 255));
         else
-            brls::Application::getTheme().addColor("brls/clear", nvgRGBA(45, 45, 45, 255));
+            brls::Application::getTheme().addColor("brls/clear", nvgRGBA(13, 13, 13, 255));
     }
 
     void willAppear(bool resetState) override {

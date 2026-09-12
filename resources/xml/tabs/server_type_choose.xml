@@ -39,7 +39,7 @@
             width="100%"
             height="auto"
             axis="column"
-            cornerRadius="8"
+            cornerRadius="12"
             backgroundColor="@theme/color/surface">
 
             <brls:DetailCell

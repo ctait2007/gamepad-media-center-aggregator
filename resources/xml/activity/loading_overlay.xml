@@ -20,7 +20,7 @@
         paddingBottom="32"
         paddingLeft="56"
         paddingRight="56"
-        cornerRadius="14"
+        cornerRadius="16"
         backgroundColor="@theme/color/surface">
 
         <brls:ProgressSpinner

@@ -1,5 +1,5 @@
 <brls:Box
-    highlightCornerRadius="12"
+    highlightCornerRadius="20"
     padding="5">
 
     <brls:Box
@@ -16,8 +16,8 @@
             focusable="true"
             width="300"
             height="180"
-            highlightCornerRadius="12"
-            cornerRadius="8"
+            highlightCornerRadius="20"
+            cornerRadius="16"
             backgroundColor="@theme/color/grey_1">
 
             <!-- placeholder icon behind the thumbnail (cf. video_card.xml);
@@ -43,7 +43,7 @@
                 scalingType="fill"
                 width="300"
                 height="180"
-                cornerRadius="8" />
+                cornerRadius="16" />
 
             <SVGImage
                 id="video/card/badge/top"
@@ -59,7 +59,7 @@
                 positionTop="8"
                 positionLeft="8"
                 visibility="gone"
-                cornerRadius="6"
+                cornerRadius="4"
                 paddingTop="4"
                 paddingBottom="4"
                 paddingLeft="4"
