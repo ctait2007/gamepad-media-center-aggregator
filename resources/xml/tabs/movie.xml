@@ -125,6 +125,53 @@
                         fontSize="42"
                         marginBottom="14" />
 
+                    <!-- NuvioTV's order: title, then the action row, then the
+                         synopsis, with the metadata pills and genres beneath.
+                         Dark icons on the accent primary. -->
+                    <brls:Box
+                        id="movie/buttons"
+                        axis="row"
+                        marginTop="16"
+                        marginBottom="18">
+
+                        <IconButton
+                            id="movie/play"
+                            icon="@res/icon/ico-play-dark.svg"
+                            text="@i18n/main/media/play"
+                            buttonStyle="primary" />
+
+                        <IconButton
+                            id="movie/download"
+                            icon="@res/icon/ico-download-light.svg"
+                            text="@i18n/main/download/start"
+                            buttonStyle="bordered"
+                            marginLeft="12" />
+
+                        <!-- revealed once the watchlist state is known (async
+                             provider request, media_movie.cpp); filled icon
+                             = already in the Watchlist -->
+                        <IconButton
+                            id="movie/watchlist"
+                            icon="@res/icon/ico-bookmark-light.svg"
+                            text="@i18n/main/watchlist/title"
+                            buttonStyle="bordered"
+                            visibility="gone"
+                            marginLeft="12" />
+                    </brls:Box>
+                    <!-- Stremio "no stream" info notice (ABOVE the synopsis):
+                         built in C++ (media_movie.cpp::buildSources) only when a
+                         Stremio item has zero sources. GONE otherwise. -->
+                    <brls:Box
+                        id="movie/notice"
+                        axis="column"
+                        visibility="gone"
+                        marginBottom="16" />
+
+                    <TextBox
+                        id="movie/label/overview"
+                        fontSize="15"
+                        textColor="@theme/font/grey" />
+
                     <brls:Box
                         alignItems="center"
                         marginBottom="14">
@@ -203,62 +250,12 @@
                                 fontSize="14" />
                         </brls:Box>
                     </brls:Box>
-
                     <brls:Label
                         id="movie/label/genres"
                         fontSize="14"
                         animated="false"
                         textColor="@theme/font/grey"
                         marginBottom="16" />
-
-                    <!-- inline buttons under the genres, before the synopsis;
-                         dark icons on the gold primary. marginTop sets the
-                         action row apart from the title/meta block above
-                         (genres only carry a 16 bottom margin) -->
-                    <brls:Box
-                        id="movie/buttons"
-                        axis="row"
-                        marginTop="16"
-                        marginBottom="18">
-
-                        <IconButton
-                            id="movie/play"
-                            icon="@res/icon/ico-play-dark.svg"
-                            text="@i18n/main/media/play"
-                            buttonStyle="primary" />
-
-                        <IconButton
-                            id="movie/download"
-                            icon="@res/icon/ico-download-light.svg"
-                            text="@i18n/main/download/start"
-                            buttonStyle="bordered"
-                            marginLeft="12" />
-
-                        <!-- revealed once the watchlist state is known (async
-                             provider request, media_movie.cpp); filled icon
-                             = already in the Watchlist -->
-                        <IconButton
-                            id="movie/watchlist"
-                            icon="@res/icon/ico-bookmark-light.svg"
-                            text="@i18n/main/watchlist/title"
-                            buttonStyle="bordered"
-                            visibility="gone"
-                            marginLeft="12" />
-                    </brls:Box>
-
-                    <!-- Stremio "no stream" info notice (ABOVE the synopsis):
-                         built in C++ (media_movie.cpp::buildSources) only when a
-                         Stremio item has zero sources. GONE otherwise. -->
-                    <brls:Box
-                        id="movie/notice"
-                        axis="column"
-                        visibility="gone"
-                        marginBottom="16" />
-
-                    <TextBox
-                        id="movie/label/overview"
-                        fontSize="15"
-                        textColor="@theme/font/grey" />
 
                     <!-- Stremio sources (BELOW the synopsis): one focusable row
                          per playable release (A = play, X = download) + one

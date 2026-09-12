@@ -382,9 +382,12 @@ void MediaMovie::applyMovie(const media::Item& item) {
         int min = int(item.duration / 60000);
         this->labelYear->setText(min >= 60 ? fmt::format("{}  ·  {} h {:02d}", item.year, min / 60, min % 60)
                                            : fmt::format("{}  ·  {} min", item.year, min));
-    } else {
+    } else if (item.year > 0) {
         this->labelYear->setText(std::to_string(item.year));
     }
+    // see media_series.cpp: an empty year pill is a stray dark capsule
+    if (item.year <= 0 && item.duration <= 0)
+        this->labelYear->getParent()->setVisibility(brls::Visibility::GONE);
     if (item.contentRating.empty()) {
         this->parentalRating->getParent()->setVisibility(brls::Visibility::GONE);
     } else {

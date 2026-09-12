@@ -5,6 +5,7 @@
 #include "utils/image.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "view/button_close.hpp"
+#include "view/pill_button.hpp"
 #include "view/svg_image.hpp"
 
 #include <algorithm>
@@ -63,36 +64,6 @@ public:
             addon->setMarginLeft(18);
             this->addView(addon);
         }
-    }
-};
-
-/// Filter pill (refresh / All / one per addon).
-class FilterPill : public brls::Box {
-public:
-    FilterPill(const std::string& text, bool active, std::function<void()> onPress) {
-        auto theme = brls::Application::getTheme();
-        this->setAxis(brls::Axis::ROW);
-        this->setAlignItems(brls::AlignItems::CENTER);
-        this->setJustifyContent(brls::JustifyContent::CENTER);
-        this->setHeight(44);
-        this->setPadding(0, 20, 0, 20);
-        this->setMarginRight(10);
-        this->setCornerRadius(22);        // Nuvio chip = fully rounded
-        this->setHighlightCornerRadius(26);
-        this->setBackgroundColor(active ? theme.getColor("brls/text") : theme.getColor("color/pill"));
-        this->setFocusable(true);
-
-        auto* label = new brls::Label();
-        label->setText(text);
-        label->setFontSize(18);
-        label->setTextColor(active ? theme.getColor("brls/background") : theme.getColor("brls/text"));
-        this->addView(label);
-
-        this->registerClickAction([onPress](brls::View*) {
-            onPress();
-            return true;
-        });
-        this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
     }
 };
 
@@ -198,16 +169,16 @@ void SourceList::buildFilters() {
         std::find(addons.begin(), addons.end(), this->activeAddon) == addons.end())
         this->activeAddon.clear();
 
-    this->boxFilters->addView(new FilterPill("main/stremio/source/refresh"_i18n, false, [this]() {
+    this->boxFilters->addView(new PillButton("main/stremio/source/refresh"_i18n, false, [this]() {
         this->fetchSources();
     }));
-    this->boxFilters->addView(new FilterPill("main/stremio/source/all"_i18n, this->activeAddon.empty(), [this]() {
+    this->boxFilters->addView(new PillButton("main/stremio/source/all"_i18n, this->activeAddon.empty(), [this]() {
         this->applyFilter("");
     }));
     // Only worth pilling per-addon when more than one contributed.
     if (addons.size() > 1) {
         for (const auto& a : addons)
-            this->boxFilters->addView(new FilterPill(a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }));
+            this->boxFilters->addView(new PillButton(a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }));
     }
 }
 

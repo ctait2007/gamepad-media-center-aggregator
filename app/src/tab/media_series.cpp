@@ -8,6 +8,7 @@
 #include "api/backend.hpp"
 #include "tab/media_series.hpp"
 #include "tab/source_list.hpp"
+#include "view/pill_button.hpp"
 #include "view/h_recycling.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "view/icon_button.hpp"
@@ -623,15 +624,30 @@ MediaSeries::MediaSeries(const plex::Item& item, bool localContext)
         this->imageFade->setImageFromRes("img/fade-bottom-light.png");
     // poster of the show (or the selected season)
     Image::load(this->imagePoster, item.thumb.empty() ? item.parentThumb : item.thumb, 325);
-    this->seasons->registerCell("Cell", VideoCardCell::create);
+    this->episodesRail->registerCell("Cell", []() {
+        auto* cell = new EpisodeCardCell();
+        auto actionListener = [cell](brls::View*) -> bool {
+            brls::Box* view = cell->getParent();
+            RecyclingView* recycler = nullptr;
+            while (view && !(recycler = dynamic_cast<RecyclingView*>(view))) view = view->getParent();
+            if (!recycler) return false;
+            auto* dataSrc = dynamic_cast<SeasonEpisodesDataSource*>(recycler->getDataSource());
+            if (!dataSrc) return false;
+            dataSrc->onContextMenu(view, cell->getIndex());
+            return true;
+        };
+        cell->registerAction("hints/option"_i18n, brls::BUTTON_X, actionListener);
+        cell->registerAction(KeyBind::getSetting(), actionListener);
+        return cell;
+    });
     this->people->registerCell("Cell", MediaCardCell::create);
     this->special->registerCell("Cell", VideoCardCell::create);
 
     // the buttons and the seasons row have no geometric overlap:
     // explicit route (cf. media_movie.cpp)
-    this->btnPlay->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/seasons");
-    this->btnDownload->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/seasons");
-    this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/seasons");
+    this->btnPlay->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/season_pills");
+    this->btnDownload->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/season_pills");
+    this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, "series/season_pills");
 
     // Play is the page's first focusable (top of the info column): make it the
     // scroll's "top anchor" so focusing it scrolls to the top (poster/title stay
@@ -840,9 +856,13 @@ void MediaSeries::applySeries(const media::Item& item) {
     if (item.childCount > 0) {
         this->labelYear->setText(fmt::format("{}  ·  {} {}", item.year, item.childCount,
             item.childCount > 1 ? "main/media/seasons"_i18n : "main/media/season"_i18n));
-    } else {
+    } else if (item.year > 0) {
         this->labelYear->setText(std::to_string(item.year));
     }
+    // No year and no season count: nothing to say, and an empty pill draws as
+    // a stray dark capsule.
+    if (item.year <= 0 && item.childCount <= 0)
+        this->labelYear->getParent()->setVisibility(brls::Visibility::GONE);
     if (item.contentRating.empty()) {
         this->parentalRating->getParent()->setVisibility(brls::Visibility::GONE);
     } else {
@@ -889,10 +909,10 @@ void MediaSeries::doSeason() {
     if (media::preferLocal(this->localContext)) {
         auto seasons = OfflineLibrary::instance().children(this->seriesId);
         if (seasons.empty()) {
-            this->labelSeasons->setVisibility(brls::Visibility::GONE);
-            this->seasons->setVisibility(brls::Visibility::GONE);
+            this->seasonPills->setVisibility(brls::Visibility::GONE);
+            this->episodesRail->setVisibility(brls::Visibility::GONE);
         } else {
-            this->seasons->setDataSource(new SeasonDataSource(seasons, &this->seriesSummary, true));
+            this->buildSeasonPills(seasons, true);
             if (!this->wantedSeason.empty()) {
                 for (auto& it : seasons) {
                     if (it.ratingKey != this->wantedSeason) continue;
@@ -920,11 +940,11 @@ void MediaSeries::doSeason() {
         [ASYNC_TOKEN](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
             if (r.Items.empty()) {
-                this->labelSeasons->setVisibility(brls::Visibility::GONE);
-                this->seasons->setVisibility(brls::Visibility::GONE);
+                this->seasonPills->setVisibility(brls::Visibility::GONE);
+                this->episodesRail->setVisibility(brls::Visibility::GONE);
                 return;
             }
-            this->seasons->setDataSource(new SeasonDataSource(r.Items, &this->seriesSummary));
+            this->buildSeasonPills(r.Items, false);
 
             // "go to season": the wanted season opens on top of the show
             // page (B goes back to the page)
@@ -979,6 +999,63 @@ void MediaSeries::doNextup() {
             this->btnPlay->setMuted(false);
         },
         nullptr);
+}
+
+/// Season pills + horizontal episode rail (NuvioTV's show page). Replaces the
+/// old row of season posters that opened a separate page for the episodes.
+void MediaSeries::buildSeasonPills(const std::vector<plex::Item>& seasons, bool local) {
+    this->seasonList = seasons;
+    this->seasonsLocal = local;
+    this->activeSeason = 0;
+    this->seasonPills->setVisibility(brls::Visibility::VISIBLE);
+    this->episodesRail->setVisibility(brls::Visibility::VISIBLE);
+    this->seasonPills->clearViews();
+
+    for (size_t i = 0; i < this->seasonList.size(); i++) {
+        const plex::Item& season = this->seasonList[i];
+        // Prefer the declared title ("Season 1", "Specials"); some backends
+        // leave it empty and only carry the index.
+        std::string label = season.title.empty()
+                                ? fmt::format("{} {}", "main/media/season"_i18n, season.index)
+                                : season.title;
+        this->seasonPills->addView(new PillButton(label, i == 0, [this, i]() { this->selectSeason(i); }));
+    }
+
+    if (!this->seasonList.empty()) this->selectSeason(0);
+}
+
+void MediaSeries::selectSeason(size_t index) {
+    if (index >= this->seasonList.size()) return;
+    this->activeSeason = index;
+
+    // restyle in place rather than rebuilding: rebuilding the row would
+    // destroy the pill the user is standing on and drop the focus
+    size_t i = 0;
+    for (brls::View* v : this->seasonPills->getChildren()) {
+        if (auto* pill = dynamic_cast<PillButton*>(v)) pill->setActive(i == index);
+        i++;
+    }
+
+    const plex::Item& season = this->seasonList[index];
+    if (this->seasonsLocal) {
+        auto eps = OfflineLibrary::instance().children(season.ratingKey);
+        this->episodesRail->setDataSource(
+            new SeasonEpisodesDataSource(season, this->seriesSummary, eps, true));
+        return;
+    }
+
+    ASYNC_RETAIN
+    AppConfig::instance().backend().getChildren(
+        season.ratingKey,
+        [ASYNC_TOKEN, season](const media::Container<media::Item>& r) {
+            ASYNC_RELEASE
+            this->episodesRail->setDataSource(
+                new SeasonEpisodesDataSource(season, this->seriesSummary, r.Items));
+        },
+        [ASYNC_TOKEN](const std::string& ex) {
+            ASYNC_RELEASE
+            brls::Logger::warning("season episodes {}", ex);
+        });
 }
 
 void MediaSeries::doRelated() {

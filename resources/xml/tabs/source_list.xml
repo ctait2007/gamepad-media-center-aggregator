@@ -89,11 +89,19 @@
                 id="source/scroll"
                 grow="1"
                 scrollingBehavior="centered">
+                <!-- paddingTop: a card's focus ring is drawn ~5px OUTSIDE its
+                     frame, so with the list flush to the top of the scroll the
+                     first card's ring was clipped and it read as cut off.
+                     paddingRight keeps the cards clear of the scroll indicator,
+                     which was drawing over their right edge. -->
                 <brls:Box
                     id="source/list"
                     axis="column"
                     width="100%"
-                    height="auto" />
+                    height="auto"
+                    paddingTop="8"
+                    paddingBottom="8"
+                    paddingRight="26" />
             </brls:ScrollingFrame>
 
         </brls:Box>

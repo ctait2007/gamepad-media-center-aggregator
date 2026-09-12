@@ -48,8 +48,18 @@ private:
     BRLS_BIND(IconButton, btnPlay, "series/play");
     BRLS_BIND(IconButton, btnDownload, "series/download");
     BRLS_BIND(IconButton, btnWatchlist, "series/watchlist");
-    BRLS_BIND(brls::Header, labelSeasons, "series/label/seasons");
-    BRLS_BIND(HRecyclerFrame, seasons, "series/seasons");
+    /// Builds the season pill row and loads the first season into the rail.
+    /// `local` selects the offline catalog as the episode source.
+    void buildSeasonPills(const std::vector<plex::Item>& seasons, bool local);
+    /// Loads one season's episodes into the horizontal rail.
+    void selectSeason(size_t index);
+
+    std::vector<plex::Item> seasonList;
+    size_t activeSeason = 0;
+    bool seasonsLocal = false;
+
+    BRLS_BIND(brls::Box, seasonPills, "series/season_pills");
+    BRLS_BIND(HRecyclerFrame, episodesRail, "series/episodes");
     BRLS_BIND(brls::Header, labelSpecial, "series/label/special");
     BRLS_BIND(brls::Header, labelPeople, "series/label/people");
     BRLS_BIND(HRecyclerFrame, people, "series/people");
