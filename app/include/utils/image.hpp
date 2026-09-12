@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <borealis.hpp>
+#include <functional>
 #include "api/http.hpp"
 #include "api/backend.hpp"
 #include "config.hpp"
@@ -19,8 +20,18 @@ public:
     /// Loads an image for a backend path: the on-disk cached asset if present
     /// (offline), else the active backend's image URL. width/height > 0 requests
     /// backend-side resize where the backend supports it.
-    static void load(brls::Image* view, const std::string& path, int width = 0, int height = 0) {
-        if (path.empty()) return;
+    /// `done` (optional) fires on the UI thread once the outcome is known:
+    /// true when pixels reached the view, false when the fetch or decode failed.
+    /// Artwork that is merely ADVERTISED is not artwork that exists — Cinemeta
+    /// templates a metahub logo url from the IMDb id for every item and metahub
+    /// 404s the ones with no logo — so a caller that hides its text title in
+    /// favour of a logo needs to hear about the failure.
+    static void load(brls::Image* view, const std::string& path, int width = 0, int height = 0,
+                     std::function<void(bool)> done = nullptr) {
+        if (path.empty()) {
+            if (done) done(false);
+            return;
+        }
         // offline cache wins: a locally cached asset renders without the server
         // and gives downloaded content instant local artwork even online
         // (SPEC §4.2, AC6/AC17). Keyed by the raw path/url passed here.
@@ -34,9 +45,10 @@ public:
             // here), reintroducing the GPU-memory exhaustion the network
             // downscale fixed, on the offline/downloaded path. width/height cap
             // the texture to the display size.
-            withLocal(view, local, width, height);
+            withLocal(view, local, width, height, done);
 #else
             view->setImageFromFile(local);
+            if (done) done(true);
 #endif
             return;
         }
@@ -48,20 +60,25 @@ public:
         // the artwork downscaled to its display size before the GPU upload, so a
         // 580x859 RPDB poster becomes a 512² texture instead of a 1024² one — the
         // Vita GPU-memory exhaustion behind the overview crash (GXM only).
-        if (!url.empty()) with(view, url, width, height);
+        if (!url.empty())
+            with(view, url, width, height, done);
+        else if (done)
+            done(false);
     }
 
     /// @brief 设置要加载内容的图片组件。此函数需要工作在主线程。
     /// width/height (>0) = the intended display size, used on GXM to cap the
     /// decoded texture to the smallest power-of-two that still covers it.
-    static void with(brls::Image* view, const std::string& url, int width = 0, int height = 0);
+    static void with(brls::Image* view, const std::string& url, int width = 0, int height = 0,
+                     std::function<void(bool)> done = nullptr);
 
 #ifdef BOREALIS_USE_GXM
     /// GXM offline path: like with(), but reads the pixels from a locally cached
     /// file instead of the network, then runs the same decode+downscale+DXT as
     /// doRequest. Keeps a cached native-resolution asset from becoming an
     /// oversized uncompressed GPU texture (see Image::load). Main thread.
-    static void withLocal(brls::Image* view, const std::string& localPath, int width = 0, int height = 0);
+    static void withLocal(brls::Image* view, const std::string& localPath, int width = 0, int height = 0,
+                          std::function<void(bool)> done = nullptr);
 #endif
 
     /// @brief 取消请求，并清空图片。此函数需要工作在主线程。
@@ -83,6 +100,9 @@ private:
     // true (GXM offline): `url` is a local cache file read from disk instead of
     // fetched over HTTP; the decode/downscale/upload path is otherwise shared.
     bool local = false;
+    // fired on the UI thread with the outcome; empty when the caller does not
+    // care (every pre-existing call site)
+    std::function<void(bool)> done;
 
     inline static std::mutex requestMutex;
     inline static std::unordered_map<brls::Image*, Ref> requests;

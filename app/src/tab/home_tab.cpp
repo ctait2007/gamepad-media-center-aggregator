@@ -416,13 +416,18 @@ void HomeTab::showHero(const plex::Item& item) {
         if (!art.empty()) Image::with(backdrop, art);
     }
 
-    // Always the title as TEXT. Preferring the clear-logo artwork meant an
-    // addon advertising a logo URL that 404s (or resolves slowly) left the
-    // hero with no title at all, since the label was hidden up front.
-    if (title) {
-        title->setText(item.grandparentTitle.empty() ? item.title : item.grandparentTitle);
-        title->setTextColor(onArt);
+    // The cut-out logo is the title, as in NuvioTV. Nothing is revealed until
+    // the outcome is known, so a logo that 404s cannot leave the hero blank.
+    this->heroTitleText = item.grandparentTitle.empty() ? item.title : item.grandparentTitle;
+    this->heroGeneration++;
+    if (title) title->setTextColor(onArt);
+    // A logo the row already carries, else one an earlier lookup found for it.
+    std::string logoUrl = item.clearLogo;
+    if (logoUrl.empty()) {
+        auto known = this->heroLogos.find(item.ratingKey);
+        if (known != this->heroLogos.end()) logoUrl = known->second;
     }
+    this->applyHeroLogo(item.ratingKey, logoUrl);
 
     if (meta) {
         std::vector<std::string> bits;
@@ -448,6 +453,101 @@ void HomeTab::showHero(const plex::Item& item) {
         overview->setText(item.summary);
         overview->setTextColor(onArt);
     }
+}
+
+void HomeTab::showHeroTitleText(const std::string& key) {
+    if (key != this->heroShowing) return;
+    auto* logo = dynamic_cast<brls::Image*>(this->getView("home/hero/logo"));
+    auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
+    if (logo) logo->setVisibility(brls::Visibility::GONE);
+    if (title) {
+        title->setText(this->heroTitleText);
+        title->setVisibility(brls::Visibility::VISIBLE);
+    }
+}
+
+void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
+    auto* logo = dynamic_cast<brls::Image*>(this->getView("home/hero/logo"));
+    auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
+    if (!logo || !title) return;
+
+    // Nothing to try: no url on the row, and the lookup either found none or
+    // has not run yet.
+    if (url.empty() || this->heroLogoFailed.count(url)) {
+        this->showHeroTitleText(key);
+        this->resolveHeroLogo(key);
+        return;
+    }
+
+    // Neither slot is shown while the fetch is in flight — swapping a text
+    // title out for a logo a moment later is worse than a brief gap, and the
+    // callback below always fires, so the gap always ends.
+    Image::cancel(logo);
+    logo->setVisibility(brls::Visibility::GONE);
+    title->setVisibility(brls::Visibility::GONE);
+
+    size_t gen = this->heroGeneration;
+    ASYNC_RETAIN
+    Image::load(logo, url, 330, 96, [ASYNC_TOKEN, key, url, gen](bool ok) {
+        ASYNC_RELEASE
+        // focus moved on while this was in flight: that newer item owns the
+        // hero now, and re-showing this one would fight it
+        if (gen != this->heroGeneration || key != this->heroShowing) return;
+        auto* view = dynamic_cast<brls::Image*>(this->getView("home/hero/logo"));
+        if (ok) {
+            if (view) view->setVisibility(brls::Visibility::VISIBLE);
+            return;
+        }
+        // The url was advertised but there is no artwork behind it. Remember
+        // that, so re-focusing this card does not re-request the 404, and go
+        // looking for a better one.
+        this->heroLogoFailed.insert(url);
+        this->showHeroTitleText(key);
+        this->resolveHeroLogo(key);
+    });
+}
+
+void HomeTab::resolveHeroLogo(const std::string& key) {
+    if (key.empty()) return;
+    // Answered already: either a url (which applyHeroLogo used) or "" for an
+    // item whose metadata really carries no logo.
+    if (this->heroLogos.count(key)) return;
+    // One lookup in flight per item. Recorded here rather than in heroLogos so
+    // that a lookup which never runs (see below) leaves no verdict behind — an
+    // item flicked past must stay retryable, not be remembered as logo-less.
+    if (!this->heroLogoPending.insert(key).second) return;
+
+    // Catalog rows carry metaPreview objects, and plenty of addons only put
+    // `logo` in the full meta — which is why an item could show a text title
+    // on Home while its own detail page showed the artwork. One metadata-only
+    // fetch per item the user actually rests on, never per card scrolled past:
+    // the delay drops the ones flicked through.
+    ASYNC_RETAIN
+    brls::delay(300, [ASYNC_TOKEN, key]() {
+        ASYNC_RELEASE
+        if (key != this->heroShowing) {  // flicked past: not worth a request
+            this->heroLogoPending.erase(key);
+            return;
+        }
+        ASYNC_RETAIN
+        AppConfig::instance().backend().getItemDetail(
+            key, false,
+            [ASYNC_TOKEN, key](const media::Item& full) {
+                ASYNC_RELEASE
+                this->heroLogoPending.erase(key);
+                // "" is a real answer: this item has no logo anywhere, so the
+                // text title stands and nothing asks again.
+                this->heroLogos[key] = full.clearLogo;
+                if (full.clearLogo.empty() || key != this->heroShowing) return;
+                this->applyHeroLogo(key, full.clearLogo);
+            },
+            [ASYNC_TOKEN, key](const std::string& ex) {
+                ASYNC_RELEASE
+                // no verdict recorded: a failed request is not proof of absence
+                this->heroLogoPending.erase(key);
+                brls::Logger::warning("hero logo {}: {}", key, ex);
+            });
+    });
 }
 
 void HomeTab::onCreate() {

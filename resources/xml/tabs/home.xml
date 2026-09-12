@@ -37,15 +37,26 @@
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
-        <!-- Always the title as TEXT. It used to prefer the item's clear-logo
-             artwork and hide this label, so an addon that advertises a logo
-             URL that 404s (or is slow) left the hero with no title AND no
-             text at all. A title that always renders beats one that is
-             sometimes prettier. -->
+        <!-- The item's cut-out logo, as in the reference. Hidden until its
+             pixels actually arrive: an advertised logo url is not proof the
+             artwork exists (Cinemeta templates one per IMDb id and metahub
+             404s the misses), so home_tab only reveals it on a confirmed
+             load and shows the label below instead when it fails. -->
+        <brls:Image
+            id="home/hero/logo"
+            width="330"
+            height="96"
+            visibility="gone"
+            marginBottom="12"
+            scalingType="fit" />
+
+        <!-- last resort: shown only when the item has no logo anywhere, not
+             even in its full metadata -->
         <brls:Label
             id="home/hero/title"
             fontSize="38"
             singleLine="true"
+            visibility="gone"
             marginBottom="12" />
 
         <brls:Label

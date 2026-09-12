@@ -133,7 +133,8 @@ Image::Image() : image(nullptr) {
 
 Image::~Image() { brls::Logger::verbose("delete Image {}", fmt::ptr(this)); }
 
-void Image::with(brls::Image* view, const std::string& url, int width, int height) {
+void Image::with(brls::Image* view, const std::string& url, int width, int height,
+                 std::function<void(bool)> done) {
     int tex = brls::TextureCache::instance().getCache(url);
     if (tex > 0) {
         // The cache owns this texture. brls::Image defaults freeTexture to
@@ -143,6 +144,7 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
         // leave a dead id in the cache — drawn later, that's a GXM fault.
         view->setFreeTexture(false);
         view->innerSetImage(tex);
+        if (done) done(true);
         return;
     }
 
@@ -158,11 +160,15 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
     auto it = requests.insert(std::make_pair(view, item));
     if (!it.second) {
         brls::Logger::warning("insert Image {} failed", fmt::ptr(view));
+        // an earlier request still owns this view: this one never runs, so the
+        // caller must not be left waiting on a callback that cannot come
+        if (done) done(false);
         return;
     }
 
     item->image = view;
     item->url = url;
+    item->done = std::move(done);
     item->targetW = width;
     item->targetH = height;
     view->ptrLock();
@@ -173,13 +179,15 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
 }
 
 #ifdef BOREALIS_USE_GXM
-void Image::withLocal(brls::Image* view, const std::string& localPath, int width, int height) {
+void Image::withLocal(brls::Image* view, const std::string& localPath, int width, int height,
+                      std::function<void(bool)> done) {
     // Mirrors with(): the cache is keyed by the local path (as setImageFromFile
     // did), so repeat loads of a cached asset hit the TextureCache directly.
     int tex = brls::TextureCache::instance().getCache(localPath);
     if (tex > 0) {
         view->setFreeTexture(false);
         view->innerSetImage(tex);
+        if (done) done(true);
         return;
     }
 
@@ -190,11 +198,13 @@ void Image::withLocal(brls::Image* view, const std::string& localPath, int width
     auto it = requests.insert(std::make_pair(view, item));
     if (!it.second) {
         brls::Logger::warning("insert Image {} failed", fmt::ptr(view));
+        if (done) done(false);
         return;
     }
 
     item->image = view;
     item->url = localPath;  // doubles as the disk path (this->local == true)
+    item->done = std::move(done);
     item->local = true;
     item->targetW = width;
     item->targetH = height;
@@ -336,6 +346,7 @@ void Image::doRequest(HTTP& s) {
         auto* imagePtr = this->image.load();
         auto urlCopy = this->url;
         auto isCancelCopy = this->isCancel;
+        auto doneCopy = this->done;
 #ifdef BOREALIS_USE_GXM
         int imageFlags = (hasAlpha ? NVG_IMAGE_DXT5 : NVG_IMAGE_DXT1) | NVG_IMAGE_LPDDR;
 #else
@@ -344,7 +355,8 @@ void Image::doRequest(HTTP& s) {
 #endif
 
         brls::Logger::verbose("request Image {} size {}", urlCopy, data.size());
-        brls::sync([imagePtr, urlCopy, isCancelCopy, imageData, imageW, imageH, isWebp, imageFlags, texBytes] {
+        brls::sync([imagePtr, urlCopy, isCancelCopy, imageData, imageW, imageH, isWebp, imageFlags, texBytes,
+                    doneCopy] {
             if (!isCancelCopy->load()) {
                 // Load texture
                 int tex = brls::TextureCache::instance().getCache(urlCopy);
@@ -355,6 +367,9 @@ void Image::doRequest(HTTP& s) {
                 }
                 if (tex > 0) imagePtr->innerSetImage(tex);
                 clear(imagePtr);
+                // decode failure (imageData == nullptr) counts as a miss: the
+                // bytes arrived but nothing renderable came out of them
+                if (doneCopy) doneCopy(tex > 0);
             }
             if (imageData) {
 #ifdef BOREALIS_USE_GXM
@@ -370,9 +385,15 @@ void Image::doRequest(HTTP& s) {
             }
         });
     } catch (const std::exception& ex) {
+        // the common one is "http status 404": an advertised logo/backdrop that
+        // the image host does not actually have
         brls::Logger::warning("request image {} {}", this->url, ex.what());
         auto* imagePtr = this->image.load();
-        brls::sync([imagePtr] { Image::clear(imagePtr); });
+        auto doneCopy = this->done;
+        brls::sync([imagePtr, doneCopy] {
+            Image::clear(imagePtr);
+            if (doneCopy) doneCopy(false);
+        });
     }
 }
 

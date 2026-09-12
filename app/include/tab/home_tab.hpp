@@ -9,6 +9,7 @@
 #include "api/plex.hpp"
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class RecylingVideo;
@@ -45,6 +46,29 @@ private:
     /// and never scrolls, it just follows the selection like NuvioTV's.
     void updateHeroFromFocus();
     void showHero(const plex::Item& item);
+
+    /// Put `url`'s artwork in the hero's logo slot, for the item whose
+    /// ratingKey is `key`. Reveals the logo only once its pixels are in;
+    /// on failure (or no url at all) it asks resolveHeroLogo() to look one
+    /// up and, failing that, falls back to the text title.
+    void applyHeroLogo(const std::string& key, const std::string& url);
+    /// Fetch `key`'s full metadata to find a logo the catalog row did not
+    /// carry. Debounced and memoised — a scroll must not fire one per card.
+    void resolveHeroLogo(const std::string& key);
+    /// Text title for `key`, used when no logo can be had.
+    void showHeroTitleText(const std::string& key);
+
+    /// ratingKey -> logo url found in the item's full metadata; "" means
+    /// "looked, there is none". Also suppresses repeat lookups.
+    std::unordered_map<std::string, std::string> heroLogos;
+    /// keys with a lookup scheduled or in flight (dedupe without recording a
+    /// verdict, so an aborted lookup can be retried)
+    std::unordered_set<std::string> heroLogoPending;
+    /// logo urls that failed to load (metahub 404s the logos it does not
+    /// have, though Cinemeta advertises one for every IMDb id)
+    std::unordered_set<std::string> heroLogoFailed;
+    std::string heroTitleText;  // title of the item in the hero right now
+    size_t heroGeneration = 0;  // bumped per showHero; stale callbacks drop out
 
     /// Row view -> the items it shows. The focus event hands us a View; this
     /// is the bridge from the focused card back to the metadata the hero needs.
