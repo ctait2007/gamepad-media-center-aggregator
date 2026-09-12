@@ -8,6 +8,7 @@
 #include <view/presenter.hpp>
 #include "api/plex.hpp"
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class RecylingVideo;
@@ -38,6 +39,19 @@ private:
         std::vector<plex::Item> items;
         bool isResume = false;
     };
+
+    /// Point the hero at whatever card currently holds focus. Subscribed to
+    /// borealis' global focus-change event: the hero is not focusable itself
+    /// and never scrolls, it just follows the selection like NuvioTV's.
+    void updateHeroFromFocus();
+    void showHero(const plex::Item& item);
+
+    /// Row view -> the items it shows. The focus event hands us a View; this
+    /// is the bridge from the focused card back to the metadata the hero needs.
+    std::unordered_map<brls::View*, std::vector<plex::Item>> heroRows;
+    std::string heroShowing;  // ratingKey currently in the hero
+    brls::GenericEvent::Subscription focusSub{};
+    bool focusSubscribed = false;  // guards the unsubscribe in the destructor
 
     void fetchResume();
     void fetchHubs();

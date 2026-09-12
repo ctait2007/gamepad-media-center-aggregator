@@ -1,6 +1,8 @@
 #include "tab/home_tab.hpp"
+#include "view/recycling_grid.hpp"
 #include "view/recyling_video.hpp"
-#include "view/home_hero.hpp"
+#include "view/text_box.hpp"
+#include "utils/image.hpp"
 #include "view/loading_spinner.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
@@ -21,7 +23,10 @@ HomeTab::HomeTab() {
     this->addView(this->spinner);
 }
 
-HomeTab::~HomeTab() { brls::Logger::debug("View HomeTab: delete"); }
+HomeTab::~HomeTab() {
+    if (this->focusSubscribed) brls::Application::getGlobalFocusChangeEvent()->unsubscribe(this->focusSub);
+    brls::Logger::debug("View HomeTab: delete");
+}
 
 brls::View* HomeTab::create() { return new HomeTab(); }
 
@@ -227,20 +232,14 @@ void HomeTab::renderRows() {
             return ra < rb;
         });
 
-    // Hero: the first item of the first non-resume row. Continue Watching is
-    // skipped as the source — it is a list of things already started, while
-    // the hero is meant to present something. Nothing is fetched for this; it
-    // reuses an item the rows already carry.
-    for (auto& row : this->pendingRows) {
-        if (row.isResume || row.items.empty()) continue;
-        const plex::Item& feature = row.items.front();
-        if (feature.type != plex::mediaTypeMovie && feature.type != plex::mediaTypeShow) break;
-        this->boxHome->addView(new HomeHero(feature));
-        break;
-    }
+    // Index every visible item by ratingKey so the focus handler can map the
+    // focused card back to its metadata (a card's id IS its ratingKey).
+    this->heroRows.clear();
 
     for (auto& row : this->pendingRows) {
-        this->boxHome->addView(this->buildRow(row));
+        RecylingVideo* view = this->buildRow(row);
+        this->heroRows[view] = row.items;
+        this->boxHome->addView(view);
         this->renderedIds.push_back(row.identifier);
     }
 
@@ -259,6 +258,18 @@ void HomeTab::renderRows() {
         empty->setMarginLeft(brls::getStyle()["main/content_padding_sides"]);
         empty->setMarginRight(brls::getStyle()["main/content_padding_sides"]);
         this->boxHome->addView(empty);
+    }
+
+    // Seed the hero before anything is focused, then let focus drive it.
+    for (auto& row : this->pendingRows) {
+        if (row.items.empty()) continue;
+        this->showHero(row.items.front());
+        break;
+    }
+    if (!this->focusSubscribed) {
+        this->focusSub = brls::Application::getGlobalFocusChangeEvent()->subscribe(
+            [this](brls::View*) { this->updateHeroFromFocus(); });
+        this->focusSubscribed = true;
     }
 
     this->spinner->setSpinning(false);
@@ -311,7 +322,9 @@ void HomeTab::insertResumeRow(const RowData& row) {
         }
     }
 
-    this->boxHome->addView(this->buildRow(row), idx);
+    RecylingVideo* view = this->buildRow(row);
+    this->heroRows[view] = row.items;
+    this->boxHome->addView(view, idx);
     this->renderedIds.insert(this->renderedIds.begin() + idx, row.identifier);
 }
 
@@ -353,6 +366,97 @@ void HomeTab::tryRestoreFocus() {
         brls::View* target = this->boxHome->getDefaultFocus();
         if (target) brls::Application::giveFocus(target);
     });
+}
+
+
+/// Walk up from the focused view until a ratingKey we know is found: the
+/// focusable node inside a card is a child ("video/card/pic_box"), so the id
+/// that matters lives on an ancestor.
+void HomeTab::updateHeroFromFocus() {
+    if (this->heroRows.empty()) return;
+    // Resolve the focused card to (row, index) by climbing to the cell (which
+    // knows its index) and then to the row that owns it. View::id is protected,
+    // so the recycler's own index is both the available route and the more
+    // robust one — it survives two rows holding the same title.
+    brls::View* v = brls::Application::getCurrentFocus();
+    RecyclingGridItem* cell = nullptr;
+    for (int guard = 0; v && guard < 10; v = v->getParent(), guard++) {
+        if (!cell) cell = dynamic_cast<RecyclingGridItem*>(v);
+        auto row = this->heroRows.find(v);
+        if (row == this->heroRows.end()) continue;
+        if (!cell) return;
+        size_t idx = cell->getIndex();
+        const std::vector<plex::Item>& items = row->second;
+        // "+N more" trailing cards index past the end: leave the hero alone.
+        if (idx >= items.size()) return;
+        this->showHero(items[idx]);
+        return;
+    }
+    // Focus on the sidebar or settings: the last selected item stays presented
+    // rather than the hero blanking.
+}
+
+void HomeTab::showHero(const plex::Item& item) {
+    if (item.ratingKey == this->heroShowing) return;  // same card, nothing to redraw
+    this->heroShowing = item.ratingKey;
+
+    auto* backdrop = dynamic_cast<brls::Image*>(this->getView("home/hero/backdrop"));
+    auto* logo = dynamic_cast<brls::Image*>(this->getView("home/hero/logo"));
+    auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
+    auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
+    auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
+
+    // Everything sits on the artwork's veil, so it is light in BOTH themes.
+    const NVGcolor onArt = nvgRGB(0xF5, 0xF5, 0xF5);
+    const NVGcolor onArtDim = nvgRGB(0xB3, 0xB3, 0xB3);
+
+    if (backdrop) {
+        Image::cancel(backdrop);
+        std::string art = item.art.empty() ? item.grandparentArt : item.art;
+        if (art.empty()) art = item.thumb;
+        if (!art.empty()) Image::with(backdrop, art);
+    }
+
+    // Prefer the clear-logo artwork, exactly like the reference; fall back to
+    // the title as text when the addon supplies none.
+    if (logo && title) {
+        Image::cancel(logo);
+        if (!item.clearLogo.empty()) {
+            Image::load(logo, item.clearLogo, 330, 96);
+            logo->setVisibility(brls::Visibility::VISIBLE);
+            title->setVisibility(brls::Visibility::GONE);
+        } else {
+            logo->setVisibility(brls::Visibility::GONE);
+            title->setVisibility(brls::Visibility::VISIBLE);
+            title->setText(item.grandparentTitle.empty() ? item.title : item.grandparentTitle);
+            title->setTextColor(onArt);
+        }
+    }
+
+    if (meta) {
+        std::vector<std::string> bits;
+        if (item.type == plex::mediaTypeShow) bits.push_back("main/stremio/series"_i18n);
+        else if (item.type == plex::mediaTypeMovie) bits.push_back("main/stremio/movies"_i18n);
+        for (auto& g : item.genres) {
+            bits.push_back(g);
+            break;  // one genre: the line is single-line and the year matters more
+        }
+        if (item.duration > 0) {
+            int min = int(item.duration / 60000);
+            bits.push_back(min >= 60 ? fmt::format("{} h {:02d}", min / 60, min % 60) : fmt::format("{} min", min));
+        }
+        if (item.year > 0) bits.push_back(std::to_string(item.year));
+        if (item.rating > 0) bits.push_back(fmt::format("IMDb {:.1f}", item.rating));
+        std::string line;
+        for (size_t i = 0; i < bits.size(); i++) line += (i ? "  •  " : "") + bits[i];
+        meta->setText(line);
+        meta->setTextColor(onArtDim);
+    }
+
+    if (overview) {
+        overview->setText(item.summary);
+        overview->setTextColor(onArt);
+    }
 }
 
 void HomeTab::onCreate() {

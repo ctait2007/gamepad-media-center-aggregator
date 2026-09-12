@@ -1,12 +1,78 @@
 <brls:Box
     width="auto"
-    height="auto">
+    height="auto"
+    axis="column">
 
-    <!-- centered: cf. suggest_show.xml (natural stole the focus) -->
+    <!-- NuvioTV's home screen, from the reference recording:
+         the FOCUSED item's backdrop fills the whole screen behind everything,
+         heavily dimmed; a fixed text block sits over its upper-left; and the
+         rows scroll independently below, over the art. The hero never scrolls
+         and is never focusable — focus lives entirely in the rows. -->
+    <brls:Image
+        id="home/hero/backdrop"
+        positionType="absolute"
+        positionTop="0"
+        positionLeft="0"
+        width="100%"
+        height="100%"
+        scalingType="fill" />
+    <brls:Rectangle
+        positionType="absolute"
+        positionTop="0"
+        positionLeft="0"
+        width="100%"
+        height="100%"
+        color="@theme/color/hero_scrim" />
+
+    <!-- Bottom-anchored (justifyContent=flexEnd): in the reference the synopsis
+         always ends at the same height whatever the logo's size, so the block
+         grows UPWARD from its baseline rather than down from the top. -->
+    <brls:Box
+        id="home/hero"
+        positionType="absolute"
+        positionTop="0"
+        positionLeft="0"
+        width="46%"
+        height="46%"
+        axis="column"
+        justifyContent="flexEnd"
+        paddingBottom="16"
+        paddingLeft="@style/main/content_padding_sides"
+        paddingRight="20">
+
+        <brls:Image
+            id="home/hero/logo"
+            width="330"
+            height="96"
+            visibility="gone"
+            marginBottom="12"
+            scalingType="fit" />
+
+        <!-- fallback when the item carries no clear-logo artwork -->
+        <brls:Label
+            id="home/hero/title"
+            fontSize="38"
+            singleLine="true"
+            marginBottom="12" />
+
+        <brls:Label
+            id="home/hero/meta"
+            fontSize="17"
+            singleLine="true"
+            marginBottom="10" />
+
+        <TextBox
+            id="home/hero/overview"
+            fontSize="17"
+            maxRows="4" />
+    </brls:Box>
+
+    <!-- reserves the hero band; the rows begin under it -->
+    <brls:Box height="46%" />
+
     <brls:ScrollingFrame
         id="home/scroll"
         width="auto"
-        height="auto"
         grow="1.0"
         scrollingBehavior="centered">
 
@@ -15,10 +81,7 @@
         <brls:Box
             axis="column"
             id="home/box"
-            paddingTop="@style/main/content_padding_top_bottom"
-            paddingBottom="@style/main/content_padding_top_bottom">
-
-        </brls:Box>
+            paddingBottom="@style/main/content_padding_top_bottom" />
 
     </brls:ScrollingFrame>
 

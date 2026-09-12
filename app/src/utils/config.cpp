@@ -1036,6 +1036,11 @@ void AppConfig::initThemes() {
     // panel in a different shade, so this is flush with the background rather
     // than the elevated grey_1 it used to borrow (grey_1 is also the card
     // placeholder fill, so it needed its own token to move independently).
+    // Home hero veil. The focused item's backdrop fills the screen behind the
+    // rows, so it has to be knocked back far enough for row titles and card
+    // text to stay readable over any artwork — NuvioTV runs it very dark.
+    this->addColor(brls::ThemeVariant::LIGHT, "color/hero_scrim", nvgRGBA(235, 235, 235, 224));
+    this->addColor(brls::ThemeVariant::DARK, "color/hero_scrim", nvgRGBA(13, 13, 13, 216));
     this->addColor(brls::ThemeVariant::LIGHT, "color/nav_bg", nvgRGB(235, 235, 235));
     this->addColor(brls::ThemeVariant::DARK, "color/nav_bg", nvgRGB(13, 13, 13));
     this->addColor(brls::ThemeVariant::LIGHT, "color/surface", nvgRGB(255, 255, 255));
