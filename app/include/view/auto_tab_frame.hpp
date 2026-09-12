@@ -44,6 +44,13 @@ public:
     /// vertical sidebar.
     void setAccentBarEnabled(bool enabled);
 
+    /// Centred circular item whose focus ring hugs the icon (NuvioTV's rail).
+    void setIconRailMode(bool enabled);
+    void applyIconRailStyle();
+
+    /// false = landing on the tab only selects it; opening it takes a press.
+    void setActivateOnFocus(bool enabled);
+
     void setLabel(std::string label);
 
     void setSubtitle(std::string label);
@@ -95,6 +102,8 @@ private:
 
     AutoSidebarItemGroup* group = nullptr;
     bool accentBar = true;
+    bool iconRail = false;
+    bool activateOnFocus = true;
 
     AutoTabBarStyle tabStyle = AutoTabBarStyle::NONE;
 
@@ -316,7 +325,9 @@ private:
     /// tightened vertical sidebar: 28px centered icon + 4px accent flush
     /// against the right edge (76px stayed too wide, accent detached)
     float sidebarWidth = 64;
-    bool tabAccentBar = true;     // accent bar beside the active item
+    bool tabAccentBar = true;         // accent bar beside the active item
+    bool tabIconRail = false;         // centred circular rail items
+    bool tabActivateOnFocus = true;   // focusing a tab opens it
     float tabItemSpacing = 0.0f;  // extra gap below each rail item
     float sidebarTopPad = -1.0f;  // last centring margin applied (see onLayout)
 

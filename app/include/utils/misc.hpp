@@ -28,6 +28,11 @@ std::string formatSize(uint64_t s);
 /// start with an ISO date, so an addon's free-form string is never mangled.
 std::string formatDate(const std::string& iso);
 
+/// A duration the way NuvioTV writes one: "2h 42m", "2h", "42m" (its
+/// HeroMetadataFormatter.formatHeroRuntime). Empty for a non-positive length,
+/// which is TMDB's answer for a title whose runtime it does not know yet.
+std::string formatRuntime(int64_t ms);
+
 /// Light Markdown→plain-text pass for display in a borealis Label (no MD
 /// renderer): drops heading #'s, turns list markers into bullets, unwraps
 /// [text](url) links and strips ** __ ` emphasis/code marks.

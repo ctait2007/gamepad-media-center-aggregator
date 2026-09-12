@@ -1108,6 +1108,7 @@ void AppConfig::initThemes() {
         // of a 960-wide screen)
         brls::getStyle().addMetric("main/sidebar/width", 72);
         brls::getStyle().addMetric("main/sidebar/icon", 20);
+        brls::getStyle().addMetric("main/sidebar/item_size", 36);
         brls::getStyle().addMetric("main/sidebar/item_spacing", 26);
     } else {
         // Grids lightened by one column compared to Switchfin: bigger
@@ -1130,7 +1131,8 @@ void AppConfig::initThemes() {
         case 900:
             brls::getStyle().addMetric("main/sidebar/width", 120);
             brls::getStyle().addMetric("main/sidebar/icon", 30);
-            brls::getStyle().addMetric("main/sidebar/item_spacing", 56);
+            brls::getStyle().addMetric("main/sidebar/item_size", 57);
+            brls::getStyle().addMetric("main/sidebar/item_spacing", 45);
             brls::getStyle().addMetric("app/album/height", 240);
             brls::getStyle().addMetric("app/books/height", 305);
             brls::getStyle().addMetric("app/video/height", 325);
@@ -1147,7 +1149,8 @@ void AppConfig::initThemes() {
         default:  // 720p
             brls::getStyle().addMetric("main/sidebar/width", 96);
             brls::getStyle().addMetric("main/sidebar/icon", 24);
-            brls::getStyle().addMetric("main/sidebar/item_spacing", 45);
+            brls::getStyle().addMetric("main/sidebar/item_size", 46);
+            brls::getStyle().addMetric("main/sidebar/item_spacing", 36);
             brls::getStyle().addMetric("app/album/height", 225);
             brls::getStyle().addMetric("app/books/height", 280);
             brls::getStyle().addMetric("app/video/height", 300);
@@ -1184,7 +1187,10 @@ void AppConfig::initThemes() {
     // 2.0 density) with 36px glyphs and ~123px between item centres.
     brls::getStyle().addMetric("main/sidebar/width", 144);
     brls::getStyle().addMetric("main/sidebar/icon", 36);
-    brls::getStyle().addMetric("main/sidebar/item_spacing", 69);
+    // 68 = the reference's 34dp "leading visual" slot; the gap that follows
+    // brings item centres ~123px apart, as measured off its rail.
+    brls::getStyle().addMetric("main/sidebar/item_size", 68);
+    brls::getStyle().addMetric("main/sidebar/item_spacing", 55);
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
     // 16 (not 12): the halo extends ~5 px beyond the frame, so its arc must
     // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)

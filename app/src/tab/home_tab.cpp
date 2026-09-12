@@ -1,4 +1,5 @@
 #include "tab/home_tab.hpp"
+#include "utils/misc.hpp"
 #include "view/recycling_grid.hpp"
 #include "view/recyling_video.hpp"
 #include "view/text_box.hpp"
@@ -454,6 +455,8 @@ void HomeTab::renderHero() {
     auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
     auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
     auto* meta2Text = dynamic_cast<brls::Label*>(this->getView("home/hero/meta2/text"));
+    auto* rating1Icon = dynamic_cast<SVGImage*>(this->getView("home/hero/rating1/icon"));
+    auto* rating1Label = dynamic_cast<brls::Label*>(this->getView("home/hero/rating1"));
     auto* ratingIcon = dynamic_cast<SVGImage*>(this->getView("home/hero/rating/icon"));
     auto* ratingLabel = dynamic_cast<brls::Label*>(this->getView("home/hero/rating"));
     auto* meta2 = this->getView("home/hero/meta2");
@@ -504,6 +507,14 @@ void HomeTab::renderHero() {
             bits.push_back(g);
             break;  // one genre: the line is single-line and the year matters more
         }
+        // Runtime lives here, between the genre and the year, as the reference
+        // orders it — not alone on the line below. An item you are part way
+        // through says how much is LEFT instead, and that stays on line two.
+        bool resuming = item.duration > 0 && item.viewOffset > 0 && item.duration > item.viewOffset;
+        if (!resuming) {
+            std::string runtime = misc::formatRuntime(item.duration);
+            if (!runtime.empty()) bits.push_back(runtime);
+        }
         if (item.year > 0) bits.push_back(std::to_string(item.year));
         meta->setText(join(bits));
         meta->setTextColor(onArtDim);
@@ -518,37 +529,61 @@ void HomeTab::renderHero() {
             std::string s = brls::getStr("main/download/eta", humanDuration(left));
             std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::toupper(c); });
             bits.push_back(s);
-        } else if (item.duration > 0) {
-            int min = int(item.duration / 60000);
-            bits.push_back(min >= 60 ? fmt::format("{} h {:02d}", min / 60, min % 60) : fmt::format("{} min", min));
         }
         std::string line = join(bits);
 
         // The rating carries its source's own mark here, as it does on the
         // detail page — "IMDb 7.6" as plain text was the one place the app
-        // named a rating source without showing it.
+        // named a rating source without showing it. It rides whichever line is
+        // in play: the first for an item you have not started (where the
+        // reference keeps it), the second beside "27M LEFT" for one you have.
         bool haveRating = false;
+        std::string ratingRes, ratingValue;
+        const float ratingH = 18.f;  // matches the text beside it
+        float ratingW = ratingH;
         if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
-            const float h = 18.f;  // matches the 21px text beside it
-            ratingIcon->setWidth(h * info->aspect);
-            ratingIcon->setHeight(h);
-            ratingIcon->setImageFromSVGRes(info->icon);
-            ratingLabel->setText(info->value);
+            ratingRes = info->icon;
+            ratingValue = info->value;
+            ratingW = ratingH * info->aspect;
             haveRating = true;
         } else if (item.rating > 0) {
-            ratingIcon->setWidth(18);
-            ratingIcon->setHeight(18);
-            ratingIcon->setImageFromSVGRes("icon/ico-star.svg");
-            ratingLabel->setText(fmt::format("{:.1f}", item.rating));
+            ratingRes = "icon/ico-star.svg";
+            ratingValue = fmt::format("{:.1f}", item.rating);
             haveRating = true;
         }
-        if (haveRating && !line.empty()) line += "  •  ";
+        if (haveRating) {
+            ratingIcon->setWidth(ratingW);
+            ratingIcon->setHeight(ratingH);
+            ratingIcon->setImageFromSVGRes(ratingRes);
+            ratingLabel->setText(ratingValue);
+        }
+        // resuming -> the second line exists and takes the rating with it;
+        // otherwise the whole line goes and the rating shows on the first.
+        bool onSecondLine = !line.empty();
+        if (haveRating && onSecondLine) line += "  •  ";
         meta2Text->setText(line);
         meta2Text->setTextColor(onArtDim);
         ratingLabel->setTextColor(onArtDim);
-        ratingIcon->setVisibility(haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-        ratingLabel->setVisibility(haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-        meta2->setVisibility(line.empty() && !haveRating ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+        auto vis = [](bool on) { return on ? brls::Visibility::VISIBLE : brls::Visibility::GONE; };
+        ratingIcon->setVisibility(vis(haveRating && onSecondLine));
+        ratingLabel->setVisibility(vis(haveRating && onSecondLine));
+        meta2->setVisibility(vis(onSecondLine));
+        if (rating1Icon && rating1Label) {
+            bool onFirstLine = haveRating && !onSecondLine;
+            if (onFirstLine) {
+                // sized from the glyph's own aspect, not copied off the other
+                // icon: that one is GONE here, so its laid-out width is 0
+                rating1Icon->setWidth(ratingW);
+                rating1Icon->setHeight(ratingH);
+                rating1Icon->setImageFromSVGRes(ratingRes);
+                rating1Label->setText(ratingValue);
+                rating1Label->setTextColor(onArtDim);
+                // the bullet the reference puts before the trailing rating
+                if (meta && !meta->getFullText().empty()) meta->setText(meta->getFullText() + "  •  ");
+            }
+            rating1Icon->setVisibility(vis(onFirstLine));
+            rating1Label->setVisibility(vis(onFirstLine));
+        }
     }
 
     if (overview) {

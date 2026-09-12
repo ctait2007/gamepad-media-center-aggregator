@@ -149,6 +149,12 @@ AutoTabFrame::AutoTabFrame() {
     // widely than the stock 70px item leaves room for.
     this->registerFloatXMLAttribute("tabItemSpacing", [this](float value) { this->tabItemSpacing = value; });
 
+    // Rail of centred circular icons (NuvioTV's shape), and whether landing on
+    // a tab opens it or merely selects it.
+    this->registerBoolXMLAttribute("tabIconRail", [this](bool value) { this->tabIconRail = value; });
+    this->registerBoolXMLAttribute("tabActivateOnFocus",
+        [this](bool value) { this->tabActivateOnFocus = value; });
+
     this->sidebar->setAxis(brls::Axis::COLUMN);
     // side paddings 0: full-width items (the focus background covers the
     // sidebar edge to edge); the accent (marginRight 0) is flush with the
@@ -297,6 +303,8 @@ void AutoTabFrame::addTab(AutoSidebarItem* tab, TabViewCreator creator, size_t p
     tab->setActiveBackgroundColor(this->tabItemActiveBackgroundColor);
     tab->setActiveTextColor(this->tabItemActiveTextColor);
     tab->setAccentBarEnabled(this->tabAccentBar);
+    tab->setActivateOnFocus(this->tabActivateOnFocus);
+    if (!this->isHorizontal && this->tabIconRail) tab->setIconRailMode(true);
     if (this->tabItemSpacing > 0) tab->setMarginBottom(this->tabItemSpacing);
 
     this->addItem(tab, std::move(creator), this->makeTabSwitchCallback(), position);
@@ -1132,6 +1140,8 @@ AutoSidebarItem::AutoSidebarItem() : Box(brls::Axis::ROW) {
                 // grid), popping any stacked detail page (fiche)
                 frame->clearDetailViews();
             }
+            // With focus-activation off this is what opens the tab.
+            if (!this->activateOnFocus && this->group) this->group->setActive(this);
             if (this->attachedView) brls::Application::giveFocus(this->attachedView);
             return true;
         },
@@ -1166,6 +1176,9 @@ AutoSidebarItem::AutoSidebarItem() : Box(brls::Axis::ROW) {
                 break;
             case brls::GestureState::END:
                 *soundToPlay = brls::SOUND_CLICK_SIDEBAR;
+                // a tap is a select, so it opens the tab even when merely
+                // focusing one no longer does
+                if (!this->activateOnFocus && this->group) this->group->setActive(this);
                 brls::Application::giveFocus(this);
                 break;
             default:
@@ -1226,6 +1239,36 @@ void AutoSidebarItem::setActive(bool active) {
     this->applyPillStyle();
 }
 
+void AutoSidebarItem::setIconRailMode(bool enabled) {
+    this->iconRail = enabled;
+    if (enabled) this->applyIconRailStyle();
+}
+
+/// Re-appliable: setHorizontalMode runs after addTab has set the mode and would
+/// otherwise put the old full-width vertical styling (and its hidden halo)
+/// straight back over the top of it.
+void AutoSidebarItem::applyIconRailStyle() {
+    // NuvioTV's rail: a centred glyph with nothing else on the row, and focus
+    // drawn as a ring around the glyph rather than a bar across the whole item.
+    float size = brls::getStyle()["main/sidebar/item_size"];
+    this->setWidth(size);
+    this->setHeight(size);
+    this->setAlignSelf(brls::AlignSelf::CENTER);
+    this->setPadding(0, 0, 0, 0);
+    this->setCornerRadius(size / 2);
+    this->setHighlightCornerRadius(size / 2);
+    this->icon_box->setAlignItems(brls::AlignItems::CENTER);
+    this->icon_box->setJustifyContent(brls::JustifyContent::CENTER);
+    this->icon_box->setMargins(0, 0, 0, 0);
+    // put the borealis halo back (the rail used to paint its own full-width
+    // rectangle instead) — on a square item it draws the circle we want
+    this->setHideHighlight(false);
+    this->setHideHighlightBackground(false);
+}
+
+/// Focus alone stops switching tabs: the rail is somewhere you move THROUGH.
+void AutoSidebarItem::setActivateOnFocus(bool enabled) { this->activateOnFocus = enabled; }
+
 void AutoSidebarItem::setAccentBarEnabled(bool enabled) {
     this->accentBar = enabled;
     // GONE, not INVISIBLE: the bar must give its width back, otherwise the
@@ -1254,11 +1297,16 @@ bool AutoSidebarItem::isActive() { return this->active; };
 void AutoSidebarItem::onFocusGained() {
     Box::onFocusGained();
 
-    if (this->group) this->group->setActive(this);
+    // Moving the cursor onto a tab no longer opens it: you land on it, and it
+    // opens when you select it (the BUTTON_A action / a tap). The accent icon
+    // keeps marking which tab you are IN while the focus ring marks the one
+    // you are ON.
+    if (this->group && this->activateOnFocus) this->group->setActive(this);
 
     // vertical sidebar: focus = rounded translucent brand-gold background
-    // (the borealis halo is hidden, see setHorizontalMode)
-    if (!this->horizontal && this->tabStyle == AutoTabBarStyle::ACCENT) {
+    // (the borealis halo is hidden, see setHorizontalMode). The icon rail
+    // draws the halo itself instead, so it wants none of this.
+    if (!this->horizontal && !this->iconRail && this->tabStyle == AutoTabBarStyle::ACCENT) {
         NVGcolor c = brls::Application::getTheme().getColor("color/app");
         c.a = 0.22f;
         this->setBackgroundColor(c);
@@ -1286,7 +1334,7 @@ void AutoSidebarItem::onFocusGained() {
 void AutoSidebarItem::onFocusLost() {
     Box::onFocusLost();
 
-    if (!this->horizontal && this->tabStyle == AutoTabBarStyle::ACCENT)
+    if (!this->horizontal && !this->iconRail && this->tabStyle == AutoTabBarStyle::ACCENT)
         this->setBackgroundColor(nvgRGBA(0, 0, 0, 0));
 }
 
@@ -1395,6 +1443,8 @@ void AutoSidebarItem::setHorizontalMode(bool value) {
             // rounding); the ACTIVE item keeps gold icon + accent
             this->setHideHighlight(true);
             this->setCornerRadius(0);
+            // the rail wants none of the above: restore its own shape
+            if (this->iconRail) this->applyIconRailStyle();
         } else if (this->tabStyle == AutoTabBarStyle::PLAIN) {
             this->setPadding(8, 0, 8, 0);
             this->setMargins(8, 0, 8, 0);

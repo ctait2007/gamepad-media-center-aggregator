@@ -3,6 +3,7 @@
 */
 
 #include "tab/media_collection.hpp"
+#include "utils/misc.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "view/video_card.hpp"
@@ -292,7 +293,7 @@ void MediaCollection::updateMeta(int64_t count, int64_t durationMs) {
     if (durationMs > 0) {
         // same convention as the playlist view (playlist_view.cpp): h/min
         int min = int(durationMs / 60000);
-        meta += min >= 60 ? fmt::format("  ·  {} h {:02d}", min / 60, min % 60) : fmt::format("  ·  {} min", min);
+        meta += "  ·  " + misc::formatRuntime(int64_t(min) * 60000);
     }
     this->labelMeta->setText(meta);
     this->labelMeta->setVisibility(brls::Visibility::VISIBLE);

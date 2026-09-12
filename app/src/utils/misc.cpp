@@ -165,6 +165,15 @@ std::string misc::formatDate(const std::string& iso) {
     return fmt::format("{} {}, {}", kMonths[m - 1], d, y);
 }
 
+std::string misc::formatRuntime(int64_t ms) {
+    int64_t minutes = ms / 60000;
+    if (minutes <= 0) return "";
+    int64_t h = minutes / 60, m = minutes % 60;
+    if (h > 0 && m > 0) return fmt::format("{}h {}m", h, m);
+    if (h > 0) return fmt::format("{}h", h);
+    return fmt::format("{}m", m);
+}
+
 std::string misc::formatSize(uint64_t s) {
     if (s == 0) return "-";
     if (s < (1 << 20)) return fmt::format("{}KB", s / 1024);

@@ -91,12 +91,32 @@
 
         <!-- two meta lines like the reference: what the thing IS (episode,
              genre, year) above what it will cost you (time left, rating) -->
-        <brls:Label
-            id="home/hero/meta"
-            fontSize="24"
-            fontWeight="medium"
-            singleLine="true"
-            marginBottom="8" />
+        <!-- One row, as the reference builds it: what this is, then a trailing
+             group of runtime, year and rating. -->
+        <brls:Box
+            axis="row"
+            alignItems="center"
+            height="32"
+            marginBottom="8">
+            <brls:Label
+                id="home/hero/meta"
+                fontSize="24"
+                fontWeight="medium"
+                singleLine="true" />
+            <SVGImage
+                id="home/hero/rating1/icon"
+                width="36"
+                height="18"
+                visibility="gone"
+                marginLeft="14"
+                marginRight="7" />
+            <brls:Label
+                id="home/hero/rating1"
+                fontSize="24"
+                fontWeight="medium"
+                singleLine="true"
+                visibility="gone" />
+        </brls:Box>
 
         <brls:Box
             id="home/hero/meta2"
