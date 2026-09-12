@@ -35,11 +35,17 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cctype>
+#include <condition_variable>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
 #include "api/http.hpp"
 #include "api/media/types.hpp"
+#include "utils/thread.hpp"
+#include <borealis/core/logger.hpp>
 
 namespace stremio {
 
@@ -730,6 +736,61 @@ inline nlohmann::json getSync(const std::string& url, long timeout = HTTP::TIMEO
     std::string resp = HTTP::get(url, HTTP::Timeout{timeout});
     if (resp.empty()) return nlohmann::json::object();
     return nlohmann::json::parse(resp);
+}
+
+/// Runs `worker(items[i])` for every item on the shared ThreadPool
+/// concurrently and returns the results in the SAME order as `items`,
+/// blocking until every one has finished. Each catalog/addon fetch is its
+/// own HTTP round trip; doing them one after another in a loop meant a
+/// single slow addon held up every other one behind it — this was the
+/// single biggest source of Home/Suggestions load latency in a many-addon
+/// setup. `worker` should not let an exception escape past logging it: a
+/// thrown one here is swallowed and that slot is left default-constructed
+/// (== "no result"), same as returning one from a plain sequential loop.
+template <typename In, typename Out>
+inline std::vector<Out> parallelMap(const std::vector<In>& items, std::function<Out(const In&)> worker) {
+    if (items.empty()) return {};
+    if (items.size() == 1) {
+        try {
+            return {worker(items[0])};
+        } catch (const std::exception& ex) {
+            brls::Logger::warning("parallelMap: {}", ex.what());
+            return {Out{}};
+        }
+    }
+
+    struct JoinState {
+        std::mutex mutex;
+        std::condition_variable cond;
+        std::vector<Out> results;
+        size_t remaining;
+    };
+    auto state = std::make_shared<JoinState>();
+    state->results.resize(items.size());
+    state->remaining = items.size();
+
+    for (size_t i = 0; i < items.size(); i++) {
+        In item = items[i];
+        ThreadPool::instance().submit([state, worker, item, i](HTTP&) {
+            Out result{};
+            try {
+                result = worker(item);
+            } catch (const std::exception& ex) {
+                brls::Logger::warning("parallelMap[{}]: {}", i, ex.what());
+            } catch (...) {
+            }
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                state->results[i] = std::move(result);
+                state->remaining--;
+            }
+            state->cond.notify_all();
+        });
+    }
+
+    std::unique_lock<std::mutex> lock(state->mutex);
+    state->cond.wait(lock, [&state]() { return state->remaining == 0; });
+    return std::move(state->results);
 }
 
 }  // namespace stremio

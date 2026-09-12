@@ -212,18 +212,29 @@ std::string buildCatalogUrl(const std::string& base, const std::string& type, co
 /// local torrent client / browser on console).
 std::vector<media::Media> resolveAllStreams(
     AddonEngine& engine, const std::string& stremioType, const std::string& stremioId) {
+    // Queried concurrently, not one addon after another: each is its own HTTP
+    // round trip with up to a 15s timeout, so a single slow/unresponsive addon
+    // used to hold up every other one queued behind it before anything could
+    // play — the single biggest source of "loading takes a while" before
+    // playback starts with more than a couple of addons installed.
+    auto perAddon = parallelMap<Addon, std::vector<media::Media>>(
+        engine.addonsFor("stream", stremioType, stremioId),
+        [&engine, &stremioType, &stremioId](const Addon& a) -> std::vector<media::Media> {
+            std::string url = engine.resourceUrl(a, "stream", stremioType, stremioId);
+            std::vector<StreamOption> streams;
+            try {
+                streams = parseStreams(getSync(url, 15000));
+            } catch (const std::exception& ex) {
+                brls::Logger::warning("stremio stream {}: {}", url, ex.what());
+                return {};
+            }
+            std::vector<media::Media> out;
+            out.reserve(streams.size());
+            for (auto& s : streams) out.push_back(streamToMedia(s, a.manifest.name));
+            return out;
+        });
     std::vector<media::Media> all;
-    for (auto& a : engine.addonsFor("stream", stremioType, stremioId)) {
-        std::string url = engine.resourceUrl(a, "stream", stremioType, stremioId);
-        std::vector<StreamOption> streams;
-        try {
-            streams = parseStreams(getSync(url, 15000));
-        } catch (const std::exception& ex) {
-            brls::Logger::warning("stremio stream {}: {}", url, ex.what());
-            continue;
-        }
-        for (auto& s : streams) all.push_back(streamToMedia(s, a.manifest.name));
-    }
+    for (auto& v : perAddon) all.insert(all.end(), std::make_move_iterator(v.begin()), std::make_move_iterator(v.end()));
 #if defined(__PSV__)
     // PS Vita: >1080p exceeds the hardware H.264 decoder (level 4.x) and
     // hard-crashes the GPU on play (the "blue light of death" users report),
@@ -271,17 +282,24 @@ std::vector<media::Media> resolveAllStreams(
 /// carries the canonical 2-letter code for preferred-language matching.
 std::vector<media::Stream> resolveAllSubtitles(
     AddonEngine& engine, const std::string& stremioType, const std::string& stremioId) {
+    // Queried concurrently (see resolveAllStreams); the "first wins, addons in
+    // collection order" dedup below still runs as a sequential pass afterward,
+    // over parallelMap's results (which keep the addons' original order), so
+    // fetching them in parallel doesn't change which addon's track wins.
+    auto perAddon = parallelMap<Addon, std::vector<SubtitleOption>>(
+        engine.addonsFor("subtitles", stremioType, stremioId), [&engine, &stremioType, &stremioId](const Addon& a) {
+            std::string url = engine.resourceUrl(a, "subtitles", stremioType, stremioId);
+            try {
+                return parseSubtitles(getSync(url, 15000));
+            } catch (const std::exception& ex) {
+                brls::Logger::warning("stremio subtitles {}: {}", url, ex.what());
+                return std::vector<SubtitleOption>{};
+            }
+        });
+
     std::vector<media::Stream> out;
     std::set<std::string> seenLangs;
-    for (auto& a : engine.addonsFor("subtitles", stremioType, stremioId)) {
-        std::string url = engine.resourceUrl(a, "subtitles", stremioType, stremioId);
-        std::vector<SubtitleOption> subs;
-        try {
-            subs = parseSubtitles(getSync(url, 15000));
-        } catch (const std::exception& ex) {
-            brls::Logger::warning("stremio subtitles {}: {}", url, ex.what());
-            continue;
-        }
+    for (auto& subs : perAddon) {
         for (auto& s : subs) {
             std::string code = media::subtitleLangCode(s.lang);
             // dedup key: canonical code when known, else the raw lang verbatim
@@ -406,41 +424,51 @@ void StremioBackend::getHomeHubs(
             for (auto& p : engine.catalogsForType("movie")) cats.push_back(p);
             for (auto& p : engine.catalogsForType("series")) cats.push_back(p);
 
+            // Skip hidden catalogs before paying for the fetch — getHomeHubs
+            // is Home-only (Settings' own catalog list uses getSectionHubs,
+            // which must keep returning hidden ones so they stay manageable
+            // there), so it's always correct to drop them here. No row-count
+            // cap: Home shows every non-hidden catalog now, not a curated
+            // top N — AppConfig::getHubOrder (home_tab.cpp) decides position.
+            std::vector<std::pair<Addon, Catalog>> visible;
+            for (auto& pc : cats)
+                if (!AppConfig::instance().isHubHidden(catalogKey(pc.first.base, pc.second.type, pc.second.id)))
+                    visible.push_back(pc);
+
+            // Fetched concurrently, not one at a time: each catalog is its own
+            // HTTP round trip, and with several addons/catalogs a sequential
+            // loop made this the single biggest source of Home load latency.
+            auto hubs = parallelMap<std::pair<Addon, Catalog>, media::Hub>(
+                visible, [cnt, loc](const std::pair<Addon, Catalog>& pc) -> media::Hub {
+                    const Catalog& cat = pc.second;
+                    media::Hub h;  // empty items == skipped below
+                    std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
+                    CatalogResult res;
+                    try {
+                        res = parseCatalog(getSync(url));
+                    } catch (const std::exception& ex) {
+                        brls::Logger::warning("stremio home catalog {}: {}", url, ex.what());
+                        return h;
+                    }
+                    if (res.items.empty()) return h;
+                    h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
+                    h.key = catalogKey(pc.first.base, cat.type, cat.id);  // "see all" -> getHubPage
+                    // Stable identity (addon base + type + catalog id), NOT the
+                    // iteration index: an index shifts if a catalog ahead of it
+                    // goes temporarily empty or the addon list is reordered,
+                    // silently hiding the wrong row (AppConfig::isHubHidden).
+                    // Shared with getSectionHubs' identifier for the same
+                    // catalog, so hiding it applies wherever it would appear.
+                    h.hubIdentifier = h.key;
+                    h.more = true;
+                    if ((int)res.items.size() > cnt) res.items.resize(cnt);
+                    h.items = std::move(res.items);
+                    return h;
+                });
+
             media::Container<media::Hub> out;
-            for (auto& pc : cats) {
-                const Catalog& cat = pc.second;
-                std::string key = catalogKey(pc.first.base, cat.type, cat.id);
-                // Skip hidden catalogs before paying for the fetch — getHomeHubs
-                // is Home-only (Settings' own catalog list uses getSectionHubs,
-                // which must keep returning hidden ones so they stay manageable
-                // there), so it's always correct to drop them here. No row-count
-                // cap: Home shows every non-hidden catalog now, not a curated
-                // top N — AppConfig::getHubOrder (home_tab.cpp) decides position.
-                if (AppConfig::instance().isHubHidden(key)) continue;
-                std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
-                CatalogResult res;
-                try {
-                    res = parseCatalog(getSync(url));
-                } catch (const std::exception& ex) {
-                    brls::Logger::warning("stremio home catalog {}: {}", url, ex.what());
-                    continue;
-                }
-                if (res.items.empty()) continue;
-                media::Hub h;
-                h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
-                h.key = key;  // "see all" -> getHubPage
-                // Stable identity (addon base + type + catalog id), NOT the
-                // iteration index: an index shifts if a catalog ahead of it
-                // goes temporarily empty or the addon list is reordered,
-                // silently hiding the wrong row (AppConfig::isHubHidden).
-                // Shared with getSectionHubs' identifier for the same
-                // catalog, so hiding it applies wherever it would appear.
-                h.hubIdentifier = h.key;
-                h.more = true;
-                if ((int)res.items.size() > cnt) res.items.resize(cnt);
-                h.items = std::move(res.items);
-                out.Items.push_back(std::move(h));
-            }
+            for (auto& h : hubs)
+                if (!h.items.empty()) out.Items.push_back(std::move(h));
             out.TotalRecordCount = (long)out.Items.size();
             brls::sync(std::bind(then, std::move(out)));
         } catch (const std::exception& ex) {
@@ -460,31 +488,39 @@ void StremioBackend::getSectionHubs(
     brls::async([this, stype, cnt, loc, then, error]() {
         try {
             engine.ensureLoaded();
+            std::vector<std::pair<Addon, Catalog>> cats = engine.catalogsForType(stype);
+
+            // Fetched concurrently: see getHomeHubs — one HTTP round trip per
+            // catalog, no reason to wait on them one at a time.
+            auto hubs = parallelMap<std::pair<Addon, Catalog>, media::Hub>(
+                cats, [cnt, loc](const std::pair<Addon, Catalog>& pc) -> media::Hub {
+                    const Catalog& cat = pc.second;
+                    media::Hub h;  // empty items == skipped below
+                    std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
+                    CatalogResult res;
+                    try {
+                        res = parseCatalog(getSync(url));
+                    } catch (const std::exception& ex) {
+                        brls::Logger::warning("stremio section hub {}: {}", url, ex.what());
+                        return h;
+                    }
+                    if (res.items.empty()) return h;
+                    h.title = bestCatalogLabel(loc, pc.first, cat);
+                    h.key = catalogKey(pc.first.base, cat.type, cat.id);
+                    // cat.id alone collides across addons that both name a
+                    // catalog e.g. "top" — the base URL is what actually makes
+                    // it unique (matches getHomeHubs' identifier for the same
+                    // catalog, so hiding it applies wherever it would appear).
+                    h.hubIdentifier = h.key;
+                    h.more = true;
+                    if ((int)res.items.size() > cnt) res.items.resize(cnt);
+                    h.items = std::move(res.items);
+                    return h;
+                });
+
             media::Container<media::Hub> out;
-            for (auto& pc : engine.catalogsForType(stype)) {
-                const Catalog& cat = pc.second;
-                std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
-                CatalogResult res;
-                try {
-                    res = parseCatalog(getSync(url));
-                } catch (const std::exception& ex) {
-                    brls::Logger::warning("stremio section hub {}: {}", url, ex.what());
-                    continue;
-                }
-                if (res.items.empty()) continue;
-                media::Hub h;
-                h.title = bestCatalogLabel(loc, pc.first, cat);
-                h.key = catalogKey(pc.first.base, cat.type, cat.id);
-                // cat.id alone collides across addons that both name a
-                // catalog e.g. "top" — the base URL is what actually makes
-                // it unique (matches getHomeHubs' identifier for the same
-                // catalog, so hiding it applies wherever it would appear).
-                h.hubIdentifier = h.key;
-                h.more = true;
-                if ((int)res.items.size() > cnt) res.items.resize(cnt);
-                h.items = std::move(res.items);
-                out.Items.push_back(std::move(h));
-            }
+            for (auto& h : hubs)
+                if (!h.items.empty()) out.Items.push_back(std::move(h));
             out.TotalRecordCount = (long)out.Items.size();
             brls::sync(std::bind(then, std::move(out)));
         } catch (const std::exception& ex) {
