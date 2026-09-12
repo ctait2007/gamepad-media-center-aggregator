@@ -79,9 +79,29 @@ void HomeTab::doRequest() {
     this->pendingRows.clear();
     this->hubsError.clear();
     this->loading = true;
+    this->rendered = false;
+    int gen = ++this->requestGen;
     this->pendingJoins = 2;
     this->fetchResume();
     this->fetchHubs();
+
+    // Continue Watching resolves each row through addon meta lookups (and,
+    // on some backends, a remote round trip with its own — much longer —
+    // timeout) and can legitimately take a while, or fail to call back at
+    // all if something downstream hangs. Before this fallback, that used to
+    // block Home from showing even the already-fetched hub rows, forever.
+    // Render whatever's ready after a few seconds instead of waiting
+    // indefinitely; a Continue Watching row that arrives late still fills in
+    // on the next tab visit (willAppear's refreshResumeRow, or a full
+    // refresh if it never arrived at all).
+    ASYNC_RETAIN
+    brls::delay(12000, [ASYNC_TOKEN, gen]() {
+        ASYNC_RELEASE
+        if (gen != this->requestGen || this->rendered) return;  // already handled
+        brls::Logger::warning("HomeTab: fetch timed out after 12s, rendering what's ready");
+        this->loading = false;
+        this->renderRows();
+    });
 }
 
 /// AttachedView caches the tab's view after its first onCreate(), so a plain
@@ -172,6 +192,7 @@ void HomeTab::fetchHubs() {
 
 void HomeTab::joinFetch() {
     if (--this->pendingJoins > 0) return;
+    if (this->rendered) return;  // the fallback timeout in doRequest() already rendered
     this->loading = false;
     this->renderRows();
 
@@ -186,6 +207,7 @@ void HomeTab::joinFetch() {
 }
 
 void HomeTab::renderRows() {
+    this->rendered = true;
     // unlisted identifiers (e.g. a catalog added since the order was last
     // saved) keep their fetch-order relative position, sorted after every
     // identifier the user has actually placed

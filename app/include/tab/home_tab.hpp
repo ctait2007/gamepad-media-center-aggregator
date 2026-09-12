@@ -61,6 +61,14 @@ private:
     // without this guard willAppear() would fire a second doRequest() that
     // races the first and double-adds every row (build report: rows "loop")
     bool loading = false;
+    // true once renderRows() has actually run for the current doRequest()
+    // cycle — guards against the fallback timeout (below) and the real
+    // fetchResume()/fetchHubs() completion both trying to render
+    bool rendered = false;
+    // bumped on every doRequest(): captured by the fallback timeout so a
+    // stale one (from a doRequest() that was itself superseded by a manual
+    // refresh before it finished) can tell it no longer applies
+    int requestGen = 0;
 
     // retained so willAppear can refresh just this row on every tab revisit,
     // not only the once-per-app-lifetime onCreate() / after-playback VIDEO_CLOSE
