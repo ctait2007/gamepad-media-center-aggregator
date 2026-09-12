@@ -78,6 +78,7 @@ void HomeTab::doRequest() {
 
     this->pendingRows.clear();
     this->hubsError.clear();
+    this->loading = true;
     this->pendingJoins = 2;
     this->fetchResume();
     this->fetchHubs();
@@ -90,9 +91,16 @@ void HomeTab::doRequest() {
 /// without refetching (and re-sorting/re-flickering) every catalog row too.
 /// If Continue Watching has never had a row (e.g. brand new account), fall
 /// back to a full refresh so it can appear at all.
+///
+/// `loading` guards against a call that lands mid-fetch: the tab's very
+/// first activation runs onCreate() (starts doRequest()'s async fetches),
+/// immediately followed — still synchronously, before anything has resolved
+/// — by this willAppear(). Without the guard that always hit the "no
+/// resumeRow yet" branch and fired a second, overlapping doRequest() that
+/// raced the first and rendered every row twice.
 void HomeTab::willAppear(bool resetState) {
     brls::Box::willAppear(resetState);
-    if (NetworkState::isOffline()) return;
+    if (NetworkState::isOffline() || this->loading) return;
     if (this->resumeRow)
         this->refreshResumeRow();
     else
@@ -164,6 +172,7 @@ void HomeTab::fetchHubs() {
 
 void HomeTab::joinFetch() {
     if (--this->pendingJoins > 0) return;
+    this->loading = false;
     this->renderRows();
 
     if (!this->hubsError.empty()) {

@@ -54,6 +54,13 @@ private:
     std::vector<RowData> pendingRows;
     int pendingJoins = 0;
     std::string hubsError;  // set by fetchHubs()'s error branch, shown after render
+    // guards doRequest() against a second, overlapping call: the tab's FIRST
+    // activation runs onCreate() (which calls doRequest(), kicking off async
+    // fetches) immediately followed, still synchronously, by willAppear() —
+    // at that point resumeRow is still null (nothing has resolved yet), so
+    // without this guard willAppear() would fire a second doRequest() that
+    // races the first and double-adds every row (build report: rows "loop")
+    bool loading = false;
 
     // retained so willAppear can refresh just this row on every tab revisit,
     // not only the once-per-app-lifetime onCreate() / after-playback VIDEO_CLOSE
