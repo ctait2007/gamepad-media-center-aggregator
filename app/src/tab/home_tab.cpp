@@ -1,5 +1,6 @@
 #include "tab/home_tab.hpp"
 #include "view/recyling_video.hpp"
+#include "view/home_hero.hpp"
 #include "view/loading_spinner.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
@@ -225,6 +226,18 @@ void HomeTab::renderRows() {
             auto rb = std::find(order.begin(), order.end(), b.identifier);
             return ra < rb;
         });
+
+    // Hero: the first item of the first non-resume row. Continue Watching is
+    // skipped as the source — it is a list of things already started, while
+    // the hero is meant to present something. Nothing is fetched for this; it
+    // reuses an item the rows already carry.
+    for (auto& row : this->pendingRows) {
+        if (row.isResume || row.items.empty()) continue;
+        const plex::Item& feature = row.items.front();
+        if (feature.type != plex::mediaTypeMovie && feature.type != plex::mediaTypeShow) break;
+        this->boxHome->addView(new HomeHero(feature));
+        break;
+    }
 
     for (auto& row : this->pendingRows) {
         this->boxHome->addView(this->buildRow(row));

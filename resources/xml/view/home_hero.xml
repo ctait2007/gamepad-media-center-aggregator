@@ -1,0 +1,72 @@
+<brls:Box
+    width="100%"
+    height="560"
+    marginBottom="18">
+
+    <!-- backdrop + the same bottom fade the movie/series banners use, so the
+         art dissolves into the page instead of ending on a hard edge and the
+         first poster row reads as continuing from it -->
+    <brls:Image
+        id="hero/backdrop"
+        width="100%"
+        height="100%"
+        scalingType="fill"
+        backgroundColor="@theme/color/grey_1" />
+    <brls:Image
+        id="hero/fade"
+        positionType="absolute"
+        positionBottom="0"
+        positionLeft="0"
+        width="100%"
+        height="440"
+        scalingType="stretch"
+        image="@res/img/fade-bottom-dark.png" />
+
+    <brls:Box
+        positionType="absolute"
+        positionBottom="40"
+        positionLeft="0"
+        width="62%"
+        axis="column"
+        marginLeft="@style/main/content_padding_sides">
+
+        <brls:Label
+            id="hero/title"
+            fontSize="46"
+            singleLine="true"
+            marginBottom="10" />
+
+        <brls:Label
+            id="hero/meta"
+            fontSize="18"
+            singleLine="true"
+            marginBottom="12" />
+
+        <brls:Label
+            id="hero/overview"
+            fontSize="19"
+            marginBottom="18" />
+
+        <!-- Nuvio's white action pill. The hero's only focusable element: a
+             focus ring around the whole 560px banner would be unreadable. -->
+        <brls:Box
+            id="hero/button"
+            focusable="true"
+            axis="row"
+            width="auto"
+            alignSelf="flexStart"
+            height="52"
+            alignItems="center"
+            justifyContent="center"
+            paddingLeft="28"
+            paddingRight="28"
+            cornerRadius="26"
+            highlightCornerRadius="30">
+            <brls:Label
+                id="hero/button/label"
+                fontSize="20" />
+        </brls:Box>
+
+    </brls:Box>
+
+</brls:Box>
