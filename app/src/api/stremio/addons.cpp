@@ -16,6 +16,17 @@ void AddonEngine::ensureLoaded() {
     std::lock_guard<std::mutex> lock(mtx);
     if (loaded) return;
 
+    // A previous attempt that resolved ZERO addons is NOT a loaded state.
+    // Latching `loaded` on an empty result (a resync that failed, an expired
+    // token, an account query that matched no rows, every manifest
+    // unreachable) stranded the whole session with no catalogs at all: no
+    // library sections in the sidebar, and a blank Home — with no retry short
+    // of restarting the app, and no way to tell that from a genuine "this
+    // account has nothing". Retry instead, throttled so a collection that
+    // really is empty doesn't re-hit the network on every navigation.
+    auto now = std::chrono::steady_clock::now();
+    if (emptyAttempt.time_since_epoch().count() != 0 && now - emptyAttempt < std::chrono::seconds(15)) return;
+
     // Re-sync the account's addon collection before loading manifests (see
     // resyncAddons — StremioBackend/NuvioBackend each set this to their own
     // account API in their constructor).
@@ -42,6 +53,14 @@ void AddonEngine::ensureLoaded() {
             brls::Logger::warning("stremio: manifest load failed {}: {}", transport, ex.what());
         }
     }
+
+    if (addons.empty()) {
+        emptyAttempt = now;
+        brls::Logger::warning(
+            "stremio: no addons loaded ({} configured) — not latching, will retry", transports.size());
+        return;
+    }
+    emptyAttempt = {};
     loaded = true;
 }
 

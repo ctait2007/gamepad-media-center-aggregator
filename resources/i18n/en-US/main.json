@@ -22,7 +22,8 @@
   "home": {
     "resume": "Continue Watching",
     "nextup": "Next Up",
-    "latest": "Recently Added"
+    "latest": "Recently Added",
+    "empty": "Nothing to show here yet — no catalogs were loaded. Check that your account still has addons enabled, then press the refresh button."
   },
   "recommend": {
     "like": "Because you like {}",

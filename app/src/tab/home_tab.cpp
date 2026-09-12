@@ -231,6 +231,23 @@ void HomeTab::renderRows() {
         this->renderedIds.push_back(row.identifier);
     }
 
+    // Nothing to show is a STATE, not a blank screen. Zero rows almost always
+    // means zero catalogs resolved (addon collection empty, a resync that
+    // failed, everything hidden) — saying so beats an unexplained empty page
+    // the user can only read as "the app is broken".
+    if (this->renderedIds.empty()) {
+        auto* empty = new brls::Label();
+        empty->setText("main/home/empty"_i18n);
+        empty->setFontSize(16);
+        empty->setSingleLine(false);
+        empty->setHorizontalAlign(brls::HorizontalAlign::CENTER);
+        empty->setTextColor(brls::Application::getTheme().getColor("font/grey"));
+        empty->setMarginTop(80);
+        empty->setMarginLeft(brls::getStyle()["main/content_padding_sides"]);
+        empty->setMarginRight(brls::getStyle()["main/content_padding_sides"]);
+        this->boxHome->addView(empty);
+    }
+
     this->spinner->setSpinning(false);
     this->tryRestoreFocus();
 }
@@ -263,6 +280,9 @@ RecylingVideo* HomeTab::buildRow(const RowData& row) {
 
 void HomeTab::insertResumeRow(const RowData& row) {
     if (row.items.empty()) return;
+    // renderRows() put the "nothing to show" label up because it had no rows;
+    // this one disproves it, so drop the label before splicing in.
+    if (this->renderedIds.empty()) this->boxHome->clearViews();
     // index it belongs at among the rows already on screen: the first one the
     // saved order ranks AFTER it (unlisted identifiers rank last, so an
     // unplaced Continue Watching lands at the end rather than jumping the queue)

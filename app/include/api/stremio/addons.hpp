@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -69,6 +70,10 @@ private:
     mutable std::mutex mtx;
     bool loaded = false;
     std::vector<Addon> addons;
+    /// When the last attempt resolved ZERO addons. An empty result is never
+    /// latched as "loaded" (it would strand the session with no catalogs at
+    /// all), so this throttles how often a still-empty collection retries.
+    std::chrono::steady_clock::time_point emptyAttempt {};
 };
 
 }  // namespace stremio
