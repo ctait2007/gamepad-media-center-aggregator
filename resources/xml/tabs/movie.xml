@@ -22,7 +22,7 @@
             <brls:Box
                 id="movie/banner"
                 width="100%"
-                height="320">
+                height="700">
                 <brls:Image
                     id="movie/image/backdrop"
                     width="100%"
@@ -36,15 +36,16 @@
                     positionBottom="0"
                     positionLeft="0"
                     width="100%"
-                    height="260"
+                    height="620"
                     scalingType="stretch"
                     image="@res/img/fade-bottom-dark.png" />
                 <brls:Box
                     positionType="absolute"
-                    positionBottom="26"
+                    positionBottom="330"
                     positionLeft="0"
                     width="100%"
-                    justifyContent="center">
+                    paddingLeft="@style/main/content_padding_sides"
+                    justifyContent="flexStart">
                     <brls:Image
                         id="movie/image/logo"
                         width="440"
@@ -58,13 +59,18 @@
                  banner: no more text over the backdrop -->
             <brls:Box
                 id="movie/content/row"
-                marginTop="-150"
+                marginTop="-300"
                 paddingLeft="@style/main/content_padding_sides"
                 paddingRight="@style/main/content_padding_sides">
 
                 <!-- 64: the poster only rises ~86 px into the banner
                      (poster lowered, info column unchanged) -->
+                <!-- Nuvio's detail hero has no poster: the backdrop IS the
+                     hero and a poster beside it would halve the space the
+                     title and synopsis need. Kept in the tree (the C++ still
+                     binds and loads it) but collapsed. -->
                 <brls:Box
+                    visibility="gone"
                     width="220"
                     axis="column"
                     marginTop="64"
@@ -110,7 +116,8 @@
                 <brls:Box
                     id="movie/content/info"
                     axis="column"
-                    marginTop="184"
+                    marginTop="0"
+                    width="62%"
                     grow="1.0">
 
                     <brls:Label
