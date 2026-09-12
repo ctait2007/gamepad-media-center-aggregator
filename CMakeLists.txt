@@ -365,4 +365,13 @@ elseif (PLATFORM_PS4)
         COMMAND "${CMAKE_COMMAND}" -E copy_directory ${BOREALIS_DIR}/ps4/sce_sys/about ${CMAKE_BINARY_DIR}/ps4/sce_sys/about
         COMMAND "${CMAKE_COMMAND}" -E copy_directory ${PROJECT_RESOURCES} ${CMAKE_BINARY_DIR}/ps4/resources
     )
+    # add_pkg()'s packaging target has no way to know the POST_BUILD copies
+    # above (sce_module/sce_sys/resources, attached to ${PROJECT_NAME} itself)
+    # need to finish first — they're a side effect of ${PROJECT_NAME}'s build,
+    # not a tracked file dependency of ${PROJECT_NAME}_pkg. Under parallel
+    # `make -j`, that let packaging occasionally start while those copies were
+    # still running, silently shipping a pkg with a truncated/partial payload
+    # (smaller than expected, corrupted on the console — e.g. CE-41839-5).
+    # This forces the ordering explicitly.
+    add_dependencies(${PROJECT_NAME}_pkg ${PROJECT_NAME})
 endif ()
