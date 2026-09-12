@@ -434,6 +434,8 @@ inline void applyMetaCommon(const nlohmann::json& j, media::Item& it) {
     it.clearLogo = jstr(j, "logo");
     it.duration = parseRuntimeMs(jstr(j, "runtime"));
     it.originallyAvailableAt = jstr(j, "released");
+    // "United States of America" — the reference's third secondary-meta item
+    it.country = jstr(j, "country");
     // imdbRating is a 0-10 string ("8.7"); expose as the critic rating.
     it.rating = jnum(j, "imdbRating");
     if (it.rating > 0) it.ratingImage = "imdb://image.rating";
@@ -459,9 +461,32 @@ inline media::Item parseMetaPreview(const nlohmann::json& j) {
 /// Full `meta` object -> Item. For a series, leafCount = number of videos.
 inline media::Item parseMeta(const nlohmann::json& j) {
     media::Item it = parseMetaPreview(j);
-    // cast / director (string arrays, else links by category)
-    std::vector<std::string> cast = stringArray(j, "cast");
-    if (cast.empty()) cast = linksByCategory(j, "Cast");
+
+    // `app_extras` is where the TMDB-backed addons put what the bare Stremio
+    // schema has no room for: a cast with character names AND portraits (the
+    // top-level `cast` is a list of bare strings), the age rating, and the
+    // full credits. NuvioTV shows faces on its cast row because this is here.
+    auto extras = j.find("app_extras");
+    if (extras != j.end() && extras->is_object()) {
+        auto castArr = extras->find("cast");
+        if (castArr != extras->end() && castArr->is_array()) {
+            for (auto& c : *castArr) {
+                if (!c.is_object()) continue;
+                media::Role r;
+                r.tag = jstr(c, "name");
+                r.role = jstr(c, "character");
+                r.thumb = jstr(c, "photo");
+                if (!r.tag.empty()) it.roles.push_back(std::move(r));
+            }
+        }
+        // "R", "TV-MA", ... — the badge the reference prints beside the runtime
+        it.contentRating = jstr(*extras, "certification", jstr(*extras, "certificationLocal"));
+    }
+
+    // cast / director (string arrays, else links by category). Only when
+    // app_extras gave us nothing better.
+    std::vector<std::string> cast = it.roles.empty() ? stringArray(j, "cast") : std::vector<std::string>{};
+    if (cast.empty() && it.roles.empty()) cast = linksByCategory(j, "Cast");
     for (auto& name : cast) {
         media::Role r;
         r.tag = name;

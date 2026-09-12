@@ -15,6 +15,7 @@
 */
 
 #include "tab/setting_tab.hpp"
+#include "view/connection_switcher.hpp"
 #include "activity/server_list.hpp"
 #include "activity/hint_activity.hpp"
 #include "activity/changelog_activity.hpp"
@@ -449,6 +450,13 @@ void SettingTab::onCreate() {
     // Reorder / hide the sidebar tabs (libraries + Playlists + Watchlist).
     // Presented as a detail view so the sidebar stays visible and previews the
     // changes live; needs the MainTabFrame (outermost AutoTabFrame) to rebuild.
+    // Connections (accounts/servers): the sidebar avatar tab's old content,
+    // presented as a detail view like the other managers here.
+    btnConnections->registerClickAction([](brls::View* view) -> bool {
+        ui::presentDetail(view, new ConnectionSwitcher());
+        return true;
+    });
+
     btnLibraries->registerClickAction([](brls::View* view) -> bool {
         MainTabFrame* frame = nullptr;
         for (brls::View* v = view; v; v = v->getParent())

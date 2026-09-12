@@ -18,6 +18,14 @@
             paddingTop="@style/main/content_padding_top_bottom"
             paddingBottom="@style/main/content_padding_top_bottom">
 
+            <!-- Was an avatar tab pinned to the bottom of the sidebar; it is
+                 a Settings entry now, which is where switching account lives in
+                 every other app. -->
+            <DisclosureCell
+                title="@i18n/main/server/switch_title"
+                id="setting/connections"
+                marginBottom="16px" />
+
             <DisclosureCell
                 title="@i18n/main/setting/libraries/header"
                 id="setting/libraries"

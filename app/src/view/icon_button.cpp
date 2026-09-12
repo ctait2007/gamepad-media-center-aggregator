@@ -44,6 +44,12 @@ IconButton::IconButton() {
     // it 48dp tall with a 14sp label and an 18dp glyph, which at its 2.0
     // density is 96/28/36 here), so both are settable per instance.
     this->registerFloatXMLAttribute("fontSize", [this](float value) { this->label->setFontSize(value); });
+    // Circular hero actions: the label stays gone even if a later state update
+    // (download progress, say) tries to set text on it.
+    this->registerBoolXMLAttribute("iconOnly", [this](bool value) {
+        this->iconOnly = value;
+        if (value) this->setText("");
+    });
     this->registerFloatXMLAttribute("iconSize", [this](float value) {
         this->icon->setWidth(value);
         this->icon->setHeight(value);
@@ -68,10 +74,10 @@ void IconButton::setIcon(const std::string& res) {
 }
 
 void IconButton::setText(const std::string& text) {
-    this->label->setText(text);
+    this->label->setText(this->iconOnly ? "" : text);
     // Icon-only (the circular hero actions): drop the gap that would otherwise
     // push the glyph off-centre, and the label's own box.
-    bool empty = text.empty();
+    bool empty = this->iconOnly || text.empty();
     this->icon->setMarginRight(empty ? 0 : 10);
     this->label->setVisibility(empty ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
 }

@@ -46,6 +46,10 @@ private:
     BRLS_BIND(TextBox, labelOverview, "series/label/overview");
     BRLS_BIND(brls::Label, labelGenres, "series/label/genres");
     BRLS_BIND(brls::Label, labelRuntime, "series/label/runtime");
+    BRLS_BIND(brls::Label, labelCountry, "series/label/country");
+    BRLS_BIND(brls::Label, sep3, "series/meta/sep3");
+    BRLS_BIND(brls::Label, sep4, "series/meta/sep4");
+    BRLS_BIND(brls::Label, labelCredit, "series/label/credit");
     BRLS_BIND(brls::Label, sep1, "series/meta/sep1");
     BRLS_BIND(brls::Label, sep2, "series/meta/sep2");
     /// Show the cut-out logo if it loads, the text title if it does not —

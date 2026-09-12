@@ -31,5 +31,6 @@ private:
     void applyStyle();
 
     std::string styleName = "bordered";
+    bool iconOnly = false;
     bool muted = false;
 };

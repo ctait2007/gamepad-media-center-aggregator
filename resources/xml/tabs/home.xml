@@ -76,7 +76,8 @@
             height="118"
             visibility="gone"
             marginBottom="14"
-            scalingType="fit" />
+            scalingType="fit"
+            imageAlign="left" />
 
         <!-- last resort: shown only when the item has no logo anywhere, not
              even in its full metadata -->

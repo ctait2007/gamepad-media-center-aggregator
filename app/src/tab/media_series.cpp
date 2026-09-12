@@ -919,6 +919,27 @@ void MediaSeries::applySeries(const media::Item& item) {
     if (haveGenres) this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, "  •  ")));
     this->labelGenres->setVisibility(haveGenres ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     // separators only where both sides are actually present
+    if (!item.directors.empty()) {
+        std::vector<std::string> names;
+        for (auto& d : item.directors) names.push_back(d.tag);
+        this->labelCredit->setText(
+            fmt::format("{}: {}", "main/media/director"_i18n, fmt::join(names, ", ")));
+        this->labelCredit->setVisibility(brls::Visibility::VISIBLE);
+    } else {
+        this->labelCredit->setVisibility(brls::Visibility::GONE);
+    }
+    this->labelCountry->setText(item.country);
+    bool haveCountry = !item.country.empty();
+    this->labelCountry->setVisibility(haveCountry ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // the bullet only earns its place when there is something on both sides
+    bool haveRuntime = this->labelRuntime->getVisibility() == brls::Visibility::VISIBLE;
+    this->sep3->setVisibility(haveCountry && haveRuntime ? brls::Visibility::VISIBLE
+                                                         : brls::Visibility::GONE);
+    // the age-rating badge is a box, so ask the label's parent whether it showed
+    bool haveAge = this->parentalRating->getParent()->getVisibility() == brls::Visibility::VISIBLE;
+    this->sep4->setVisibility(haveAge && (haveRuntime || haveCountry) ? brls::Visibility::VISIBLE
+                                                                     : brls::Visibility::GONE);
+
     bool haveRating = item.rating > 0;
     this->sep1->setVisibility(haveGenres && (haveYear || haveRating) ? brls::Visibility::VISIBLE
                                                                     : brls::Visibility::GONE);

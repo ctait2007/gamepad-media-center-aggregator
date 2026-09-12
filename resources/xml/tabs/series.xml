@@ -93,7 +93,8 @@
                             height="200"
                             visibility="gone"
                             marginBottom="32"
-                            scalingType="fit" />
+                            scalingType="fit"
+                            imageAlign="left" />
 
                         <!-- the reference shows the logo OR the name, never
                              both: the text title is the fallback -->
@@ -129,6 +130,7 @@
                                 id="series/watchlist"
                                 icon="@res/icon/ico-bookmark-light.svg"
                                 buttonStyle="icon"
+                                iconOnly="true"
                                 visibility="gone"
                                 width="96"
                                 height="96"
@@ -143,6 +145,7 @@
                                 id="series/download"
                                 icon="@res/icon/ico-download-light.svg"
                                 buttonStyle="icon"
+                                iconOnly="true"
                                 width="96"
                                 height="96"
                                 cornerRadius="48"
@@ -155,6 +158,16 @@
 
                         <!-- 0.6 of the content width and bodyMedium sized, as
                              the reference sets it -->
+                        <!-- "Director: ..." / "Creator: ...", the line the
+                             reference prints between the buttons and the
+                             synopsis -->
+                        <brls:Label
+                            id="series/label/credit"
+                            fontSize="28"
+                            singleLine="true"
+                            visibility="gone"
+                            marginBottom="16" />
+
                         <TextBox
                             id="series/label/overview"
                             width="60%"
@@ -225,9 +238,24 @@
                                     fontSize="24" />
                             </brls:Box>
                             <brls:Label
+                                id="series/meta/sep4"
+                                fontSize="24"
+                                visibility="gone"
+                                text="  •  " />
+                            <brls:Label
                                 id="series/label/runtime"
                                 fontSize="24"
                                 singleLine="true" />
+                            <brls:Label
+                                id="series/meta/sep3"
+                                fontSize="24"
+                                visibility="gone"
+                                text="  •  " />
+                            <brls:Label
+                                id="series/label/country"
+                                fontSize="24"
+                                singleLine="true"
+                                visibility="gone" />
 
                             <!-- audience rating: no addon backend supplies one,
                                  but the binding (and the Plex/Jellyfin path)
@@ -287,7 +315,7 @@
                 marginLeft="@style/main/content_padding_sides"
                 marginRight="@style/main/content_padding_sides"
                 id="series/label/people"
-                title="@i18n/main/media/people" />
+                title="@i18n/main/media/cast" />
 
             <HRecyclerFrame
                 height="250"

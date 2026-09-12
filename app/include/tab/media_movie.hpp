@@ -40,6 +40,10 @@ private:
     BRLS_BIND(TextBox, labelOverview, "movie/label/overview");
     BRLS_BIND(brls::Label, labelGenres, "movie/label/genres");
     BRLS_BIND(brls::Label, labelRuntime, "movie/label/runtime");
+    BRLS_BIND(brls::Label, labelCountry, "movie/label/country");
+    BRLS_BIND(brls::Label, sep3, "movie/meta/sep3");
+    BRLS_BIND(brls::Label, sep4, "movie/meta/sep4");
+    BRLS_BIND(brls::Label, labelCredit, "movie/label/credit");
     BRLS_BIND(brls::Label, sep1, "movie/meta/sep1");
     BRLS_BIND(brls::Label, sep2, "movie/meta/sep2");
     BRLS_BIND(brls::Box, noticeBox, "movie/notice");

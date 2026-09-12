@@ -78,62 +78,11 @@ void MainActivity::onContentAvailable() {
 }
 
 void MainActivity::addSidebarAvatar() {
-    brls::Box* sidebar = this->tabFrame->getSidebar();
-    brls::Box* footer = this->tabFrame->getSidebarFooter();
-    if (!sidebar || !footer) return;
-
-    // Move Settings out of the scrollable tab list into the pinned footer, so
-    // the gear stays at the bottom next to the avatar, below the (possibly
-    // scrolling) library tabs. Detach/re-attach keeps the tab (content +
-    // creator) alive — same path as the reorder logic.
-    auto* settings = dynamic_cast<AutoSidebarItem*>(sidebar->getView("tab/settings"));
-    if (settings && settings->getParent() == sidebar) sidebar->removeView(settings, false);
-
-    // The avatar is a REAL sidebar tab whose content is the connection switcher:
-    // the tab group then handles its active state (focusing it deactivates the
-    // other tabs, so no stale "active" item lingers), and it gets the exact focus
-    // look of the other items (translucent bg on focus, accent bar when active).
-    auto* item = new AutoSidebarItem();
-    item->setTabStyle(AutoTabBarStyle::ACCENT);  // inflates the item template
-
-    // Show the active profile's avatar instead of an SVG icon: the SVG icon stays
-    // GONE (no "icon" attribute), we drop a round avatar into the icon box.
-    if (auto* iconBox = dynamic_cast<brls::Box*>(item->getView("autoSidebar/item_label_box"))) {
-        // hide the empty (no-text) label + subtitle so they don't reserve space
-        // above the avatar (which would push it off-center, down/right).
-        if (auto* lbl = item->getView("autoSidebar/item_label")) lbl->setVisibility(brls::Visibility::GONE);
-        if (auto* sub = item->getView("autoSidebar/subtitle_label")) sub->setVisibility(brls::Visibility::GONE);
-
-        NVGcolor accent = brls::Application::getTheme().getColor("color/app");
-        auto* ring = new brls::Box();
-        ring->setWidth(36);
-        ring->setHeight(36);
-        ring->setCornerRadius(18);
-        ring->setBorderThickness(2.f);
-        ring->setBorderColor(accent);
-        // center in the icon box (the dynamically-added child does not inherit
-        // the box's alignItems:center, so it would otherwise left-align and sit
-        // off-center to the right).
-        ring->setAlignSelf(brls::AlignSelf::CENTER);
-        ring->setAlignItems(brls::AlignItems::CENTER);
-        ring->setJustifyContent(brls::JustifyContent::CENTER);
-        auto* img = new brls::Image();
-        img->setWidth(32);
-        img->setHeight(32);
-        img->setCornerRadius(16);
-        img->setScalingType(brls::ImageScalingType::FILL);
-        img->setImageFromRes("img/account.png");
-        const AppUser& u = AppConfig::instance().getUser();
-        if (!u.thumb.empty()) Image::with(img, u.thumb);
-        ring->addView(img);
-        iconBox->addView(ring);
-    }
-
-    // Footer order, top to bottom: avatar, then the gear moved above, then the
-    // network status row (addSidebarStatus). The scroll frame's grow keeps the
-    // whole footer pinned to the bottom of the sidebar.
-    this->tabFrame->addFooterTab(item, [] { return new ConnectionSwitcher(); });
-    if (settings) footer->addView(settings);
+    // Nothing to pin any more. Settings stays an ordinary tab in the list with
+    // the others rather than being detached to the bottom of the rail, and the
+    // profile switcher this used to add as an avatar tab now lives inside
+    // Settings ("Connections"), where changing accounts belongs. NuvioTV's rail
+    // is likewise a plain column of tabs with no pinned footer.
 }
 
 void MainActivity::addSidebarStatus() {
@@ -154,15 +103,15 @@ void MainActivity::addSidebarStatus() {
     status->setMarginBottom(2);
     status->setAlpha(0.6f);
 
+    // No wireless indicator: it told the user nothing they could act on, and
+    // the reference rail has no such thing. Battery stays — it only appears on
+    // a platform that has one (handhelds), where it is worth knowing.
     auto* platform = brls::Application::getPlatform();
-    if (platform->canShowWirelessLevel()) {
-        auto* wifi = new brls::WirelessWidget(0.5f);
-        wifi->setMarginRight(2);
-        status->addView(wifi);
+    if (!platform->canShowBatteryLevel()) {
+        delete status;
+        return;
     }
-    if (platform->canShowBatteryLevel()) {
-        status->addView(new brls::BatteryWidget(0.5f));
-    }
+    status->addView(new brls::BatteryWidget(0.5f));
     footer->addView(status);
 }
 

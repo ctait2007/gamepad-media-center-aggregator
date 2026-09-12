@@ -67,6 +67,7 @@ private:
     BRLS_BIND(brls::RadioCell, btnReleaseChecker, "setting/release_checker");
     BRLS_BIND(brls::RadioCell, btnChangelog, "setting/changelog");
     BRLS_BIND(DisclosureCell, btnAbout, "setting/about");
+    BRLS_BIND(DisclosureCell, btnConnections, "setting/connections");
     BRLS_BIND(DisclosureCell, btnLibraries, "setting/libraries");
     BRLS_BIND(DisclosureCell, btnHiddenRows, "setting/hidden_rows");
 };

@@ -112,6 +112,9 @@ MediaMovie::MediaMovie(const plex::Item& item, bool localContext)
     // cannot find it. Explicit route — the row materializes its first cell
     // if needed (HRecyclerFrame::getDefaultFocus) and the "centered" scroll
     // follows the focus
+    // Focusing Play scrolls to the TOP, not to the middle: the hero is a whole
+    // screen and centring the button on open pushed the logo off the top edge.
+    this->scroll->setScrollTopAnchor(this->btnPlay);
     this->btnPlay->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
     this->btnDownload->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
     this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
@@ -408,8 +411,14 @@ void MediaMovie::applyMovie(const media::Item& item) {
     }
     // Primary line carries the year; the runtime moved to the secondary line
     // beside the age rating, as the reference lays them out.
-    bool haveYear = item.year > 0;
-    if (haveYear) this->labelYear->setText(std::to_string(item.year));
+    // The reference prints a movie's full release date ("September 24, 2025"),
+    // not just its year; fall back to the year when the addon sends no date.
+    std::string released = misc::formatDate(item.originallyAvailableAt);
+    bool haveYear = item.year > 0 || !released.empty();
+    if (!released.empty() && released != item.originallyAvailableAt)
+        this->labelYear->setText(released);
+    else if (item.year > 0)
+        this->labelYear->setText(std::to_string(item.year));
     this->labelYear->setVisibility(haveYear ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     if (item.duration > 0) {
         int min = int(item.duration / 60000);
@@ -435,6 +444,28 @@ void MediaMovie::applyMovie(const media::Item& item) {
     bool haveGenres = !item.genres.empty();
     if (haveGenres) this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, "  •  ")));
     this->labelGenres->setVisibility(haveGenres ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // "Director: Paul Thomas Anderson"
+    if (!item.directors.empty()) {
+        std::vector<std::string> names;
+        for (auto& d : item.directors) names.push_back(d.tag);
+        this->labelCredit->setText(
+            fmt::format("{}: {}", "main/media/director"_i18n, fmt::join(names, ", ")));
+        this->labelCredit->setVisibility(brls::Visibility::VISIBLE);
+    } else {
+        this->labelCredit->setVisibility(brls::Visibility::GONE);
+    }
+    this->labelCountry->setText(item.country);
+    bool haveCountry = !item.country.empty();
+    this->labelCountry->setVisibility(haveCountry ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // the bullet only earns its place when there is something on both sides
+    bool haveRuntime = this->labelRuntime->getVisibility() == brls::Visibility::VISIBLE;
+    this->sep3->setVisibility(haveCountry && haveRuntime ? brls::Visibility::VISIBLE
+                                                         : brls::Visibility::GONE);
+    // the age-rating badge is a box, so ask the label's parent whether it showed
+    bool haveAge = this->parentalRating->getParent()->getVisibility() == brls::Visibility::VISIBLE;
+    this->sep4->setVisibility(haveAge && (haveRuntime || haveCountry) ? brls::Visibility::VISIBLE
+                                                                     : brls::Visibility::GONE);
+
     bool haveRating = item.rating > 0;
     this->sep1->setVisibility(haveGenres && (haveYear || haveRating) ? brls::Visibility::VISIBLE
                                                                     : brls::Visibility::GONE);

@@ -295,6 +295,7 @@ struct Item {
     bool smart = false;        // smart playlist (dynamic filter)
     std::string playlistType;  // video | audio | photo — only video ones are playable here
     std::string contentRating;
+    std::string country;  // production country, shown in the detail hero's secondary meta
     double rating = 0.0;          // critic rating 0-10
     double audienceRating = 0.0;  // audience rating 0-10
     std::string ratingImage;          // critic source: imdb://…, rottentomatoes://…, themoviedb://…
