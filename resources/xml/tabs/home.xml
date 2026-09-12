@@ -29,26 +29,19 @@
          grows UPWARD from its baseline rather than down from the top. -->
     <brls:Box
         id="home/hero"
-        positionType="absolute"
-        positionTop="0"
-        positionLeft="0"
         width="46%"
         height="46%"
         axis="column"
         justifyContent="flexEnd"
-        paddingBottom="16"
+        paddingBottom="26"
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
-        <brls:Image
-            id="home/hero/logo"
-            width="330"
-            height="96"
-            visibility="gone"
-            marginBottom="12"
-            scalingType="fit" />
-
-        <!-- fallback when the item carries no clear-logo artwork -->
+        <!-- Always the title as TEXT. It used to prefer the item's clear-logo
+             artwork and hide this label, so an addon that advertises a logo
+             URL that 404s (or is slow) left the hero with no title AND no
+             text at all. A title that always renders beats one that is
+             sometimes prettier. -->
         <brls:Label
             id="home/hero/title"
             fontSize="38"
@@ -61,14 +54,13 @@
             singleLine="true"
             marginBottom="10" />
 
+        <!-- 3 rows, not 4: the band has to hold title + meta + synopsis with
+             clearance above the first row title in the worst case. -->
         <TextBox
             id="home/hero/overview"
             fontSize="17"
-            maxRows="4" />
+            maxRows="3" />
     </brls:Box>
-
-    <!-- reserves the hero band; the rows begin under it -->
-    <brls:Box height="46%" />
 
     <brls:ScrollingFrame
         id="home/scroll"

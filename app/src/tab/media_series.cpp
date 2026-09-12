@@ -30,6 +30,7 @@
 #include "tab/remote_view.hpp"
 #include <borealis.hpp>
 #include <fmt/ranges.h>
+#include <algorithm>
 
 using namespace brls::literals;  // for _i18n
 
@@ -1005,6 +1006,17 @@ void MediaSeries::doNextup() {
 /// old row of season posters that opened a separate page for the episodes.
 void MediaSeries::buildSeasonPills(const std::vector<plex::Item>& seasons, bool local) {
     this->seasonList = seasons;
+    // Numbered seasons first, ascending; "Specials" and anything else that
+    // carries no season number (index 0 / negative) goes to the end. Addons
+    // list specials first often enough that the show page would otherwise
+    // open on S0E1 — the first episode shown has to be S1E1.
+    std::stable_sort(this->seasonList.begin(), this->seasonList.end(),
+                     [](const plex::Item& a, const plex::Item& b) {
+                         bool an = a.index > 0, bn = b.index > 0;
+                         if (an != bn) return an;         // numbered before unnumbered
+                         if (!an) return false;           // both unnumbered: keep addon order
+                         return a.index < b.index;
+                     });
     this->seasonsLocal = local;
     this->activeSeason = 0;
     this->seasonPills->setVisibility(brls::Visibility::VISIBLE);

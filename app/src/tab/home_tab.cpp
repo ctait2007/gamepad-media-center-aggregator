@@ -401,7 +401,6 @@ void HomeTab::showHero(const plex::Item& item) {
     this->heroShowing = item.ratingKey;
 
     auto* backdrop = dynamic_cast<brls::Image*>(this->getView("home/hero/backdrop"));
-    auto* logo = dynamic_cast<brls::Image*>(this->getView("home/hero/logo"));
     auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
     auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
     auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
@@ -417,20 +416,12 @@ void HomeTab::showHero(const plex::Item& item) {
         if (!art.empty()) Image::with(backdrop, art);
     }
 
-    // Prefer the clear-logo artwork, exactly like the reference; fall back to
-    // the title as text when the addon supplies none.
-    if (logo && title) {
-        Image::cancel(logo);
-        if (!item.clearLogo.empty()) {
-            Image::load(logo, item.clearLogo, 330, 96);
-            logo->setVisibility(brls::Visibility::VISIBLE);
-            title->setVisibility(brls::Visibility::GONE);
-        } else {
-            logo->setVisibility(brls::Visibility::GONE);
-            title->setVisibility(brls::Visibility::VISIBLE);
-            title->setText(item.grandparentTitle.empty() ? item.title : item.grandparentTitle);
-            title->setTextColor(onArt);
-        }
+    // Always the title as TEXT. Preferring the clear-logo artwork meant an
+    // addon advertising a logo URL that 404s (or resolves slowly) left the
+    // hero with no title at all, since the label was hidden up front.
+    if (title) {
+        title->setText(item.grandparentTitle.empty() ? item.title : item.grandparentTitle);
+        title->setTextColor(onArt);
     }
 
     if (meta) {
