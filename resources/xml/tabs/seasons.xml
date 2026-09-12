@@ -12,9 +12,10 @@
         paddingRight="@style/main/content_padding_sides"
         paddingTop="@style/main/content_padding_top_bottom"
         paddingBottom="@style/main/content_padding_top_bottom"
-        spanCount="1"
-        flowMode="true"
-        itemSpace="10"
+        spanCount="3"
+        itemImageRatio="0.5625"
+        itemExtraHeight="0"
+        itemSpace="14"
         id="media/episodes" />
 
 </brls:Box>

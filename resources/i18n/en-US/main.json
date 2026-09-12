@@ -93,7 +93,8 @@
     "go_series": "Go to show",
     "go_season": "Go to season",
     "director": "Director",
-    "more_info": "More info"
+    "more_info": "More info",
+    "episode_n": "EPISODE {}"
   },
   "search": {
     "hint": "Supports keywords and their initial letters",

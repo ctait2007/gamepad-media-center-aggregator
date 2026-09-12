@@ -2,107 +2,139 @@
     highlightCornerRadius="20"
     padding="5">
 
+    <!-- NuvioTV's episode tile: one 16:9 backdrop with everything printed over
+         its lower half, instead of a thumbnail with a column of text beside it.
+         The cell fills its grid slot (the grid sizes it 16:9 via
+         itemImageRatio), so no fixed pixel size here — the old 300x180 could
+         not follow the span count.
+         pic_box stays the focusable node: BaseCardCell::getDefaultFocus()
+         returns it, which is what keeps the focus halo on the artwork. -->
     <brls:Box
-        axis="row"
-        width="320"
-        alignItems="center">
-        <!-- same contract as video_card.xml: BaseCardCell::getDefaultFocus()
-             returns this box to limit the focus halo to the thumbnail.
-             Fixed 16:9 (320x180): the thumbnail must keep its size even with no
-             image — otherwise the Image (height only, width from the texture
-             aspect) collapses to a thin vertical strip on backdrop-less items. -->
+        id="video/card/pic_box"
+        focusable="true"
+        width="100%"
+        height="100%"
+        highlightCornerRadius="20"
+        cornerRadius="16"
+        backgroundColor="@theme/color/grey_1">
+
+        <!-- placeholder behind the image: an episode with no still keeps the
+             box, the icon and the focus halo rather than collapsing -->
         <brls:Box
-            id="video/card/pic_box"
-            focusable="true"
-            width="300"
-            height="180"
-            highlightCornerRadius="20"
-            cornerRadius="16"
-            backgroundColor="@theme/color/grey_1">
-
-            <!-- placeholder icon behind the thumbnail (cf. video_card.xml);
-                 pic_box carries the fixed 300x180 size so a missing thumbnail
-                 (non-downloaded/greyed episode) keeps the box, icon and focus
-                 halo instead of collapsing to a thin sliver -->
-            <brls:Box
-                positionType="absolute"
-                positionTop="0"
-                positionLeft="0"
-                width="100%"
-                height="100%"
-                alignItems="center"
-                justifyContent="center">
-                <SVGImage
-                    width="36"
-                    height="36"
-                    svg="@res/icon/ico-media.svg" />
-            </brls:Box>
-
-            <brls:Image
-                id="video/card/picture"
-                scalingType="fill"
-                width="300"
-                height="180"
-                cornerRadius="16" />
-
+            positionType="absolute"
+            positionTop="0"
+            positionLeft="0"
+            width="100%"
+            height="100%"
+            alignItems="center"
+            justifyContent="center">
             <SVGImage
-                id="video/card/badge/top"
-                positionType="absolute"
-                positionTop="8"
-                positionRight="8"
-                height="24" />
-
-            <!-- "downloaded" badge (top-left, opposite the watched checkmark) -->
-            <brls:Box
-                id="video/card/badge/download"
-                positionType="absolute"
-                positionTop="8"
-                positionLeft="8"
-                visibility="gone"
-                cornerRadius="4"
-                paddingTop="4"
-                paddingBottom="4"
-                paddingLeft="4"
-                paddingRight="4"
-                backgroundColor="@theme/color/app">
-                <SVGImage
-                    width="16"
-                    height="16"
-                    svg="@res/icon/ico-download-light.svg" />
-            </brls:Box>
-
-            <brls:Box
-                wireframe="false"
-                positionType="absolute"
-                positionBottom="0"
-                visibility="gone"
-                width="100%"
-                height="2"
-                backgroundColor="#353535">
-                <brls:Rectangle
-                    id="video/card/progress"
-                    height="2"
-                    width="50%"
-                    color="@theme/color/app" />
-            </brls:Box>
+                width="36"
+                height="36"
+                svg="@res/icon/ico-media.svg" />
         </brls:Box>
-    </brls:Box>
 
-    <brls:Box
-        axis="column"
-        marginLeft="20">
-        <brls:Label
-            id="episode/card/name"
-            margin="10"
-            singleLine="true"
-            fontSize="18" />
+        <brls:Image
+            id="video/card/picture"
+            scalingType="fill"
+            width="100%"
+            height="100%"
+            cornerRadius="16" />
 
-        <TextBox
-            id="episode/card/overview"
-            grow="1"
-            fontSize="15"
-            maxRows="6"
-            textColor="@theme/font/grey" />
+        <!-- the text sits on this, not bare artwork: a still with a bright
+             lower half would otherwise swallow the title -->
+        <brls:Image
+            positionType="absolute"
+            positionBottom="0"
+            positionLeft="0"
+            width="100%"
+            height="78%"
+            scalingType="stretch"
+            cornerRadius="16"
+            image="@res/img/fade-bottom-dark.png" />
+
+        <!-- EPISODE N -->
+        <brls:Box
+            id="episode/card/number_box"
+            positionType="absolute"
+            positionTop="10"
+            positionLeft="10"
+            cornerRadius="4"
+            paddingTop="3"
+            paddingBottom="3"
+            paddingLeft="8"
+            paddingRight="8"
+            backgroundColor="@theme/color/scrim">
+            <brls:Label
+                id="episode/card/number"
+                fontSize="13" />
+        </brls:Box>
+
+        <SVGImage
+            id="video/card/badge/top"
+            positionType="absolute"
+            positionTop="10"
+            positionRight="10"
+            height="24" />
+
+        <!-- "downloaded" badge, below the watched checkmark so they never
+             collide on an episode that is both -->
+        <brls:Box
+            id="video/card/badge/download"
+            positionType="absolute"
+            positionTop="42"
+            positionRight="10"
+            visibility="gone"
+            cornerRadius="4"
+            paddingTop="4"
+            paddingBottom="4"
+            paddingLeft="4"
+            paddingRight="4"
+            backgroundColor="@theme/color/app">
+            <SVGImage
+                width="16"
+                height="16"
+                svg="@res/icon/ico-download-light.svg" />
+        </brls:Box>
+
+        <brls:Box
+            positionType="absolute"
+            positionBottom="14"
+            positionLeft="0"
+            width="100%"
+            axis="column"
+            paddingLeft="14"
+            paddingRight="14">
+            <brls:Label
+                id="episode/card/name"
+                singleLine="true"
+                fontSize="19"
+                marginBottom="4" />
+            <TextBox
+                id="episode/card/overview"
+                fontSize="14"
+                maxRows="2"
+                marginBottom="6" />
+            <brls:Label
+                id="episode/card/meta"
+                singleLine="true"
+                fontSize="13" />
+        </brls:Box>
+
+        <brls:Box
+            wireframe="false"
+            positionType="absolute"
+            positionBottom="0"
+            visibility="gone"
+            width="100%"
+            height="3"
+            backgroundColor="#353535">
+            <brls:Rectangle
+                id="video/card/progress"
+                height="3"
+                width="50%"
+                color="@theme/color/app" />
+        </brls:Box>
     </brls:Box>
 
 </brls:Box>

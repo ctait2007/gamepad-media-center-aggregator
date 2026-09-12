@@ -118,6 +118,9 @@ public:
 
     BRLS_BIND(brls::Label, labelName, "episode/card/name");
     BRLS_BIND(brls::Label, labelOverview, "episode/card/overview");
+    BRLS_BIND(brls::Label, labelNumber, "episode/card/number");
+    BRLS_BIND(brls::Label, labelMeta, "episode/card/meta");
+    BRLS_BIND(brls::Box, boxNumber, "episode/card/number_box");
     BRLS_BIND(SVGImage, badgeTopRight, "video/card/badge/top");
     BRLS_BIND(brls::Rectangle, rectProgress, "video/card/progress");
     BRLS_BIND(brls::Box, badgeDownload, "video/card/badge/download");
@@ -200,24 +203,16 @@ public:
         const plex::Item& season, const std::string& fallback, const MediaList& episodes, bool localContext = false)
         : season(season), fallbackSummary(fallback), list(episodes), localContext(localContext) {}
 
-    size_t getItemCount() override { return this->list.size() + 1; }
+    size_t getItemCount() override { return this->list.size(); }
 
-    float heightForRow(brls::View* recycler, size_t index) override {
-        return index == 0 ? HEADER_HEIGHT : CARD_HEIGHT;
-    }
+    float heightForRow(brls::View* recycler, size_t index) override { return CARD_HEIGHT; }
 
     RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override {
-        if (index == 0) {
-            auto* header = dynamic_cast<SeasonHeaderCell*>(recycler->dequeueReusableCell("Header"));
-            header->setItem(this->season, this->fallbackSummary);
-            header->onDownload = [this]() { this->downloadRemaining(); };
-            // no new downloads possible offline
-            header->setDownloadVisible(!NetworkState::isOffline());
-            return header;
-        }
-
+        // The season header is the grid's headerView now, not cell 0: at
+        // spanCount 3 a header cell would be squeezed into one third of a row
+        // with the first episode beside it.
         EpisodeCardCell* cell = dynamic_cast<EpisodeCardCell*>(recycler->dequeueReusableCell("Cell"));
-        auto& item = this->list.at(index - 1);
+        auto& item = this->list.at(index);
         cell->setId(item.ratingKey);
 
         // episode thumbnail, otherwise the show's (cell purged first)
@@ -228,12 +223,37 @@ public:
             Image::load(cell->picture, item.grandparentThumb, 300);
         }
 
-        if (item.index > 0) {
-            cell->labelName->setText(fmt::format("{}. {}", item.index, item.title));
-        } else {
-            cell->labelName->setText(item.title);
-        }
+        // The number moved into its own badge over the artwork, so the title
+        // is just the title now.
+        cell->labelName->setText(item.title);
         cell->labelOverview->setText(item.summary);
+        if (item.index > 0) {
+            cell->labelNumber->setText(fmt::format("main/media/episode_n"_i18n, item.index));
+            cell->boxNumber->setVisibility(brls::Visibility::VISIBLE);
+        } else {
+            cell->boxNumber->setVisibility(brls::Visibility::GONE);
+        }
+
+        // runtime · air date, the line Nuvio prints under the description
+        {
+            std::vector<std::string> bits;
+            if (item.duration > 0) bits.push_back(fmt::format("{} min", int(item.duration / 60000)));
+            if (!item.originallyAvailableAt.empty()) bits.push_back(item.originallyAvailableAt);
+            std::string line;
+            for (size_t i = 0; i < bits.size(); i++) line += (i ? "  ·  " : "") + bits[i];
+            cell->labelMeta->setText(line);
+        }
+
+        // Everything on this card sits on the artwork's dark fade, so it is
+        // light in both themes — the light theme's dark text would vanish.
+        {
+            const NVGcolor onArt = nvgRGB(0xF5, 0xF5, 0xF5);
+            const NVGcolor onArtDim = nvgRGB(0xB3, 0xB3, 0xB3);
+            cell->labelName->setTextColor(onArt);
+            cell->labelNumber->setTextColor(onArt);
+            cell->labelOverview->setTextColor(onArtDim);
+            cell->labelMeta->setTextColor(onArtDim);
+        }
 
         if (item.played()) {
             cell->badgeTopRight->setImageFromSVGRes("icon/ico-checkmark.svg");
@@ -264,8 +284,7 @@ public:
     }
 
     void onItemSelected(brls::Box* recycler, size_t index) override {
-        if (index == 0) return;  // the header only acts through its button
-        auto& item = this->list.at(index - 1);
+        auto& item = this->list.at(index);
         auto& dm = DownloadManager::instance();
 
         // in the downloads area / offline a downloaded episode plays its local
@@ -303,8 +322,7 @@ public:
     }
 
     void onContextMenu(brls::Box* recycler, size_t index) {
-        if (index == 0) return;
-        auto& item = this->list.at(index - 1);
+        auto& item = this->list.at(index);
         brls::Box* menu = new ContextMenu(item, recycler);
         brls::Application::pushActivity(new brls::Activity(menu));
     }
@@ -317,8 +335,8 @@ public:
 
     void clearData() override { this->list.clear(); }
 
-private:
-    /// queues the download of all episodes not yet fetched
+    /// queues the download of all episodes not yet fetched. Public: the season
+    /// header is no longer a cell of this source, so it calls in from outside.
     void downloadRemaining() {
         auto& dm = DownloadManager::instance();
         std::vector<std::string> wanted;
@@ -335,6 +353,8 @@ private:
             brls::Application::notify("main/download/season_queued"_i18n);
         });
     }
+
+private:
 
     plex::Item season;
     std::string fallbackSummary;
@@ -397,15 +417,13 @@ class SeasonSkeletonSource : public RecyclingGridDataSource {
 public:
     explicit SeasonSkeletonSource(size_t episodes) : episodes(episodes) {}
 
-    size_t getItemCount() override { return 1 + this->episodes; }
+    size_t getItemCount() override { return this->episodes; }
 
-    float heightForRow(brls::View*, size_t index) override {
-        return index == 0 ? 255 : 190;  // HEADER_HEIGHT / CARD_HEIGHT
-    }
+    float heightForRow(brls::View*, size_t index) override { return 190; }  // CARD_HEIGHT
 
     RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override {
         auto* cell = dynamic_cast<SeasonSkeletonCell*>(recycler->dequeueReusableCell("SeasonSkeleton"));
-        cell->header = index == 0;
+        cell->header = false;
         cell->setHeight(index == 0 ? 255 : 190);
         return cell;
     }
@@ -427,7 +445,16 @@ public:
         : season(item), fallbackSummary(fallbackSummary), localContext(localContext) {
         this->inflateFromXMLRes("xml/tabs/seasons.xml");
 
-        this->recycler->registerCell("Header", []() { return new SeasonHeaderCell(); });
+        // Full-width scrolled header above the episode tiles (see
+        // SeasonEpisodesDataSource::cellForRow for why it is not a cell).
+        this->headerCell = new SeasonHeaderCell();
+        this->headerCell->setItem(this->season, this->fallbackSummary);
+        this->headerCell->onDownload = [this]() {
+            auto* src = dynamic_cast<SeasonEpisodesDataSource*>(this->recycler->getDataSource());
+            if (src) src->downloadRemaining();
+        };
+        this->headerCell->setDownloadVisible(!NetworkState::isOffline());
+        this->recycler->setHeaderView(this->headerCell, SeasonEpisodesDataSource::HEADER_HEIGHT);
         this->recycler->registerCell("Cell", []() {
             auto cell = new EpisodeCardCell();
             auto actionListener = [cell](brls::View*) -> bool {
@@ -489,6 +516,8 @@ public:
     }
 
 private:
+    SeasonHeaderCell* headerCell = nullptr;
+
     /// fallback summary (the show's) when the season has none
     void doSummary() {
         ASYNC_RETAIN
@@ -503,8 +532,7 @@ private:
                 auto* src = dynamic_cast<SeasonEpisodesDataSource*>(this->recycler->getDataSource());
                 if (!src) return;
                 src->setFallbackSummary(this->fallbackSummary);
-                auto* header = dynamic_cast<SeasonHeaderCell*>(this->recycler->getGridItemByIndex(0));
-                if (header) header->setItem(src->getSeason(), this->fallbackSummary);
+                if (this->headerCell) this->headerCell->setItem(src->getSeason(), this->fallbackSummary);
             },
             [ASYNC_TOKEN](const std::string& ex) { ASYNC_RELEASE });
     }
