@@ -348,9 +348,20 @@ inline Catalog parseCatalogDescriptor(const nlohmann::json& j) {
             if (name == "genre" && e.contains("options") && e["options"].is_array())
                 for (auto& o : e["options"])
                     if (o.is_string()) c.genres.push_back(o.get<std::string>());
-            // a REQUIRED extra other than search/skip/genre (e.g. lastVideosIds,
-            // calendarVideosIds) means we can't list this catalog as a grid.
-            if (jbool(e, "isRequired") && name != "search" && name != "skip" && name != "genre") {
+            // A REQUIRED extra we cannot supply means this is not a grid.
+            //
+            // `search` counts. A catalog with {"name":"search","isRequired":true}
+            // is a SEARCH ENDPOINT, not a browsable list — AIOMetadata's
+            // search.movie/search.series/people_search.* are declared exactly
+            // that way, and fetching them without a term returns an empty
+            // `metas`, so they showed up as permanently dead Home rows and as
+            // empty "Movies"/"People (Movies)" sub-tabs in the sidebar. They
+            // are still reachable from the Search tab, which goes through
+            // allCatalogs() + hasSearch() and does not consult `browsable`.
+            //
+            // `skip` is paging and `genre` carries options/a default, so both
+            // stay browsable — a bare fetch of those still returns a page.
+            if (jbool(e, "isRequired") && name != "skip" && name != "genre") {
                 c.browsable = false;
                 if (c.blockedBy.empty()) c.blockedBy = name;
             }

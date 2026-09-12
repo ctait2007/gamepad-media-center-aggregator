@@ -6,6 +6,7 @@
 #include "utils/image_cache.hpp"
 #include "utils/network_state.hpp"
 #include "utils/thread.hpp"
+#include "api/http.hpp"
 
 #include "view/svg_image.hpp"
 #include "view/disclosure_cell.hpp"
@@ -155,6 +156,13 @@ int main(int argc, char* argv[]) {
                 AppVersion::getPlatform(), ThreadPool::max_thread_num);
         }
     }
+
+    // libcurl's one-time global setup, forced onto the main thread while it is
+    // still the only thread. Left to happen lazily it lands in whichever HTTP
+    // constructor runs first, which — once Settings > Network > Threads is
+    // above 1 — is N pool workers arriving at once, and curl_global_init must
+    // not run while other threads do.
+    HTTP::globalInit();
 
     // Init the app and i18n
     if (!brls::Application::init()) {

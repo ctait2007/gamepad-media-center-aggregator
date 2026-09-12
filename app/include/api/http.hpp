@@ -26,6 +26,14 @@ public:
     inline static bool PROXY_STATUS = false;
     inline static std::string PROXY;
 
+    /// Run libcurl's one-time global setup (curl_global_init + the shared DNS
+    /// cache) NOW, on the calling thread. It otherwise happens lazily inside
+    /// the first HTTP constructor, which on a pool of N workers means N
+    /// threads reaching it at once — and curl_global_init is documented as
+    /// unsafe to call while any other thread is running. Call this from main()
+    /// before anything can spawn a worker.
+    static void globalInit();
+
     struct Range {
         int start = 0;
         int end = 0;

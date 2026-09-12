@@ -104,31 +104,47 @@ static void curl_share_unlock_cb(CURL* /*handle*/, curl_lock_data data, void* /*
 
 /// @brief curl context
 
-HTTP::HTTP() : chunk(nullptr) {
-    static struct Global {
-        Global() {
+namespace {
+
+struct Global {
+    Global() {
 #ifdef BOREALIS_USE_GXM
-            mbedtls_platform_set_calloc_free(sce_calloc, sce_free);
-            curl_global_init_mem(CURL_GLOBAL_DEFAULT, sce_malloc, sce_free, sce_realloc, sce_strdup, sce_calloc);
+        mbedtls_platform_set_calloc_free(sce_calloc, sce_free);
+        curl_global_init_mem(CURL_GLOBAL_DEFAULT, sce_malloc, sce_free, sce_realloc, sce_strdup, sce_calloc);
 #else
-            CURLcode rc = curl_global_init(CURL_GLOBAL_ALL);
-            brls::Logger::debug("curl global init {}", std::to_string(rc));
+        CURLcode rc = curl_global_init(CURL_GLOBAL_ALL);
+        brls::Logger::debug("curl global init {}", std::to_string(rc));
 #endif
-            this->share = curl_share_init();
-            // Callbacks de verrouillage obligatoires pour un partage inter-threads sûr
-            curl_share_setopt(share, CURLSHOPT_LOCKFUNC, curl_share_lock_cb);
-            curl_share_setopt(share, CURLSHOPT_UNLOCKFUNC, curl_share_unlock_cb);
-            curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
-        }
-        ~Global() {
-            curl_share_cleanup(this->share);
-            curl_global_cleanup();
-            brls::Logger::debug("curl cleanup");
-        }
-        // Avoids initalization order problems
-        std::mutex init_lock;
-        CURLSH* share;
-    } global;
+        this->share = curl_share_init();
+        // Callbacks de verrouillage obligatoires pour un partage inter-threads sûr
+        curl_share_setopt(share, CURLSHOPT_LOCKFUNC, curl_share_lock_cb);
+        curl_share_setopt(share, CURLSHOPT_UNLOCKFUNC, curl_share_unlock_cb);
+        curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+    }
+    ~Global() {
+        curl_share_cleanup(this->share);
+        curl_global_cleanup();
+        brls::Logger::debug("curl cleanup");
+    }
+    // Avoids initalization order problems
+    std::mutex init_lock;
+    CURLSH* share;
+};
+
+/// The single Global, built on first use. Hoisted out of HTTP::HTTP() so that
+/// main() can force it on the main thread (HTTP::globalInit) instead of
+/// leaving N pool workers to race into it on their first request.
+Global& curlGlobal() {
+    static Global g;
+    return g;
+}
+
+}  // namespace
+
+void HTTP::globalInit() { curlGlobal(); }
+
+HTTP::HTTP() : chunk(nullptr) {
+    Global& global = curlGlobal();
 
     global.init_lock.lock();
     this->easy = curl_easy_init();
