@@ -182,6 +182,18 @@ jobs:
       run: |
         cmake -B build -DPLATFORM_PS4=ON -DVERSION_BUILD=${{ github.run_number }}
         make -C build -j$(nproc)
+        # A pkg noticeably smaller than the tree it packages means packaging
+        # raced the eboot/resource writes and produced a truncated archive.
+        # That builds green and only fails at install time on the console, as
+        # CE-41839-5 — twice so far — so catch it here instead. PFS is
+        # encrypted, not compressed, so a healthy pkg tracks the staged size.
+        staged=$(du -sb build/ps4 | cut -f1)
+        pkg=$(stat -c%s build/*.pkg | head -1)
+        echo "staged payload: ${staged} bytes, pkg: ${pkg} bytes"
+        if [ "$pkg" -lt $((staged * 7 / 10)) ]; then
+          echo "::error::pkg (${pkg} B) is far smaller than the staged payload (${staged} B) — truncated package, not shipping it"
+          exit 1
+        fi
     - name: Upload pkg
       uses: actions/upload-artifact@v6
       with:

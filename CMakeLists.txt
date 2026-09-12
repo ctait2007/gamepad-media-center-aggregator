@@ -365,13 +365,21 @@ elseif (PLATFORM_PS4)
         COMMAND "${CMAKE_COMMAND}" -E copy_directory ${BOREALIS_DIR}/ps4/sce_sys/about ${CMAKE_BINARY_DIR}/ps4/sce_sys/about
         COMMAND "${CMAKE_COMMAND}" -E copy_directory ${PROJECT_RESOURCES} ${CMAKE_BINARY_DIR}/ps4/resources
     )
-    # add_pkg()'s packaging target has no way to know the POST_BUILD copies
-    # above (sce_module/sce_sys/resources, attached to ${PROJECT_NAME} itself)
-    # need to finish first — they're a side effect of ${PROJECT_NAME}'s build,
-    # not a tracked file dependency of ${PROJECT_NAME}_pkg. Under parallel
-    # `make -j`, that let packaging occasionally start while those copies were
-    # still running, silently shipping a pkg with a truncated/partial payload
-    # (smaller than expected, corrupted on the console — e.g. CE-41839-5).
-    # This forces the ordering explicitly.
-    add_dependencies(${PROJECT_NAME}_pkg ${PROJECT_NAME})
+    # add_pkg()'s packaging target tracks neither of the two things it actually
+    # consumes, so under parallel `make -j` it can start while they are still
+    # being written and ship a pkg with a short payload — which installs as
+    # CE-41839-5 on the console. Both orderings have to be forced by hand:
+    #
+    #   ${PROJECT_NAME}      the POST_BUILD copies below (sce_module, sce_sys,
+    #                        resources) are a side effect of this target's
+    #                        build, not a tracked file dependency of _pkg.
+    #   ${PROJECT_NAME}_self the signed eboot. Build logs for a good and a bad
+    #                        pkg both read "Generating GMCA.pkg" BEFORE "Built
+    #                        target GMCA_self" — packaging was racing the
+    #                        conversion every time and simply won more often
+    #                        than it lost. The run it lost produced a pkg
+    #                        26.7 MB short of the previous one with an
+    #                        identical file list (29 dirs / 206 files): the
+    #                        eboot was in the archive, just not yet written.
+    add_dependencies(${PROJECT_NAME}_pkg ${PROJECT_NAME} ${PROJECT_NAME}_self)
 endif ()
