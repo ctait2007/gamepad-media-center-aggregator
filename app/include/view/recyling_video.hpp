@@ -33,6 +33,10 @@ public:
     /// With moreTitle/moreKey (hub more=1): "+" card at the end of the row
     /// to the full hub page (HubView).
     void setItems(const std::vector<plex::Item>& items);
+
+    /// Continue Watching: the same row, rendered as NuvioTV's landscape tiles
+    /// (ContinueDataSource) instead of poster cards.
+    void setContinueItems(const std::vector<plex::Item>& items);
     void setItems(const std::vector<plex::Item>& items, const std::string& moreTitle, const std::string& moreKey);
 
 private:

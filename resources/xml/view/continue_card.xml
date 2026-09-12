@@ -1,0 +1,114 @@
+<brls:Box
+    highlightCornerRadius="20"
+    padding="5">
+
+    <!-- NuvioTV's Continue Watching tile: a 16:9 still with the time left in
+         the top-right and the identity stacked over the bottom-left — for an
+         episode that is "S1 E1" / the show / the episode name, for a movie
+         just the title. No synopsis: the hero above carries it.
+         pic_box stays the focusable node (BaseCardCell::getDefaultFocus). -->
+    <brls:Box
+        id="video/card/pic_box"
+        focusable="true"
+        width="100%"
+        height="100%"
+        highlightCornerRadius="20"
+        cornerRadius="16"
+        backgroundColor="@theme/color/grey_1">
+
+        <!-- placeholder behind the image: an entry with no still keeps the
+             box, the icon and the focus halo rather than collapsing -->
+        <brls:Box
+            positionType="absolute"
+            positionTop="0"
+            positionLeft="0"
+            width="100%"
+            height="100%"
+            alignItems="center"
+            justifyContent="center">
+            <SVGImage
+                width="36"
+                height="36"
+                svg="@res/icon/ico-media.svg" />
+        </brls:Box>
+
+        <brls:Image
+            id="video/card/picture"
+            scalingType="fill"
+            width="100%"
+            height="100%"
+            cornerRadius="16" />
+
+        <!-- the text sits on this, not bare artwork -->
+        <brls:Image
+            positionType="absolute"
+            positionBottom="0"
+            positionLeft="0"
+            width="100%"
+            height="72%"
+            scalingType="stretch"
+            cornerRadius="16"
+            image="@res/img/fade-bottom-dark.png" />
+
+        <!-- "27m left" -->
+        <brls:Box
+            id="continue/card/left_box"
+            positionType="absolute"
+            positionTop="12"
+            positionRight="12"
+            cornerRadius="6"
+            paddingTop="4"
+            paddingBottom="4"
+            paddingLeft="10"
+            paddingRight="10"
+            backgroundColor="@theme/color/scrim">
+            <brls:Label
+                id="continue/card/left"
+                fontSize="15" />
+        </brls:Box>
+
+        <brls:Box
+            positionType="absolute"
+            positionBottom="16"
+            positionLeft="0"
+            width="100%"
+            axis="column"
+            paddingLeft="16"
+            paddingRight="16">
+            <!-- episodes only; a movie hides it and keeps the title on the
+                 same baseline as everything else in the row -->
+            <brls:Label
+                id="continue/card/episode"
+                singleLine="true"
+                visibility="gone"
+                fontSize="16"
+                marginBottom="2" />
+            <brls:Label
+                id="continue/card/title"
+                singleLine="true"
+                fontSize="22" />
+            <brls:Label
+                id="continue/card/subtitle"
+                singleLine="true"
+                visibility="gone"
+                fontSize="16"
+                marginTop="2" />
+        </brls:Box>
+
+        <brls:Box
+            wireframe="false"
+            positionType="absolute"
+            positionBottom="0"
+            visibility="gone"
+            width="100%"
+            height="4"
+            backgroundColor="#353535">
+            <brls:Rectangle
+                id="video/card/progress"
+                height="4"
+                width="50%"
+                color="@theme/color/app" />
+        </brls:Box>
+    </brls:Box>
+
+</brls:Box>

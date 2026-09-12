@@ -3,37 +3,61 @@
     height="auto"
     axis="column">
 
-    <!-- NuvioTV's home screen, from the reference recording:
-         the FOCUSED item's backdrop fills the whole screen behind everything,
-         heavily dimmed; a fixed text block sits over its upper-left; and the
-         rows scroll independently below, over the art. The hero never scrolls
-         and is never focusable — focus lives entirely in the rows. -->
-    <brls:Image
-        id="home/hero/backdrop"
+    <!-- NuvioTV's home screen, from the reference screenshots: the FOCUSED
+         item's backdrop occupies the TOP-RIGHT of the screen — it is not a
+         full-screen wash — and dissolves into the page background along its
+         left and bottom edges, with the text block on plain background beside
+         it. The hero never scrolls and is never focusable: focus lives
+         entirely in the rows below. -->
+    <brls:Box
         positionType="absolute"
         positionTop="0"
-        positionLeft="0"
-        width="100%"
-        height="100%"
-        scalingType="fill" />
-    <brls:Rectangle
-        positionType="absolute"
-        positionTop="0"
-        positionLeft="0"
-        width="100%"
-        height="100%"
-        color="@theme/color/hero_scrim" />
+        positionRight="0"
+        width="64%"
+        height="56%">
+
+        <!-- cornerRadius is not decoration here: on brls:Image with
+             scalingType="fill" it is what enables the render clip, without
+             which the image spills outside this box (cf. movie.xml). -->
+        <brls:Image
+            id="home/hero/backdrop"
+            width="100%"
+            height="100%"
+            scalingType="fill"
+            cornerRadius="1" />
+
+        <!-- left edge, so the art has no seam against the text column -->
+        <brls:Image
+            positionType="absolute"
+            positionTop="0"
+            positionLeft="0"
+            width="46%"
+            height="100%"
+            scalingType="stretch"
+            image="@res/img/fade-left-dark.png" />
+
+        <!-- and the bottom edge, into the rows -->
+        <brls:Image
+            positionType="absolute"
+            positionBottom="0"
+            positionLeft="0"
+            width="100%"
+            height="52%"
+            scalingType="stretch"
+            image="@res/img/fade-bottom-dark.png" />
+    </brls:Box>
 
     <!-- Bottom-anchored (justifyContent=flexEnd): in the reference the synopsis
          always ends at the same height whatever the logo's size, so the block
-         grows UPWARD from its baseline rather than down from the top. -->
+         grows UPWARD from its baseline rather than down from the top. Its width
+         stops short of the backdrop's solid part. -->
     <brls:Box
         id="home/hero"
-        width="46%"
-        height="46%"
+        width="44%"
+        height="52%"
         axis="column"
         justifyContent="flexEnd"
-        paddingBottom="26"
+        paddingBottom="24"
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
@@ -44,32 +68,40 @@
              load and shows the label below instead when it fails. -->
         <brls:Image
             id="home/hero/logo"
-            width="330"
-            height="96"
+            width="460"
+            height="118"
             visibility="gone"
-            marginBottom="12"
+            marginBottom="14"
             scalingType="fit" />
 
         <!-- last resort: shown only when the item has no logo anywhere, not
              even in its full metadata -->
         <brls:Label
             id="home/hero/title"
-            fontSize="38"
+            fontSize="46"
             singleLine="true"
             visibility="gone"
-            marginBottom="12" />
+            marginBottom="14" />
 
+        <!-- two meta lines like the reference: what the thing IS (episode,
+             genre, year) above what it will cost you (time left, rating) -->
         <brls:Label
             id="home/hero/meta"
-            fontSize="17"
+            fontSize="21"
             singleLine="true"
-            marginBottom="10" />
+            marginBottom="8" />
 
-        <!-- 3 rows, not 4: the band has to hold title + meta + synopsis with
+        <brls:Label
+            id="home/hero/meta2"
+            fontSize="21"
+            singleLine="true"
+            marginBottom="12" />
+
+        <!-- 3 rows, not 4: the band has to hold logo + meta + synopsis with
              clearance above the first row title in the worst case. -->
         <TextBox
             id="home/hero/overview"
-            fontSize="17"
+            fontSize="23"
             maxRows="3" />
     </brls:Box>
 

@@ -4,6 +4,7 @@
 #include "view/text_box.hpp"
 #include "utils/image.hpp"
 #include "view/loading_spinner.hpp"
+#include "view/continue_card.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "utils/keybind.hpp"
@@ -11,6 +12,7 @@
 #include "utils/offline_library.hpp"
 #include "utils/offline_ui.hpp"
 #include <algorithm>
+#include <cctype>
 
 using namespace brls::literals;  // for _i18n
 
@@ -280,11 +282,21 @@ RecylingVideo* HomeTab::buildRow(const RowData& row) {
     RecylingVideo* view = new RecylingVideo();
     view->setTitle(row.title);
     float frameHeight = brls::getStyle()["app/card/poster/row"];
-    view->setFrameHeight(frameHeight);
     if (row.isResume) {
-        view->setItemWidth(brls::getStyle()["app/card/poster/width"]);
+        // NuvioTV's Continue Watching is a row of LANDSCAPE tiles with the
+        // text printed over them, so the row is only as tall as a 16:9 card
+        // (+ the 5px the cell pads itself with on each side for its focus
+        // ring) — no label strip underneath.
+        float wide = brls::getStyle()["app/card/wide/width"];
+        view->setFrameHeight(wide * 9.f / 16.f + 10);
+        view->setItemWidth(wide);
+        view->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
+        view->setContinueItems(row.items);
         this->resumeRow = view;
-    } else {
+        return view;
+    }
+    view->setFrameHeight(frameHeight);
+    {
         // playlists AND music (artist/album/track): SQUARE covers (1:1)
         // — width = image height of the row (frame - 55 of labels,
         // video_card.xml metrics); everything else keeps 2:3 posters
@@ -340,14 +352,12 @@ void HomeTab::refreshResumeRow() {
                 if (AppConfig::instance().isHubHidden(hub.hubIdentifier)) continue;
                 std::string title = hub.title.empty() ? "main/home/resume"_i18n : hub.title;
                 row->setTitle(title);
-                if (hub.more && !hub.key.empty()) {
-                    row->setItems(hub.items, title, hub.key);
-                } else {
-                    row->setItems(hub.items);
-                }
+                // stays a Continue Watching row across refreshes: setItems
+                // would quietly swap the landscape tiles back for posters
+                row->setContinueItems(hub.items);
                 return;
             }
-            row->setItems({});
+            row->setContinueItems({});
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
@@ -399,10 +409,42 @@ void HomeTab::updateHeroFromFocus() {
 void HomeTab::showHero(const plex::Item& item) {
     if (item.ratingKey == this->heroShowing) return;  // same card, nothing to redraw
     this->heroShowing = item.ratingKey;
+    this->heroGeneration++;
+
+    // Anything an earlier lookup found for this item is folded back in: a row
+    // from a library catalog carries little more than a title and a poster,
+    // and the hero is where that shows.
+    this->heroItem = item;
+    auto known = this->heroMeta.find(item.ratingKey);
+    if (known != this->heroMeta.end()) mergeHeroFields(this->heroItem, known->second);
+
+    this->renderHero();
+    // NuvioTV enriches the focused hero item the same way (its home screen's
+    // "hero enrichment"): the rows stay cheap and only what is on screen gets
+    // a metadata round trip.
+    if (this->heroItem.summary.empty() || this->heroItem.clearLogo.empty()) this->enrichHero(item.ratingKey);
+}
+
+/// Fill in only what `into` is missing. The row's own values win: they are what
+/// the catalog the user is looking at chose to show.
+void HomeTab::mergeHeroFields(plex::Item& into, const plex::Item& from) {
+    if (into.summary.empty()) into.summary = from.summary;
+    if (into.clearLogo.empty()) into.clearLogo = from.clearLogo;
+    if (into.art.empty()) into.art = from.art;
+    if (into.genres.empty()) into.genres = from.genres;
+    if (into.year == 0) into.year = from.year;
+    if (into.rating == 0) into.rating = from.rating;
+    if (into.duration == 0) into.duration = from.duration;
+    if (into.title.empty()) into.title = from.title;
+}
+
+void HomeTab::renderHero() {
+    const plex::Item& item = this->heroItem;
 
     auto* backdrop = dynamic_cast<brls::Image*>(this->getView("home/hero/backdrop"));
     auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
     auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
+    auto* meta2 = dynamic_cast<brls::Label*>(this->getView("home/hero/meta2"));
     auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
 
     // Everything sits on the artwork's veil, so it is light in BOTH themes.
@@ -421,35 +463,58 @@ void HomeTab::showHero(const plex::Item& item) {
 
     // The cut-out logo is the title, as in NuvioTV. Nothing is revealed until
     // the outcome is known, so a logo that 404s cannot leave the hero blank.
+    // An episode borrows the show's: a logo is a show-level thing.
     this->heroTitleText = item.grandparentTitle.empty() ? item.title : item.grandparentTitle;
-    this->heroGeneration++;
     if (title) title->setTextColor(onArt);
-    // A logo the row already carries, else one an earlier lookup found for it.
-    std::string logoUrl = item.clearLogo;
-    if (logoUrl.empty()) {
-        auto known = this->heroLogos.find(item.ratingKey);
-        if (known != this->heroLogos.end()) logoUrl = known->second;
-    }
-    this->applyHeroLogo(item.ratingKey, logoUrl);
+    this->applyHeroLogo(item.ratingKey, item.clearLogo);
 
+    auto join = [](const std::vector<std::string>& bits) {
+        std::string line;
+        for (size_t i = 0; i < bits.size(); i++) line += (i ? "  •  " : "") + bits[i];
+        return line;
+    };
+
+    // Line 1 — what this is. An episode leads with "S1 E1 · Pilot", as in the
+    // reference, because on the Continue Watching row that is the thing you
+    // are about to resume.
     if (meta) {
         std::vector<std::string> bits;
-        if (item.type == plex::mediaTypeShow) bits.push_back("main/stremio/series"_i18n);
-        else if (item.type == plex::mediaTypeMovie) bits.push_back("main/stremio/movies"_i18n);
+        if (item.type == plex::mediaTypeEpisode && (item.parentIndex > 0 || item.index > 0)) {
+            std::string ep = fmt::format("S{} E{}", item.parentIndex, item.index);
+            if (!item.title.empty()) ep += " · " + item.title;
+            bits.push_back(ep);
+        } else if (item.type == plex::mediaTypeShow) {
+            bits.push_back("main/stremio/series"_i18n);
+        } else if (item.type == plex::mediaTypeMovie) {
+            bits.push_back("main/stremio/movies"_i18n);
+        }
         for (auto& g : item.genres) {
             bits.push_back(g);
             break;  // one genre: the line is single-line and the year matters more
         }
-        if (item.duration > 0) {
+        if (item.year > 0) bits.push_back(std::to_string(item.year));
+        meta->setText(join(bits));
+        meta->setTextColor(onArtDim);
+    }
+
+    // Line 2 — what it will cost you: time left if you are part way in, the
+    // running time otherwise, then the rating.
+    if (meta2) {
+        std::vector<std::string> bits;
+        int64_t left = item.duration - item.viewOffset;
+        if (item.duration > 0 && item.viewOffset > 0 && left > 0) {
+            std::string s = brls::getStr("main/download/eta", humanDuration(left));
+            std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::toupper(c); });
+            bits.push_back(s);
+        } else if (item.duration > 0) {
             int min = int(item.duration / 60000);
             bits.push_back(min >= 60 ? fmt::format("{} h {:02d}", min / 60, min % 60) : fmt::format("{} min", min));
         }
-        if (item.year > 0) bits.push_back(std::to_string(item.year));
         if (item.rating > 0) bits.push_back(fmt::format("IMDb {:.1f}", item.rating));
-        std::string line;
-        for (size_t i = 0; i < bits.size(); i++) line += (i ? "  •  " : "") + bits[i];
-        meta->setText(line);
-        meta->setTextColor(onArtDim);
+        std::string line = join(bits);
+        meta2->setText(line);
+        meta2->setTextColor(onArtDim);
+        meta2->setVisibility(line.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     }
 
     if (overview) {
@@ -479,7 +544,6 @@ void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
     if (url.empty() || this->heroLogoFailed.count(url)) {
         if (url.empty()) brls::Logger::info("hero logo absent: {}", this->heroTitleText);
         this->showHeroTitleText(key);
-        this->resolveHeroLogo(key);
         return;
     }
 
@@ -518,30 +582,33 @@ void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
         brls::Logger::info("hero logo failed: {} ({})", this->heroTitleText, url);
         this->heroLogoFailed.insert(url);
         this->showHeroTitleText(key);
-        this->resolveHeroLogo(key);
+        // the row's url was a dud; the full metadata may know a better one
+        this->heroItem.clearLogo.clear();
+        this->enrichHero(key);
     });
 }
 
-void HomeTab::resolveHeroLogo(const std::string& key) {
+void HomeTab::enrichHero(const std::string& key) {
     if (key.empty()) return;
-    // Answered already: either a url (which applyHeroLogo used) or "" for an
-    // item whose metadata really carries no logo.
-    if (this->heroLogos.count(key)) return;
-    // One lookup in flight per item. Recorded here rather than in heroLogos so
-    // that a lookup which never runs (see below) leaves no verdict behind — an
-    // item flicked past must stay retryable, not be remembered as logo-less.
-    if (!this->heroLogoPending.insert(key).second) return;
+    // Answered already: whatever the full metadata had for this item is in
+    // heroMeta (possibly nothing), and showHero folded it in.
+    if (this->heroMeta.count(key)) return;
+    // One lookup in flight per item. Recorded separately from heroMeta so that
+    // a lookup which never runs (see below) leaves no verdict behind — an item
+    // flicked past must stay retryable, not be remembered as having nothing.
+    if (!this->heroPending.insert(key).second) return;
 
-    // Catalog rows carry metaPreview objects, and plenty of addons only put
-    // `logo` in the full meta — which is why an item could show a text title
-    // on Home while its own detail page showed the artwork. One metadata-only
-    // fetch per item the user actually rests on, never per card scrolled past:
-    // the delay drops the ones flicked through.
+    // Catalog rows are metaPreview objects: a library catalog typically sends
+    // a title, a poster and nothing else, and plenty of metadata addons only
+    // put `logo` in the full meta. So the hero asks for the full record of the
+    // item the user is actually looking at — NuvioTV's home screen does the
+    // same, and for the same reason. One fetch per item rested on, never one
+    // per card scrolled past: the delay drops the ones flicked through.
     ASYNC_RETAIN
     brls::delay(300, [ASYNC_TOKEN, key]() {
         ASYNC_RELEASE
         if (key != this->heroShowing) {  // flicked past: not worth a request
-            this->heroLogoPending.erase(key);
+            this->heroPending.erase(key);
             return;
         }
         ASYNC_RETAIN
@@ -549,18 +616,23 @@ void HomeTab::resolveHeroLogo(const std::string& key) {
             key, false,
             [ASYNC_TOKEN, key](const media::Item& full) {
                 ASYNC_RELEASE
-                this->heroLogoPending.erase(key);
-                // "" is a real answer: this item has no logo anywhere, so the
-                // text title stands and nothing asks again.
-                this->heroLogos[key] = full.clearLogo;
-                if (full.clearLogo.empty() || key != this->heroShowing) return;
-                this->applyHeroLogo(key, full.clearLogo);
+                this->heroPending.erase(key);
+                this->heroMeta[key] = full;
+                if (key != this->heroShowing) return;
+                // merge into what is on screen and redraw in place: the item
+                // has not changed, only what we know about it
+                plex::Item before = this->heroItem;
+                mergeHeroFields(this->heroItem, full);
+                if (this->heroItem.clearLogo != before.clearLogo || this->heroItem.summary != before.summary ||
+                    this->heroItem.genres != before.genres || this->heroItem.year != before.year ||
+                    this->heroItem.rating != before.rating || this->heroItem.duration != before.duration)
+                    this->renderHero();
             },
             [ASYNC_TOKEN, key](const std::string& ex) {
                 ASYNC_RELEASE
                 // no verdict recorded: a failed request is not proof of absence
-                this->heroLogoPending.erase(key);
-                brls::Logger::warning("hero logo {}: {}", key, ex);
+                this->heroPending.erase(key);
+                brls::Logger::warning("hero enrich {}: {}", key, ex);
             });
     });
 }

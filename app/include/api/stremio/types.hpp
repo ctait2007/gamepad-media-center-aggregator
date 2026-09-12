@@ -503,6 +503,15 @@ inline std::vector<media::Item> parseEpisodes(const nlohmann::json& metaJson, co
         e.grandparentTitle = show.title;
         e.grandparentThumb = show.thumb;
         e.grandparentArt = show.art;
+        // Show-level facts an episode has no opinion of its own about. The
+        // videos[] entries carry a name, a still and an overview and nothing
+        // else, so without this an episode on the Continue Watching row had no
+        // logo, no genre, no year and no rating to present.
+        e.clearLogo = show.clearLogo;
+        e.genres = show.genres;
+        e.year = show.year;
+        e.rating = show.rating;
+        e.ratingImage = show.ratingImage;
         out.push_back(std::move(e));
     }
     std::sort(out.begin(), out.end(), [](const media::Item& a, const media::Item& b) {

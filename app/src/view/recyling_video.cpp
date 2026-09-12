@@ -3,6 +3,7 @@
 #include "view/video_card.hpp"
 #include "view/video_source.hpp"
 #include "view/more_card.hpp"
+#include "view/continue_card.hpp"
 #include "api/plex.hpp"
 
 const std::string recylingVideoContentXML = R"xml(
@@ -47,6 +48,7 @@ RecylingVideo::RecylingVideo() {
 
     this->recycler->registerCell("Cell", VideoCardCell::create);
     this->recycler->registerCell("More", MoreCardCell::create);
+    this->recycler->registerCell("Continue", ContinueCardCell::create);
 }
 
 RecylingVideo::~RecylingVideo() {}
@@ -73,6 +75,16 @@ void RecylingVideo::setPageSize(size_t pageSize) { this->pageSize = pageSize; }
 void RecylingVideo::onQuery(const Callback& callback) { this->queryCallback = callback; }
 
 void RecylingVideo::setItems(const std::vector<plex::Item>& items) { this->setItems(items, "", ""); }
+
+void RecylingVideo::setContinueItems(const std::vector<plex::Item>& items) {
+    if (items.empty()) {
+        this->setVisibility(brls::Visibility::GONE);
+        this->recycler->clearData();
+        return;
+    }
+    this->setVisibility(brls::Visibility::VISIBLE);
+    this->recycler->setDataSource(new ContinueDataSource(items));
+}
 
 void RecylingVideo::setItems(
     const std::vector<plex::Item>& items, const std::string& moreTitle, const std::string& moreKey) {

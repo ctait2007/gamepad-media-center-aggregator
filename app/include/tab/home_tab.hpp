@@ -52,18 +52,27 @@ private:
     /// on failure (or no url at all) it asks resolveHeroLogo() to look one
     /// up and, failing that, falls back to the text title.
     void applyHeroLogo(const std::string& key, const std::string& url);
-    /// Fetch `key`'s full metadata to find a logo the catalog row did not
-    /// carry. Debounced and memoised — a scroll must not fire one per card.
-    void resolveHeroLogo(const std::string& key);
+    /// Paint the hero from heroItem. Separate from showHero so an enrichment
+    /// that lands later can redraw in place without re-running the "new item"
+    /// bookkeeping.
+    void renderHero();
+    /// Fetch `key`'s full metadata for what the catalog row left out (a
+    /// synopsis, a logo). Debounced and memoised — a scroll must not fire one
+    /// per card.
+    void enrichHero(const std::string& key);
+    static void mergeHeroFields(plex::Item& into, const plex::Item& from);
     /// Text title for `key`, used when no logo can be had.
     void showHeroTitleText(const std::string& key);
 
-    /// ratingKey -> logo url found in the item's full metadata; "" means
-    /// "looked, there is none". Also suppresses repeat lookups.
-    std::unordered_map<std::string, std::string> heroLogos;
+    /// The item the hero is presenting, row values plus anything enrichment
+    /// filled in.
+    plex::Item heroItem;
+    /// ratingKey -> full metadata, once fetched. Presence is the verdict, so
+    /// an item whose record adds nothing is not asked about twice.
+    std::unordered_map<std::string, plex::Item> heroMeta;
     /// keys with a lookup scheduled or in flight (dedupe without recording a
     /// verdict, so an aborted lookup can be retried)
-    std::unordered_set<std::string> heroLogoPending;
+    std::unordered_set<std::string> heroPending;
     /// logo urls that failed to load (metahub 404s the logos it does not
     /// have, though Cinemeta advertises one for every IMDb id)
     std::unordered_set<std::string> heroLogoFailed;
