@@ -182,16 +182,24 @@ jobs:
       run: |
         cmake -B build -DPLATFORM_PS4=ON -DVERSION_BUILD=${{ github.run_number }}
         make -C build -j$(nproc)
-        # A pkg noticeably smaller than the tree it packages means packaging
-        # raced the eboot/resource writes and produced a truncated archive.
-        # That builds green and only fails at install time on the console, as
-        # CE-41839-5 — twice so far — so catch it here instead. PFS is
-        # encrypted, not compressed, so a healthy pkg tracks the staged size.
-        staged=$(du -sb build/ps4 | cut -f1)
+        # A pkg missing part of its payload builds green and only fails at
+        # install time on the console, as CE-41839-5 — twice so far — so check
+        # it here. What went missing was the eboot, which is NOT under
+        # build/ps4 (that tree is ~10 MB of resources against a ~63 MB pkg), so
+        # the pkg is measured against resources + eboot, the two things it
+        # actually contains. PFS is encrypted, not compressed, so a healthy pkg
+        # is at least as big as its inputs; the truncated one was ~57% of them.
         pkg=$(stat -c%s build/*.pkg | head -1)
-        echo "staged payload: ${staged} bytes, pkg: ${pkg} bytes"
-        if [ "$pkg" -lt $((staged * 7 / 10)) ]; then
-          echo "::error::pkg (${pkg} B) is far smaller than the staged payload (${staged} B) — truncated package, not shipping it"
+        staged=$(du -sb build/ps4 | cut -f1)
+        self=$(find build -name eboot.bin -o -name '*.self' | head -1)
+        selfsz=0
+        [ -n "$self" ] && selfsz=$(stat -c%s "$self")
+        # don't count the eboot twice if it is staged under build/ps4
+        case "$self" in build/ps4/*) extra=0 ;; *) extra=$selfsz ;; esac
+        echo "pkg=${pkg} staged=${staged} self=${self:-none} (${selfsz}) counted_extra=${extra}"
+        min=$(( (staged + extra) * 85 / 100 ))
+        if [ "$pkg" -lt "$min" ]; then
+          echo "::error::pkg (${pkg} B) is short of its own payload (resources ${staged} B + eboot ${extra} B, floor ${min} B) — truncated package, not shipping it"
           exit 1
         fi
     - name: Upload pkg
