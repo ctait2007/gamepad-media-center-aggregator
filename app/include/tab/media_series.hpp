@@ -45,6 +45,13 @@ private:
     BRLS_BIND(brls::Label, labelAudience, "series/label/audience");
     BRLS_BIND(TextBox, labelOverview, "series/label/overview");
     BRLS_BIND(brls::Label, labelGenres, "series/label/genres");
+    BRLS_BIND(brls::Label, labelRuntime, "series/label/runtime");
+    BRLS_BIND(brls::Label, sep1, "series/meta/sep1");
+    BRLS_BIND(brls::Label, sep2, "series/meta/sep2");
+    /// Show the cut-out logo if it loads, the text title if it does not —
+    /// the reference never shows both.
+    void applyHeroLogo(const std::string& url);
+
     BRLS_BIND(IconButton, btnPlay, "series/play");
     BRLS_BIND(IconButton, btnDownload, "series/download");
     BRLS_BIND(IconButton, btnWatchlist, "series/watchlist");

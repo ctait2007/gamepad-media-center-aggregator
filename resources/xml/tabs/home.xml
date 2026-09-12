@@ -82,7 +82,7 @@
              even in its full metadata -->
         <brls:Label
             id="home/hero/title"
-            fontSize="46"
+            fontSize="56"
             singleLine="true"
             visibility="gone"
             marginBottom="14" />
@@ -91,7 +91,7 @@
              genre, year) above what it will cost you (time left, rating) -->
         <brls:Label
             id="home/hero/meta"
-            fontSize="21"
+            fontSize="24"
             singleLine="true"
             marginBottom="8" />
 
@@ -99,11 +99,11 @@
             id="home/hero/meta2"
             axis="row"
             alignItems="center"
-            height="28"
+            height="32"
             marginBottom="12">
             <brls:Label
                 id="home/hero/meta2/text"
-                fontSize="21"
+                fontSize="24"
                 singleLine="true" />
             <!-- the rating's own mark (IMDb / RT / TMDb), as on the detail
                  page — sized to the glyph's aspect in C++ -->
@@ -115,7 +115,7 @@
                 marginRight="7" />
             <brls:Label
                 id="home/hero/rating"
-                fontSize="21"
+                fontSize="24"
                 singleLine="true"
                 visibility="gone" />
         </brls:Box>
@@ -124,7 +124,7 @@
              clearance above the first row title in the worst case. -->
         <TextBox
             id="home/hero/overview"
-            fontSize="23"
+            fontSize="28"
             maxRows="3" />
     </brls:Box>
 

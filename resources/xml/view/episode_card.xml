@@ -67,7 +67,7 @@
             backgroundColor="@theme/color/scrim">
             <brls:Label
                 id="episode/card/number"
-                fontSize="13" />
+                fontSize="20" />
         </brls:Box>
 
         <SVGImage
@@ -99,26 +99,43 @@
 
         <brls:Box
             positionType="absolute"
-            positionBottom="14"
+            positionBottom="18"
             positionLeft="0"
             width="100%"
             axis="column"
-            paddingLeft="14"
-            paddingRight="14">
+            paddingLeft="18"
+            paddingRight="18">
             <brls:Label
                 id="episode/card/name"
                 singleLine="true"
-                fontSize="19"
+                fontSize="32"
                 marginBottom="4" />
             <TextBox
                 id="episode/card/overview"
-                fontSize="14"
-                maxRows="2"
-                marginBottom="6" />
-            <brls:Label
-                id="episode/card/meta"
-                singleLine="true"
-                fontSize="13" />
+                fontSize="24"
+                maxRows="3"
+                marginBottom="10" />
+            <!-- runtime/rating at the left, air date at the right, as the
+                 reference splits them -->
+            <brls:Box
+                axis="row"
+                alignItems="center"
+                width="100%">
+                <brls:Label
+                    id="episode/card/meta"
+                    singleLine="true"
+                    grow="1.0"
+                    fontSize="20" />
+                <!-- shrink 0: the runtime label beside it grows to fill the
+                     row, and without this the date is the one that gets
+                     squeezed down to "January 1, ..." -->
+                <brls:Label
+                    id="episode/card/date"
+                    singleLine="true"
+                    shrink="0.0"
+                    horizontalAlign="right"
+                    fontSize="20" />
+            </brls:Box>
         </brls:Box>
 
         <brls:Box

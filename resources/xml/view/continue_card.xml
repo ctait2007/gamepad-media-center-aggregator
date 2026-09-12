@@ -64,7 +64,7 @@
             backgroundColor="@theme/color/scrim">
             <brls:Label
                 id="continue/card/left"
-                fontSize="15" />
+                fontSize="20" />
         </brls:Box>
 
         <brls:Box
@@ -81,17 +81,17 @@
                 id="continue/card/episode"
                 singleLine="true"
                 visibility="gone"
-                fontSize="16"
+                fontSize="24"
                 marginBottom="2" />
             <brls:Label
                 id="continue/card/title"
                 singleLine="true"
-                fontSize="22" />
+                fontSize="28" />
             <brls:Label
                 id="continue/card/subtitle"
                 singleLine="true"
                 visibility="gone"
-                fontSize="16"
+                fontSize="24"
                 marginTop="2" />
         </brls:Box>
 

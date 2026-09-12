@@ -1,4 +1,5 @@
 #include "utils/misc.hpp"
+#include <cstdio>
 #include <borealis/core/logger.hpp>
 #include <borealis/core/i18n.hpp>
 #include <fmt/chrono.h>
@@ -151,6 +152,17 @@ std::string misc::sec2Time(int64_t t) {
         return pre0(minute, 2) + ":" + pre0(sec, 2);
     }
     return pre0(hour, 2) + ":" + pre0(minute, 2) + ":" + pre0(sec, 2);
+}
+
+std::string misc::formatDate(const std::string& iso) {
+    int y = 0, m = 0, d = 0;
+    // sscanf stops at the 'T' (or the end) on its own; %n guards against
+    // "2022" alone matching the first field and leaving m/d at 0.
+    if (std::sscanf(iso.c_str(), "%4d-%2d-%2d", &y, &m, &d) != 3) return iso;
+    if (y <= 0 || m < 1 || m > 12 || d < 1 || d > 31) return iso;
+    static const char* kMonths[] = {"January", "February", "March", "April", "May", "June", "July", "August",
+        "September", "October", "November", "December"};
+    return fmt::format("{} {}, {}", kMonths[m - 1], d, y);
 }
 
 std::string misc::formatSize(uint64_t s) {

@@ -147,6 +147,8 @@ private:
 
 class AutoTabFrame : public brls::Box {
 public:
+    void onLayout() override;
+
     AutoTabFrame();
     void handleXMLElement(tinyxml2::XMLElement* element) override;
     void addTab(AutoSidebarItem* tab, TabViewCreator creator);
@@ -316,6 +318,7 @@ private:
     float sidebarWidth = 64;
     bool tabAccentBar = true;     // accent bar beside the active item
     float tabItemSpacing = 0.0f;  // extra gap below each rail item
+    float sidebarTopPad = -1.0f;  // last centring margin applied (see onLayout)
 
     std::function<void(size_t)> tabChangedAction = nullptr;
 

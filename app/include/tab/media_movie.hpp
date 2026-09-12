@@ -39,9 +39,15 @@ private:
     BRLS_BIND(brls::Label, labelAudience, "movie/label/audience");
     BRLS_BIND(TextBox, labelOverview, "movie/label/overview");
     BRLS_BIND(brls::Label, labelGenres, "movie/label/genres");
+    BRLS_BIND(brls::Label, labelRuntime, "movie/label/runtime");
+    BRLS_BIND(brls::Label, sep1, "movie/meta/sep1");
+    BRLS_BIND(brls::Label, sep2, "movie/meta/sep2");
     BRLS_BIND(brls::Box, noticeBox, "movie/notice");
     BRLS_BIND(brls::Box, sourcesBox, "movie/sources");
     BRLS_BIND(brls::SelectorCell, btnSource, "movie/source");
+    /// Show the cut-out logo if it loads, the text title if it does not.
+    void applyHeroLogo(const std::string& url);
+
     BRLS_BIND(IconButton, btnPlay, "movie/play");
     BRLS_BIND(IconButton, btnDownload, "movie/download");
     BRLS_BIND(IconButton, btnWatchlist, "movie/watchlist");

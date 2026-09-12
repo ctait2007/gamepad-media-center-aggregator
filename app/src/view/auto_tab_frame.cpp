@@ -18,6 +18,7 @@
 */
 
 #include <algorithm>
+#include <cmath>
 #include <tinyxml2.h>
 #include "view/auto_tab_frame.hpp"
 #include "view/svg_image.hpp"
@@ -255,12 +256,36 @@ void AutoTabFrame::buildVerticalSidebar() {
     // move the tab list into the scroll frame, keeping it (and its items) alive
     this->removeView(this->sidebar, false);
     this->sidebarScroll->setContentView(this->sidebar);
+    // (The rail is centred vertically in onLayout: the scroll frame positions
+    // its content view itself — it is what the scroll offset translates — so
+    // neither alignItems on the frame nor justifyContent on the list moves it.
+    // Verified by probing a margin, which does.)
 
     column->addView(this->sidebarScroll);
     column->addView(this->sidebarFooter);
     // replaces `sidebar` as the frame's first child (index 0, before content)
     this->addView(column, 0);
     this->sidebarHolder = column;
+}
+
+void AutoTabFrame::onLayout() {
+    Box::onLayout();
+    // NuvioTV's rail sits on the screen's middle rather than stacking from the
+    // top. The scroll frame owns its content view's position, so this is a
+    // margin rather than an alignment: half the slack, recomputed whenever the
+    // tab list or the frame changes size (libraries arriving, a resize).
+    if (!this->sidebarScroll || this->isHorizontal) return;
+    float viewport = this->sidebarScroll->getHeight();
+    float content = this->sidebar->getHeight();
+    if (viewport <= 0 || content <= 0) return;
+    float pad = (viewport - content) / 2.0f;
+    if (pad < 0) pad = 0;  // more tabs than fit: back to the top, and scroll
+    // Only when it actually moved: setMarginTop invalidates, which lands back
+    // here, and an unguarded write would relayout every frame.
+    if (std::fabs(pad - this->sidebarTopPad) > 1.0f) {
+        this->sidebarTopPad = pad;
+        this->sidebar->setMarginTop(pad);
+    }
 }
 
 void AutoTabFrame::addTab(AutoSidebarItem* tab, TabViewCreator creator) {

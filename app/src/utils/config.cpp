@@ -1153,7 +1153,10 @@ void AppConfig::initThemes() {
     // matching the cards.
     brls::getStyle().addMetric("brls/header/rectangle_width", 0);
     brls::getStyle().addMetric("brls/header/rectangle_margin", 0);
-    brls::getStyle().addMetric("brls/header/font_size", 24);
+    // 32 = NuvioTV's titleMedium (16sp at its 2.0 density), the size it sets
+    // its row headers in. The whole app's type scale is matched to that
+    // Material3 scale doubled: label 20/24/28, body 24/28/32, title 28/32/40.
+    brls::getStyle().addMetric("brls/header/font_size", 32);
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
     // 16 (not 12): the halo extends ~5 px beyond the frame, so its arc must
     // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)

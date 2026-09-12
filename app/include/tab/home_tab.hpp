@@ -102,6 +102,9 @@ private:
     // player): the first rebuilt row takes the focus back so the user can
     // see where it landed
     bool restoreFocus = false;
+    /// One-shot: the very first populated render takes the focus off the
+    /// sidebar and into the rows.
+    bool focusedOnce = false;
 
     std::vector<RowData> pendingRows;
     // identifiers of the rows currently in boxHome, in display order — lets a

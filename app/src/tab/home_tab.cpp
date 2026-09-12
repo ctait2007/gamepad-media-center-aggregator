@@ -277,6 +277,13 @@ void HomeTab::renderRows() {
     }
 
     this->spinner->setSpinning(false);
+    // First render of the session: put the cursor on the first card of the
+    // top row rather than leaving it parked on the sidebar, so the app opens
+    // ready to browse (and the hero already reflects what is selected).
+    if (!this->focusedOnce && !this->renderedIds.empty()) {
+        this->focusedOnce = true;
+        this->restoreFocus = true;
+    }
     this->tryRestoreFocus();
 }
 

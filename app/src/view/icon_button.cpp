@@ -40,6 +40,15 @@ IconButton::IconButton() {
     this->registerStringXMLAttribute("text", [this](std::string value) { this->setText(value); });
     this->registerStringXMLAttribute("buttonStyle", [this](std::string value) { this->setButtonStyle(value); });
 
+    // The hero's Play button is far larger than the inline ones (NuvioTV sets
+    // it 48dp tall with a 14sp label and an 18dp glyph, which at its 2.0
+    // density is 96/28/36 here), so both are settable per instance.
+    this->registerFloatXMLAttribute("fontSize", [this](float value) { this->label->setFontSize(value); });
+    this->registerFloatXMLAttribute("iconSize", [this](float value) {
+        this->icon->setWidth(value);
+        this->icon->setHeight(value);
+    });
+
     // mouse/touch click: replays the A action registered by the caller
     this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
 
@@ -58,7 +67,14 @@ void IconButton::setIcon(const std::string& res) {
     this->icon->setImageFromSVGRes(path);
 }
 
-void IconButton::setText(const std::string& text) { this->label->setText(text); }
+void IconButton::setText(const std::string& text) {
+    this->label->setText(text);
+    // Icon-only (the circular hero actions): drop the gap that would otherwise
+    // push the glyph off-centre, and the label's own box.
+    bool empty = text.empty();
+    this->icon->setMarginRight(empty ? 0 : 10);
+    this->label->setVisibility(empty ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+}
 
 void IconButton::setButtonStyle(const std::string& style) {
     this->styleName = style;
@@ -79,6 +95,11 @@ void IconButton::applyStyle() {
         this->setBorderColor(theme.getColor("color/grey_1"));
         this->setBorderThickness(2);
         this->label->setTextColor(theme.getColor("font/grey"));
+    } else if (this->styleName == "icon") {
+        // NuvioTV's round hero action: a filled card-coloured disc, no outline.
+        this->setBackgroundColor(theme.getColor("color/surface"));
+        this->setBorderThickness(0);
+        this->label->setTextColor(theme.getColor("brls/text"));
     } else if (this->styleName == "primary") {
         this->setBackgroundColor(theme.getColor("color/app"));
         this->setBorderThickness(0);

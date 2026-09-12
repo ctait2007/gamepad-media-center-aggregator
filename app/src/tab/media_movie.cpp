@@ -199,6 +199,31 @@ MediaMovie::~MediaMovie() {
     Image::cancel(this->imageBackdrop);
 }
 
+/// Logo first, title as the fallback: an advertised logo url is not proof the
+/// artwork exists, so nothing is revealed until the load reports back.
+void MediaMovie::applyHeroLogo(const std::string& url) {
+    auto showTitle = [this]() {
+        this->imageLogo->setVisibility(brls::Visibility::GONE);
+        this->labelTitle->setVisibility(brls::Visibility::VISIBLE);
+    };
+    if (url.empty()) {
+        showTitle();
+        return;
+    }
+    Image::cancel(this->imageLogo);
+    this->imageLogo->setVisibility(brls::Visibility::GONE);
+    this->labelTitle->setVisibility(brls::Visibility::GONE);
+    ASYNC_RETAIN
+    Image::load(this->imageLogo, url, 690, 0, [ASYNC_TOKEN, showTitle](bool ok, bool retryable) {
+        ASYNC_RELEASE
+        (void)retryable;
+        if (ok)
+            this->imageLogo->setVisibility(brls::Visibility::VISIBLE);
+        else
+            showTitle();
+    });
+}
+
 void MediaMovie::updateDownloadButton() {
     // Backends without original-quality download (Stremio: debrid links are
     // ephemeral) never show this button — avoids offering a download next to a
@@ -357,12 +382,15 @@ void MediaMovie::applyMovie(const media::Item& item) {
     // (gradient + image fill).
     // cut-out logo nested at the bottom of the banner fade; the
     // text title is ALWAYS shown above the pills
+    // The hero is a whole screenful of backdrop, as in the reference; the rest
+    // of the page scrolls up from underneath it.
+    this->bannerBox->setHeight((float)brls::Application::ORIGINAL_WINDOW_HEIGHT);
     if (!item.art.empty()) {
-        Image::load(this->imageBackdrop, item.art, 1080, 608);
-        if (!item.clearLogo.empty()) {
-            Image::load(this->imageLogo, item.clearLogo, 440, 120);
-        }
+        Image::load(this->imageBackdrop, item.art, 1280, 720);
+        // Logo OR title, never both.
+        this->applyHeroLogo(item.clearLogo);
     } else {
+        this->applyHeroLogo("");
         // no backdrop (e.g. an un-scanned Jellyfin/Emby item, or a poster-only
         // offline snapshot): drop the banner AND the overlap margins that assumed
         // it. The poster (marginTop 64 in XML, to rise into the banner) and the
@@ -378,16 +406,19 @@ void MediaMovie::applyMovie(const media::Item& item) {
         this->contentRow->setAlignItems(brls::AlignItems::CENTER);
         this->invalidate();
     }
+    // Primary line carries the year; the runtime moved to the secondary line
+    // beside the age rating, as the reference lays them out.
+    bool haveYear = item.year > 0;
+    if (haveYear) this->labelYear->setText(std::to_string(item.year));
+    this->labelYear->setVisibility(haveYear ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     if (item.duration > 0) {
         int min = int(item.duration / 60000);
-        this->labelYear->setText(min >= 60 ? fmt::format("{}  ·  {} h {:02d}", item.year, min / 60, min % 60)
-                                           : fmt::format("{}  ·  {} min", item.year, min));
-    } else if (item.year > 0) {
-        this->labelYear->setText(std::to_string(item.year));
+        this->labelRuntime->setText(min >= 60 ? fmt::format("{}h {}m", min / 60, min % 60)
+                                              : fmt::format("{}m", min));
+        this->labelRuntime->setVisibility(brls::Visibility::VISIBLE);
+    } else {
+        this->labelRuntime->setVisibility(brls::Visibility::GONE);
     }
-    // see media_series.cpp: an empty year pill is a stray dark capsule
-    if (item.year <= 0 && item.duration <= 0)
-        this->labelYear->getParent()->setVisibility(brls::Visibility::GONE);
     if (item.contentRating.empty()) {
         this->parentalRating->getParent()->setVisibility(brls::Visibility::GONE);
     } else {
@@ -401,12 +432,13 @@ void MediaMovie::applyMovie(const media::Item& item) {
     rating::applyPill(this->iconAudience, this->labelAudience, item.audienceRatingImage, item.audienceRating);
     this->labelOverview->setText(item.summary);
 
-    if (item.genres.empty()) {
-        this->labelGenres->setVisibility(brls::Visibility::GONE);
-    } else {
-        this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, ", ")));
-        this->labelGenres->setVisibility(brls::Visibility::VISIBLE);
-    }
+    bool haveGenres = !item.genres.empty();
+    if (haveGenres) this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, "  •  ")));
+    this->labelGenres->setVisibility(haveGenres ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    bool haveRating = item.rating > 0;
+    this->sep1->setVisibility(haveGenres && (haveYear || haveRating) ? brls::Visibility::VISIBLE
+                                                                    : brls::Visibility::GONE);
+    this->sep2->setVisibility(haveYear && haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     // the director opens the row, subtitled "Director", clickable
     // to their person page like the actors
     std::vector<media::Role> credits = item.directors;

@@ -21,6 +21,7 @@
 #include "view/presenter.hpp"
 #include "view/context_menu.hpp"
 #include "utils/keybind.hpp"
+#include "utils/misc.hpp"
 #include "utils/rating.hpp"
 #include "utils/download.hpp"
 #include "utils/dialog.hpp"
@@ -122,6 +123,7 @@ public:
     BRLS_BIND(brls::Label, labelOverview, "episode/card/overview");
     BRLS_BIND(brls::Label, labelNumber, "episode/card/number");
     BRLS_BIND(brls::Label, labelMeta, "episode/card/meta");
+    BRLS_BIND(brls::Label, labelDate, "episode/card/date");
     BRLS_BIND(brls::Box, boxNumber, "episode/card/number_box");
     BRLS_BIND(SVGImage, badgeTopRight, "video/card/badge/top");
     BRLS_BIND(brls::Rectangle, rectProgress, "video/card/progress");
@@ -236,14 +238,16 @@ public:
             cell->boxNumber->setVisibility(brls::Visibility::GONE);
         }
 
-        // runtime · air date, the line Nuvio prints under the description
+        // runtime at the left, air date at the right — the two ends of the
+        // line the reference prints under the blurb. "February 4, 2022", not
+        // the raw ISO stamp the addon sends.
         {
             std::vector<std::string> bits;
             if (item.duration > 0) bits.push_back(fmt::format("{} min", int(item.duration / 60000)));
-            if (!item.originallyAvailableAt.empty()) bits.push_back(item.originallyAvailableAt);
             std::string line;
             for (size_t i = 0; i < bits.size(); i++) line += (i ? "  ·  " : "") + bits[i];
             cell->labelMeta->setText(line);
+            cell->labelDate->setText(misc::formatDate(item.originallyAvailableAt));
         }
 
         // Everything on this card sits on the artwork's dark fade, so it is
@@ -255,6 +259,7 @@ public:
             cell->labelNumber->setTextColor(onArt);
             cell->labelOverview->setTextColor(onArtDim);
             cell->labelMeta->setTextColor(onArtDim);
+            cell->labelDate->setTextColor(onArtDim);
         }
 
         if (item.played()) {
@@ -825,10 +830,40 @@ void MediaSeries::doSeries() {
         });
 }
 
+/// Logo first, title as the fallback: an advertised logo url is not proof the
+/// artwork exists, so nothing is revealed until the load reports back (the same
+/// rule the Home hero follows).
+void MediaSeries::applyHeroLogo(const std::string& url) {
+    auto showTitle = [this]() {
+        this->imageLogo->setVisibility(brls::Visibility::GONE);
+        this->labelTitle->setVisibility(brls::Visibility::VISIBLE);
+    };
+    if (url.empty()) {
+        showTitle();
+        return;
+    }
+    Image::cancel(this->imageLogo);
+    this->imageLogo->setVisibility(brls::Visibility::GONE);
+    this->labelTitle->setVisibility(brls::Visibility::GONE);
+    ASYNC_RETAIN
+    Image::load(this->imageLogo, url, 690, 0, [ASYNC_TOKEN, showTitle](bool ok, bool retryable) {
+        ASYNC_RELEASE
+        (void)retryable;
+        if (ok)
+            this->imageLogo->setVisibility(brls::Visibility::VISIBLE);
+        else
+            showTitle();
+    });
+}
+
 // Renders the show fiche from an Item — shared by the server and local paths.
 void MediaSeries::applySeries(const media::Item& item) {
     this->labelTitle->setText(item.title);
     Image::load(this->imagePoster, item.thumb, 325);
+    // The hero is a whole screenful of backdrop, as in the reference; the
+    // rows scroll up from underneath it. Set here because the design
+    // resolution (and so a "screenful") differs per panel.
+    this->bannerBox->setHeight((float)brls::Application::ORIGINAL_WINDOW_HEIGHT);
     // banner: backdrop (art) + cut-out logo nested at the bottom of
     // the fade; the text title is ALWAYS shown (below the banner).
     // The banner stays shown while loading (dark placeholder):
@@ -836,11 +871,12 @@ void MediaSeries::applySeries(const media::Item& item) {
     // gone->visible transition triggered a first-render bug
     // (gradient + image fill).
     if (!item.art.empty()) {
-        Image::load(this->imageBackdrop, item.art, 1080, 608);
-        if (!item.clearLogo.empty()) {
-            Image::load(this->imageLogo, item.clearLogo, 440, 120);
-        }
+        Image::load(this->imageBackdrop, item.art, 1280, 720);
+        // Logo OR title, never both (the reference shows only the logo, and
+        // only once it has actually loaded).
+        this->applyHeroLogo(item.clearLogo);
     } else {
+        this->applyHeroLogo("");
         // no backdrop (un-scanned item, or a poster-only offline snapshot): drop
         // the banner AND the overlap margins that assumed it (poster rises into
         // it, info column clears it) so the title doesn't jam against the top.
@@ -862,8 +898,8 @@ void MediaSeries::applySeries(const media::Item& item) {
     }
     // No year and no season count: nothing to say, and an empty pill draws as
     // a stray dark capsule.
-    if (item.year <= 0 && item.childCount <= 0)
-        this->labelYear->getParent()->setVisibility(brls::Visibility::GONE);
+    bool haveYear = item.year > 0 || item.childCount > 0;
+    this->labelYear->setVisibility(haveYear ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     if (item.contentRating.empty()) {
         this->parentalRating->getParent()->setVisibility(brls::Visibility::GONE);
     } else {
@@ -877,12 +913,25 @@ void MediaSeries::applySeries(const media::Item& item) {
     this->labelOverview->setText(item.summary);
     this->seriesSummary = item.summary;
 
-    if (item.genres.empty()) {
-        this->labelGenres->setVisibility(brls::Visibility::GONE);
-    } else {
-        this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, ", ")));
-        this->labelGenres->setVisibility(brls::Visibility::VISIBLE);
+    // The reference joins the genres with the same bullet it uses between the
+    // meta groups: "Drama • Crime • Action • Thriller  •  2022-  •  IMDb 8.0".
+    bool haveGenres = !item.genres.empty();
+    if (haveGenres) this->labelGenres->setText(fmt::format("{}", fmt::join(item.genres, "  •  ")));
+    this->labelGenres->setVisibility(haveGenres ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // separators only where both sides are actually present
+    bool haveRating = item.rating > 0;
+    this->sep1->setVisibility(haveGenres && (haveYear || haveRating) ? brls::Visibility::VISIBLE
+                                                                    : brls::Visibility::GONE);
+    this->sep2->setVisibility(haveYear && haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+
+    // secondary line: runtime, then where it is from
+    std::vector<std::string> secondary;
+    if (item.duration > 0) {
+        int mins = int(item.duration / 60000);
+        secondary.push_back(mins >= 60 ? fmt::format("{}h {}m", mins / 60, mins % 60) : fmt::format("{}m", mins));
     }
+    this->labelRuntime->setText(fmt::format("{}", fmt::join(secondary, "  •  ")));
+    this->labelRuntime->setVisibility(secondary.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     if (item.roles.size() > 0) {
         this->people->setDataSource(new PeopleDataSource(item.roles));
     } else {

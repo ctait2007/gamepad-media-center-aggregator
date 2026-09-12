@@ -12,87 +12,64 @@
             axis="column"
             paddingBottom="@style/main/content_padding_top_bottom">
 
-            <!-- full-bleed banner: backdrop + fade towards the background +
-                 logo nested at the bottom of the fade (readable in the shadow).
+            <!-- NuvioTV's detail hero: the backdrop IS the screen. Its own
+                 Column is 540dp tall there — a whole 1080p screen — with
+                 everything bottom-aligned over it and the rows scrolling up
+                 from underneath. The height is set in C++ from the design
+                 resolution so 720p/544p panels get their own screenful.
                  NB: keep a cornerRadius on brls:Image with scalingType="fill",
-                 it is what enables the render clip (otherwise the image overflows). -->
+                 it is what enables the render clip (otherwise the image
+                 overflows its box). -->
             <brls:Box
                 id="series/banner"
                 width="100%"
-                height="700">
+                height="1080">
                 <brls:Image
                     id="series/image/backdrop"
                     width="100%"
                     height="100%"
                     scalingType="fill"
-                    cornerRadius="4"
+                    cornerRadius="1"
                     backgroundColor="@theme/color/grey_1" />
+
+                <!-- left edge: the reference darkens the side the text sits on
+                     so a bright still cannot swallow the synopsis -->
+                <brls:Image
+                    positionType="absolute"
+                    positionTop="0"
+                    positionLeft="0"
+                    width="58%"
+                    height="100%"
+                    scalingType="stretch"
+                    image="@res/img/fade-left-dark.png" />
+
                 <brls:Image
                     id="series/banner/fade"
                     positionType="absolute"
                     positionBottom="0"
                     positionLeft="0"
                     width="100%"
-                    height="620"
+                    height="62%"
                     scalingType="stretch"
-                    image="@res/img/fade-bottom-dark.png" />
+                    image="@res/img/fade-hero-bottom-dark.png" />
+
                 <brls:Box
+                    id="series/content/row"
                     positionType="absolute"
-                    positionBottom="330"
+                    positionBottom="0"
                     positionLeft="0"
                     width="100%"
                     paddingLeft="@style/main/content_padding_sides"
-                    justifyContent="flexStart">
-                    <brls:Image
-                        id="series/image/logo"
-                        width="440"
-                        height="120"
-                        scalingType="fit" />
-                </brls:Box>
-            </brls:Box>
+                    paddingRight="@style/main/content_padding_sides"
+                    paddingBottom="32">
 
-            <!-- only the poster overlaps the banner; the info column
-                 (title, pills, genres, buttons, synopsis) starts BELOW the
-                 banner: no more text over the backdrop -->
-            <brls:Box
-                id="series/content/row"
-                marginTop="-300"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides">
-
-                <!-- 64: the poster only rises ~86 px into the banner
-                     (poster lowered, info column unchanged) -->
-                <!-- Nuvio's detail hero has no poster: the backdrop IS the
-                     hero and a poster beside it would halve the space the
-                     title and synopsis need. Kept in the tree (the C++ still
-                     binds and loads it) but collapsed. -->
-                <brls:Box
-                    visibility="gone"
-                    width="220"
-                    axis="column"
-                    marginTop="64"
-                    marginRight="34">
-                    <!-- poster over a grey_1 box with a media-icon placeholder
-                         BEHIND it (same pattern as video_card.xml): a missing
-                         poster shows the icon, not a bare dark rectangle. The
-                         image is transparent until loaded, then covers it. -->
+                    <!-- Nuvio's detail hero has no poster: the backdrop IS the
+                         hero. Kept in the tree (the C++ still binds and loads
+                         it) but collapsed. -->
                     <brls:Box
-                        height="330"
-                        cornerRadius="12"
-                        backgroundColor="@theme/color/grey_1">
-                        <brls:Box
-                            positionType="absolute"
-                            positionTop="0"
-                            positionLeft="0"
-                            width="100%"
-                            height="100%"
-                            alignItems="center"
-                            justifyContent="center">
-                            <SVGImage
-                                width="48"
-                                height="48"
-                                svg="@res/icon/ico-media.svg" />
-                        </brls:Box>
+                        visibility="gone"
+                        width="220"
+                        axis="column">
                         <brls:Image
                             id="series/image/poster"
                             width="100%"
@@ -100,145 +77,179 @@
                             scalingType="fill"
                             cornerRadius="12" />
                     </brls:Box>
-                </brls:Box>
 
-                <!-- 184 = 150 of banner overlap + ~34 px of air between the
-                     bottom of the banner and the top of the title -->
-                <brls:Box
-                    id="series/content/info"
-                    axis="column"
-                    marginTop="0"
-                    width="62%"
-                    grow="1.0">
-
-                    <brls:Label
-                        id="series/label/title"
-                        fontSize="42"
-                        marginBottom="14" />
-
-                    <!-- NuvioTV's order: title, then the action row, then the
-                         synopsis, with the metadata pills and genres beneath.
-                         "Play" = next episode (OnDeck), "Download" = whole
-                         show (allLeaves). -->
                     <brls:Box
-                        id="series/buttons"
-                        axis="row"
-                        marginTop="16"
-                        marginBottom="18">
+                        id="series/content/info"
+                        axis="column"
+                        width="100%"
+                        grow="1.0">
 
-                        <IconButton
-                            id="series/play"
-                            icon="@res/icon/ico-play-dark.svg"
-                            text="@i18n/main/media/play"
-                            buttonStyle="primary" />
-
-                        <IconButton
-                            id="series/download"
-                            icon="@res/icon/ico-download-light.svg"
-                            text="@i18n/main/download/start"
-                            buttonStyle="bordered"
-                            marginLeft="12" />
-
-                        <!-- revealed once the watchlist state is known (async
-                             provider request, media_series.cpp); filled icon
-                             = already in the Watchlist -->
-                        <IconButton
-                            id="series/watchlist"
-                            icon="@res/icon/ico-bookmark-light.svg"
-                            text="@i18n/main/watchlist/title"
-                            buttonStyle="bordered"
+                        <!-- 100dp tall, 0.4 of the content width, Fit and
+                             left-aligned, exactly as the reference sizes it.
+                             Revealed only once its pixels arrive. -->
+                        <brls:Image
+                            id="series/image/logo"
+                            width="690"
+                            height="200"
                             visibility="gone"
-                            marginLeft="12" />
-                    </brls:Box>
-                    <TextBox
-                        id="series/label/overview"
-                        fontSize="15"
-                        textColor="@theme/font/grey" />
+                            marginBottom="32"
+                            scalingType="fit" />
 
-                    <brls:Box
-                        alignItems="center"
-                        marginBottom="14">
+                        <!-- the reference shows the logo OR the name, never
+                             both: the text title is the fallback -->
+                        <brls:Label
+                            id="series/label/title"
+                            fontSize="72"
+                            singleLine="true"
+                            visibility="gone"
+                            marginBottom="16" />
 
                         <brls:Box
-                            cornerRadius="14"
-                            height="28"
+                            id="series/buttons"
+                            axis="row"
                             alignItems="center"
-                            paddingLeft="12"
-                            paddingRight="12"
-                            marginRight="8"
-                            backgroundColor="@theme/color/pill">
+                            marginBottom="32">
+
+                            <IconButton
+                                id="series/play"
+                                icon="@res/icon/ico-play-dark.svg"
+                                text="@i18n/main/media/play"
+                                buttonStyle="primary"
+                                height="96"
+                                cornerRadius="48"
+                                highlightCornerRadius="52"
+                                paddingLeft="48"
+                                paddingRight="48"
+                                fontSize="28"
+                                iconSize="36" />
+
+                            <!-- circular icon-only actions, like the "+" and
+                                 trailer buttons beside the reference's Play -->
+                            <IconButton
+                                id="series/watchlist"
+                                icon="@res/icon/ico-bookmark-light.svg"
+                                buttonStyle="icon"
+                                visibility="gone"
+                                width="96"
+                                height="96"
+                                cornerRadius="48"
+                                highlightCornerRadius="52"
+                                paddingLeft="0"
+                                paddingRight="0"
+                                iconSize="44"
+                                marginLeft="24" />
+
+                            <IconButton
+                                id="series/download"
+                                icon="@res/icon/ico-download-light.svg"
+                                buttonStyle="icon"
+                                width="96"
+                                height="96"
+                                cornerRadius="48"
+                                highlightCornerRadius="52"
+                                paddingLeft="0"
+                                paddingRight="0"
+                                iconSize="44"
+                                marginLeft="24" />
+                        </brls:Box>
+
+                        <!-- 0.6 of the content width and bodyMedium sized, as
+                             the reference sets it -->
+                        <TextBox
+                            id="series/label/overview"
+                            width="60%"
+                            fontSize="28"
+                            maxRows="4"
+                            marginBottom="24" />
+
+                        <!-- primary meta: genres, year, rating -->
+                        <brls:Box
+                            axis="row"
+                            alignItems="center"
+                            marginBottom="16">
+                            <brls:Label
+                                id="series/label/genres"
+                                fontSize="28"
+                                animated="false"
+                                singleLine="true" />
+                            <brls:Label
+                                id="series/meta/sep1"
+                                fontSize="28"
+                                visibility="gone"
+                                text="  •  " />
                             <brls:Label
                                 id="series/label/year"
-                                singleLine="true"
-                                fontSize="14" />
+                                fontSize="28"
+                                singleLine="true" />
+                            <brls:Label
+                                id="series/meta/sep2"
+                                fontSize="28"
+                                visibility="gone"
+                                text="  •  " />
+                            <brls:Box
+                                id="series/rating/box"
+                                axis="row"
+                                alignItems="center"
+                                visibility="gone">
+                                <SVGImage
+                                    id="series/rating/icon"
+                                    width="36"
+                                    height="18"
+                                    marginRight="8"
+                                    svg="@res/icon/ico-star.svg" />
+                                <brls:Label
+                                    id="series/label/rating"
+                                    singleLine="true"
+                                    fontSize="28" />
+                            </brls:Box>
                         </brls:Box>
 
+                        <!-- secondary meta: age rating, runtime, country -->
                         <brls:Box
-                            cornerRadius="14"
-                            height="28"
-                            alignItems="center"
-                            paddingLeft="12"
-                            paddingRight="12"
-                            marginRight="8"
-                            visibility="gone"
-                            backgroundColor="@theme/color/pill">
+                            axis="row"
+                            alignItems="center">
+                            <brls:Box
+                                cornerRadius="6"
+                                height="38"
+                                alignItems="center"
+                                justifyContent="center"
+                                paddingLeft="14"
+                                paddingRight="14"
+                                marginRight="24"
+                                borderThickness="2"
+                                borderColor="@theme/color/grey_3"
+                                visibility="gone">
+                                <brls:Label
+                                    id="series/parental/rating"
+                                    singleLine="true"
+                                    fontSize="24" />
+                            </brls:Box>
                             <brls:Label
-                                id="series/parental/rating"
-                                singleLine="true"
-                                fontSize="14" />
-                        </brls:Box>
+                                id="series/label/runtime"
+                                fontSize="24"
+                                singleLine="true" />
 
-                        <!-- critic rating: official source icon (RT tomato /
-                             IMDb / TMDb) set at runtime, generic star fallback.
-                             Icon width is sized to the glyph aspect in C++. -->
-                        <brls:Box
-                            cornerRadius="14"
-                            height="28"
-                            alignItems="center"
-                            paddingLeft="12"
-                            paddingRight="12"
-                            marginRight="8"
-                            visibility="gone"
-                            backgroundColor="@theme/color/pill">
-                            <SVGImage
-                                id="series/rating/icon"
-                                width="15"
-                                height="15"
-                                marginRight="5"
-                                svg="@res/icon/ico-star.svg" />
-                            <brls:Label
-                                id="series/label/rating"
-                                singleLine="true"
-                                fontSize="14" />
-                        </brls:Box>
-
-                        <!-- audience rating: RT popcorn (upright/spilled) -->
-                        <brls:Box
-                            cornerRadius="14"
-                            height="28"
-                            alignItems="center"
-                            paddingLeft="12"
-                            paddingRight="12"
-                            visibility="gone"
-                            backgroundColor="@theme/color/pill">
-                            <SVGImage
-                                id="series/audience/icon"
-                                width="15"
-                                height="15"
-                                marginRight="5"
-                                svg="@res/icon/rating/rt_upright.svg" />
-                            <brls:Label
-                                id="series/label/audience"
-                                singleLine="true"
-                                fontSize="14" />
+                            <!-- audience rating: no addon backend supplies one,
+                                 but the binding (and the Plex/Jellyfin path)
+                                 still expects the views to exist -->
+                            <brls:Box
+                                axis="row"
+                                alignItems="center"
+                                marginLeft="24"
+                                visibility="gone">
+                                <SVGImage
+                                    id="series/audience/icon"
+                                    width="18"
+                                    height="18"
+                                    marginRight="8"
+                                    svg="@res/icon/rating/rt_upright.svg" />
+                                <brls:Label
+                                    id="series/label/audience"
+                                    singleLine="true"
+                                    fontSize="24" />
+                            </brls:Box>
                         </brls:Box>
                     </brls:Box>
-                    <brls:Label
-                        id="series/label/genres"
-                        fontSize="14"
-                        animated="false"
-                        textColor="@theme/font/grey"
-                        marginBottom="16" />
                 </brls:Box>
             </brls:Box>
 
@@ -259,10 +270,13 @@
                 marginRight="@style/main/content_padding_sides"
                 alignItems="center" />
 
+            <!-- The reference fits about three of these across a 1080p
+                 screen (~640x415 each), not four and a half: the still is the
+                 point of the tile, and the blurb needs the room. -->
             <HRecyclerFrame
-                height="250"
-                itemWidth="420"
-                itemSpace="14"
+                height="420"
+                itemWidth="640"
+                itemSpace="20"
                 marginBottom="28"
                 paddingLeft="@style/main/content_padding_sides"
                 paddingRight="@style/main/content_padding_sides"

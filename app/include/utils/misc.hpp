@@ -23,6 +23,11 @@ std::string sec2Time(int64_t t);
 
 std::string formatSize(uint64_t s);
 
+/// "2022-02-04T05:00:00.000Z" / "2022-02-04" -> "February 4, 2022", the way
+/// NuvioTV prints an air date. Returns the input unchanged when it does not
+/// start with an ISO date, so an addon's free-form string is never mangled.
+std::string formatDate(const std::string& iso);
+
 /// Light Markdown→plain-text pass for display in a borealis Label (no MD
 /// renderer): drops heading #'s, turns list markers into bullets, unwraps
 /// [text](url) links and strips ** __ ` emphasis/code marks.

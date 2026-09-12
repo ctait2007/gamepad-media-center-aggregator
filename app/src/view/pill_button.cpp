@@ -4,11 +4,13 @@ PillButton::PillButton(const std::string& text, bool active, std::function<void(
     this->setAxis(brls::Axis::ROW);
     this->setAlignItems(brls::AlignItems::CENTER);
     this->setJustifyContent(brls::JustifyContent::CENTER);
-    this->setHeight(44);
-    this->setPadding(0, 20, 0, 20);
-    this->setMarginRight(10);
-    this->setCornerRadius(22);  // Nuvio chip = fully rounded
-    this->setHighlightCornerRadius(26);
+    // NuvioTV's season chip: titleMedium text (16sp at its 2.0 density = 32px
+    // here) in a fully-rounded capsule with generous horizontal padding.
+    this->setHeight(62);
+    this->setPadding(0, 30, 0, 30);
+    this->setMarginRight(14);
+    this->setCornerRadius(31);  // Nuvio chip = fully rounded
+    this->setHighlightCornerRadius(35);
     this->setFocusable(true);
     // Keep the pill's OWN fill when focused. borealis otherwise paints
     // brls/highlight/background over it, which hid the active pill's light
@@ -17,7 +19,7 @@ PillButton::PillButton(const std::string& text, bool active, std::function<void(
 
     this->label = new brls::Label();
     this->label->setText(text);
-    this->label->setFontSize(18);
+    this->label->setFontSize(32);
     this->addView(this->label);
 
     this->setActive(active);
