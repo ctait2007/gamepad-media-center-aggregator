@@ -51,6 +51,21 @@ void AddonEngine::ensureLoaded() {
             a.transportUrl = transport;
             a.base = baseFromTransport(transport);
             a.manifest = parseManifest(j);
+            // Say exactly what each addon contributes. Without this a catalog
+            // dropped at parse time (a required extra we can't supply) is
+            // indistinguishable in a log from one that fetched fine but
+            // returned zero metas — the two have completely different fixes.
+            std::string res;
+            for (const auto& r : a.manifest.resources) res += (res.empty() ? "" : ",") + r;
+            brls::Logger::info("stremio: addon '{}' base={} resources=[{}] catalogs={}", a.manifest.name, a.base,
+                res, a.manifest.catalogs.size());
+            for (const auto& c : a.manifest.catalogs) {
+                if (c.browsable)
+                    brls::Logger::info("stremio:   catalog {}/{} '{}' browsable", c.type, c.id, c.name);
+                else
+                    brls::Logger::warning("stremio:   catalog {}/{} '{}' NOT browsable (requires extra '{}')",
+                        c.type, c.id, c.name, c.blockedBy);
+            }
             addons.push_back(std::move(a));
         } catch (const std::exception& ex) {
             brls::Logger::warning("stremio: manifest load failed {}: {}", transport, ex.what());

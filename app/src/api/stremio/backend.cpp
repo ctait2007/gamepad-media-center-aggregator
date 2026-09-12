@@ -431,9 +431,15 @@ void StremioBackend::getHomeHubs(
             // cap: Home shows every non-hidden catalog now, not a curated
             // top N — AppConfig::getHubOrder (home_tab.cpp) decides position.
             std::vector<std::pair<Addon, Catalog>> visible;
-            for (auto& pc : cats)
+            for (auto& pc : cats) {
                 if (!AppConfig::instance().isHubHidden(catalogKey(pc.first.base, pc.second.type, pc.second.id)))
                     visible.push_back(pc);
+                else
+                    brls::Logger::info("stremio home: skip {}/{} '{}' — hidden in settings", pc.second.type,
+                        pc.second.id, pc.second.name);
+            }
+            brls::Logger::info("stremio home: {} browsable catalog(s), {} after hide-list", cats.size(),
+                visible.size());
 
             // Fetched concurrently, not one at a time: each catalog is its own
             // HTTP round trip, and with several addons/catalogs a sequential
@@ -450,7 +456,16 @@ void StremioBackend::getHomeHubs(
                         brls::Logger::warning("stremio home catalog {}: {}", url, ex.what());
                         return h;
                     }
-                    if (res.items.empty()) return h;
+                    // Every skip states its reason: a row missing from Home is
+                    // otherwise silent, and "fetch failed" vs "fetched fine but
+                    // the addon returned nothing" are different bugs.
+                    if (res.items.empty()) {
+                        brls::Logger::warning("stremio home: skip {}/{} '{}' — 0 metas from {}", cat.type, cat.id,
+                            cat.name, url);
+                        return h;
+                    }
+                    brls::Logger::info(
+                        "stremio home: {}/{} '{}' -> {} item(s)", cat.type, cat.id, cat.name, res.items.size());
                     h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
                     h.key = catalogKey(pc.first.base, cat.type, cat.id);  // "see all" -> getHubPage
                     // Stable identity (addon base + type + catalog id), NOT the
@@ -504,7 +519,13 @@ void StremioBackend::getSectionHubs(
                         brls::Logger::warning("stremio section hub {}: {}", url, ex.what());
                         return h;
                     }
-                    if (res.items.empty()) return h;
+                    if (res.items.empty()) {
+                        brls::Logger::warning("stremio section: skip {}/{} '{}' — 0 metas from {}", cat.type,
+                            cat.id, cat.name, url);
+                        return h;
+                    }
+                    brls::Logger::info(
+                        "stremio section: {}/{} '{}' -> {} item(s)", cat.type, cat.id, cat.name, res.items.size());
                     h.title = bestCatalogLabel(loc, pc.first, cat);
                     h.key = catalogKey(pc.first.base, cat.type, cat.id);
                     // cat.id alone collides across addons that both name a

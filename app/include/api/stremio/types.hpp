@@ -272,6 +272,11 @@ struct Catalog {
     // last-videos / calendar-videos need lastVideosIds / calendarVideosIds): it
     // is not browsable as a plain grid and must be hidden from the UI.
     bool browsable = true;
+    // When browsable == false: the name of the required extra that made it so.
+    // Diagnostics only (logged at manifest-load time) — a catalog vanishing from
+    // the UI with no stated reason is exactly the kind of silent skip that makes
+    // "my addon's rows don't show up" unbreakable from a log.
+    std::string blockedBy;
 
     bool hasSearch() const {
         return std::find(extraSupported.begin(), extraSupported.end(), "search") != extraSupported.end();
@@ -345,8 +350,10 @@ inline Catalog parseCatalogDescriptor(const nlohmann::json& j) {
                     if (o.is_string()) c.genres.push_back(o.get<std::string>());
             // a REQUIRED extra other than search/skip/genre (e.g. lastVideosIds,
             // calendarVideosIds) means we can't list this catalog as a grid.
-            if (jbool(e, "isRequired") && name != "search" && name != "skip" && name != "genre")
+            if (jbool(e, "isRequired") && name != "search" && name != "skip" && name != "genre") {
                 c.browsable = false;
+                if (c.blockedBy.empty()) c.blockedBy = name;
+            }
         }
     }
     if (j.contains("genres") && j["genres"].is_array())
