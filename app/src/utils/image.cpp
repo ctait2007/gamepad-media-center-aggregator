@@ -134,7 +134,7 @@ Image::Image() : image(nullptr) {
 Image::~Image() { brls::Logger::verbose("delete Image {}", fmt::ptr(this)); }
 
 void Image::with(brls::Image* view, const std::string& url, int width, int height,
-                 std::function<void(bool)> done) {
+                 std::function<void(bool, bool)> done) {
     int tex = brls::TextureCache::instance().getCache(url);
     if (tex > 0) {
         // The cache owns this texture. brls::Image defaults freeTexture to
@@ -144,7 +144,7 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
         // leave a dead id in the cache — drawn later, that's a GXM fault.
         view->setFreeTexture(false);
         view->innerSetImage(tex);
-        if (done) done(true);
+        if (done) done(true, false);
         return;
     }
 
@@ -161,8 +161,9 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
     if (!it.second) {
         brls::Logger::warning("insert Image {} failed", fmt::ptr(view));
         // an earlier request still owns this view: this one never runs, so the
-        // caller must not be left waiting on a callback that cannot come
-        if (done) done(false);
+        // caller must not be left waiting on a callback that cannot come —
+        // retryable, since the url itself was never put to the test
+        if (done) done(false, true);
         return;
     }
 
@@ -180,14 +181,14 @@ void Image::with(brls::Image* view, const std::string& url, int width, int heigh
 
 #ifdef BOREALIS_USE_GXM
 void Image::withLocal(brls::Image* view, const std::string& localPath, int width, int height,
-                      std::function<void(bool)> done) {
+                      std::function<void(bool, bool)> done) {
     // Mirrors with(): the cache is keyed by the local path (as setImageFromFile
     // did), so repeat loads of a cached asset hit the TextureCache directly.
     int tex = brls::TextureCache::instance().getCache(localPath);
     if (tex > 0) {
         view->setFreeTexture(false);
         view->innerSetImage(tex);
-        if (done) done(true);
+        if (done) done(true, false);
         return;
     }
 
@@ -198,7 +199,7 @@ void Image::withLocal(brls::Image* view, const std::string& localPath, int width
     auto it = requests.insert(std::make_pair(view, item));
     if (!it.second) {
         brls::Logger::warning("insert Image {} failed", fmt::ptr(view));
-        if (done) done(false);
+        if (done) done(false, true);
         return;
     }
 
@@ -369,7 +370,7 @@ void Image::doRequest(HTTP& s) {
                 clear(imagePtr);
                 // decode failure (imageData == nullptr) counts as a miss: the
                 // bytes arrived but nothing renderable came out of them
-                if (doneCopy) doneCopy(tex > 0);
+                if (doneCopy) doneCopy(tex > 0, false);
             }
             if (imageData) {
 #ifdef BOREALIS_USE_GXM
@@ -389,10 +390,13 @@ void Image::doRequest(HTTP& s) {
         // the image host does not actually have
         brls::Logger::warning("request image {} {}", this->url, ex.what());
         auto* imagePtr = this->image.load();
-        auto doneCopy = this->done;
+        // A cancelled transfer throws here too ("aborted by an application
+        // callback"). That is not the url's fault and must not be reported as
+        // one — something newer already owns this view.
+        auto doneCopy = this->isCancel->load() ? std::function<void(bool, bool)>() : this->done;
         brls::sync([imagePtr, doneCopy] {
             Image::clear(imagePtr);
-            if (doneCopy) doneCopy(false);
+            if (doneCopy) doneCopy(false, false);
         });
     }
 }

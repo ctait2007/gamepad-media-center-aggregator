@@ -413,7 +413,10 @@ void HomeTab::showHero(const plex::Item& item) {
         Image::cancel(backdrop);
         std::string art = item.art.empty() ? item.grandparentArt : item.art;
         if (art.empty()) art = item.thumb;
-        if (!art.empty()) Image::with(backdrop, art);
+        // 1280 wide, not the addon's `original`: this fills the screen behind
+        // everything and reloads on every focus change, so it is the single
+        // most expensive texture in the app (see StremioBackend::imageUrl).
+        if (!art.empty()) Image::load(backdrop, art, 1280, 720);
     }
 
     // The cut-out logo is the title, as in NuvioTV. Nothing is revealed until
@@ -474,6 +477,7 @@ void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
     // Nothing to try: no url on the row, and the lookup either found none or
     // has not run yet.
     if (url.empty() || this->heroLogoFailed.count(url)) {
+        if (url.empty()) brls::Logger::info("hero logo absent: {}", this->heroTitleText);
         this->showHeroTitleText(key);
         this->resolveHeroLogo(key);
         return;
@@ -488,7 +492,9 @@ void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
 
     size_t gen = this->heroGeneration;
     ASYNC_RETAIN
-    Image::load(logo, url, 330, 96, [ASYNC_TOKEN, key, url, gen](bool ok) {
+    // 500 wide like NuvioTV's hero logo, not the 330 of the slot: the slot is
+    // in design units and the panel is 1080p, so 500 is roughly 1:1 there.
+    Image::load(logo, url, 500, 0, [ASYNC_TOKEN, key, url, gen](bool ok, bool retryable) {
         ASYNC_RELEASE
         // focus moved on while this was in flight: that newer item owns the
         // hero now, and re-showing this one would fight it
@@ -498,9 +504,18 @@ void HomeTab::applyHeroLogo(const std::string& key, const std::string& url) {
             if (view) view->setVisibility(brls::Visibility::VISIBLE);
             return;
         }
-        // The url was advertised but there is no artwork behind it. Remember
-        // that, so re-focusing this card does not re-request the 404, and go
-        // looking for a better one.
+        if (retryable) {
+            // never got to run — show the title for now, but leave the url
+            // alone so the next visit tries it properly
+            this->showHeroTitleText(key);
+            return;
+        }
+        // The url was advertised but nothing usable came back. Remember that,
+        // so re-focusing this card does not re-request it, and go looking for
+        // a better one. Logged at info: when a logo is missing on a device,
+        // this line is the difference between a fetch that failed and a url
+        // that was never offered.
+        brls::Logger::info("hero logo failed: {} ({})", this->heroTitleText, url);
         this->heroLogoFailed.insert(url);
         this->showHeroTitleText(key);
         this->resolveHeroLogo(key);

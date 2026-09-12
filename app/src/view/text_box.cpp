@@ -48,6 +48,7 @@ void TextBox::onLayout() {
 void TextBox::draw(
     NVGcontext* vg, float x, float y, float width, float height, brls::Style style, brls::FrameContext* ctx) {
     if (width == 0) return;
+    if (this->fullText.empty()) return;
 
     // `cuttedText` is produced by cutText() as a side effect of the yoga
     // measure passes, which run with intermediate widths; after a
@@ -74,6 +75,9 @@ void TextBox::draw(
 
 void TextBox::setText(const std::string& text) {
     this->fullText = text;
+    // Drop the old cut immediately: onLayout() and the measure func both skip
+    // empty text, so nothing else would clear it before the next draw.
+    if (text.empty()) this->cuttedText.clear();
     this->setParsedDone(false);
     this->cuttedWidth = -1;  // force a recut even if the width is unchanged
     this->invalidate();
@@ -97,6 +101,14 @@ float TextBox::cutText(float width) {
     if (nrows > 0) {
         this->cuttedText = this->fullText.substr(0, rows[nrows - 1].end - rows[0].start);
         requiredHeight += nrows * this->lineHeight * lineh;
+    } else {
+        // Empty text breaks into no rows. Leaving cuttedText alone kept the
+        // PREVIOUS text here, and since the measure reports height 0 for empty
+        // text, draw() then painted those stale lines out of a zero-height box
+        // — over whatever sits below it. That is how the Home hero showed the
+        // last item's synopsis, low enough to run into the row titles, on rows
+        // whose items carry no description.
+        this->cuttedText.clear();
     }
     this->cuttedWidth = width;  // memoize: draw() recuts only when width changes
     return requiredHeight;

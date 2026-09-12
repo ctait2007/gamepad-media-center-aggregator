@@ -21,15 +21,20 @@ public:
     /// (offline), else the active backend's image URL. width/height > 0 requests
     /// backend-side resize where the backend supports it.
     /// `done` (optional) fires on the UI thread once the outcome is known:
-    /// true when pixels reached the view, false when the fetch or decode failed.
+    /// ok = pixels reached the view. `retryable` separates "this url has no
+    /// artwork behind it" (false — worth remembering) from "this attempt did
+    /// not get to run" (true — a request was already in flight for the view),
+    /// so a caller cannot blacklist a good url because a scroll got in the
+    /// way. A load cancelled by Image::cancel reports nothing at all: by then
+    /// something newer owns the view.
     /// Artwork that is merely ADVERTISED is not artwork that exists — Cinemeta
     /// templates a metahub logo url from the IMDb id for every item and metahub
     /// 404s the ones with no logo — so a caller that hides its text title in
     /// favour of a logo needs to hear about the failure.
     static void load(brls::Image* view, const std::string& path, int width = 0, int height = 0,
-                     std::function<void(bool)> done = nullptr) {
+                     std::function<void(bool, bool)> done = nullptr) {
         if (path.empty()) {
-            if (done) done(false);
+            if (done) done(false, false);
             return;
         }
         // offline cache wins: a locally cached asset renders without the server
@@ -48,7 +53,7 @@ public:
             withLocal(view, local, width, height, done);
 #else
             view->setImageFromFile(local);
-            if (done) done(true);
+            if (done) done(true, false);
 #endif
             return;
         }
@@ -63,14 +68,14 @@ public:
         if (!url.empty())
             with(view, url, width, height, done);
         else if (done)
-            done(false);
+            done(false, false);
     }
 
     /// @brief 设置要加载内容的图片组件。此函数需要工作在主线程。
     /// width/height (>0) = the intended display size, used on GXM to cap the
     /// decoded texture to the smallest power-of-two that still covers it.
     static void with(brls::Image* view, const std::string& url, int width = 0, int height = 0,
-                     std::function<void(bool)> done = nullptr);
+                     std::function<void(bool, bool)> done = nullptr);
 
 #ifdef BOREALIS_USE_GXM
     /// GXM offline path: like with(), but reads the pixels from a locally cached
@@ -78,7 +83,7 @@ public:
     /// doRequest. Keeps a cached native-resolution asset from becoming an
     /// oversized uncompressed GPU texture (see Image::load). Main thread.
     static void withLocal(brls::Image* view, const std::string& localPath, int width = 0, int height = 0,
-                          std::function<void(bool)> done = nullptr);
+                          std::function<void(bool, bool)> done = nullptr);
 #endif
 
     /// @brief 取消请求，并清空图片。此函数需要工作在主线程。
@@ -102,7 +107,7 @@ private:
     bool local = false;
     // fired on the UI thread with the outcome; empty when the caller does not
     // care (every pre-existing call site)
-    std::function<void(bool)> done;
+    std::function<void(bool, bool)> done;
 
     inline static std::mutex requestMutex;
     inline static std::unordered_map<brls::Image*, Ref> requests;

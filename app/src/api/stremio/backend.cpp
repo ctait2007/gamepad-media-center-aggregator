@@ -28,6 +28,8 @@
 #include <borealis/core/i18n.hpp>
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
+#include <cstring>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -1120,9 +1122,46 @@ void StremioBackend::reportProgress(
 
 // ---- url helpers ---------------------------------------------------------------
 
-std::string StremioBackend::imageUrl(const std::string& path, int, int) const {
-    // Stremio posters/backdrops/logos are ABSOLUTE URLs — no proxy/resize.
-    return path;
+std::string StremioBackend::imageUrl(const std::string& path, int width, int) const {
+    // Stremio artwork is an ABSOLUTE URL and there is no proxy to resize it.
+    // image.tmdb.org is the exception, and the one that matters: it IS a
+    // resizer, and TMDB-backed addons (AIOMetadata and friends) hand out
+    // /t/p/original/ urls. Taken at face value those are enormous — a
+    // 3840x2160 backdrop is a 33 MB RGBA texture and a 3463x894 clear logo
+    // 12 MB, against a 48 MB texture budget, so a couple of them evict every
+    // poster on screen and the next upload is the one that fails. A failed
+    // upload draws nothing and says nothing, which is what a missing hero
+    // logo looks like. NuvioTV never asks for `original` either: it builds
+    // w500 logos and posters and w1280 backdrops (TmdbMetadataService.
+    // buildImageUrl). Swap in the smallest bucket that still covers the size
+    // we are going to draw at; the CDN serves every bucket for every file.
+    static const char* kTmdbBase = "https://image.tmdb.org/t/p/";
+    if (path.rfind(kTmdbBase, 0) != 0) return path;
+
+    size_t sizeStart = strlen(kTmdbBase);
+    size_t sizeEnd = path.find('/', sizeStart);
+    if (sizeEnd == std::string::npos) return path;
+
+    // 0 (caller did not say) is capped rather than left alone: an uncapped
+    // `original` is exactly the case this exists to avoid.
+    static const int buckets[] = {92, 154, 185, 342, 500, 780, 1280};
+    int want = width > 0 ? width : 780;
+    int pick = buckets[sizeof(buckets) / sizeof(buckets[0]) - 1];
+    for (int b : buckets) {
+        if (b >= want) {
+            pick = b;
+            break;
+        }
+    }
+
+    // Never upscale a url that already asks for something smaller.
+    const std::string current = path.substr(sizeStart, sizeEnd - sizeStart);
+    if (current.size() > 1 && current[0] == 'w') {
+        int have = atoi(current.c_str() + 1);
+        if (have > 0 && have <= pick) return path;
+    }
+
+    return fmt::format("{}w{}{}", kTmdbBase, pick, path.substr(sizeEnd));
 }
 
 std::string StremioBackend::downloadUrl(const std::string& partKey) const { return partKey; }

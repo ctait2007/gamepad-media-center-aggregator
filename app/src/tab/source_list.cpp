@@ -98,7 +98,7 @@ SourceList::SourceList(const media::Item& item, std::string title, int64_t resum
     this->labelMessage->setTextColor(onScrimDim);
 
     std::string art = this->item.art.empty() ? this->item.thumb : this->item.art;
-    if (!art.empty()) Image::with(this->imageBackdrop, art);
+    if (!art.empty()) Image::load(this->imageBackdrop, art, 1280, 720);
 
     auto* close = dynamic_cast<ButtonClose*>(this->getView("source/close"));
     if (close) close->registerClickAction([this](brls::View*) { return ui::popDetail(this); });
