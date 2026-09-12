@@ -6,8 +6,9 @@
     background so the first poster row reads as continuing from it rather than
     sitting under a separate panel.
 
-    Focusable and selectable like any card: selecting it opens the same detail
-    page the item's poster would.
+    Only the action pill inside it is focusable — a focus ring around the whole
+    banner reads as a rendering fault. Pressing it opens the same detail page
+    the item's poster would.
 */
 
 #pragma once
