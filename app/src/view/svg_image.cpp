@@ -13,8 +13,8 @@ namespace {
 /// "#RRGGBB" of the active app accent (theme token color/app). Brand icons bake
 /// the legacy Plex gold; this is what we recolor them to, so they follow the
 /// per-backend theme set by AppConfig::applyTheme().
-std::string svgAccentHex() {
-    NVGcolor c = brls::Application::getTheme().getColor("color/app");
+std::string svgThemeHex(const char* token) {
+    NVGcolor c = brls::Application::getTheme().getColor(token);
     auto to8 = [](float f) -> int {
         int v = static_cast<int>(f * 255.0f + 0.5f);
         return v < 0 ? 0 : (v > 255 ? 255 : v);
@@ -24,18 +24,35 @@ std::string svgAccentHex() {
     return std::string(buf);
 }
 
+std::string svgAccentHex() { return svgThemeHex("color/app"); }
+
+/// The idle glyph colour baked into this icon set (#61666D, a dark blue-grey
+/// inherited from the Plex-era assets). NuvioTV's nav icons are a plain neutral
+/// grey and read much more clearly on its near-black background, so the token
+/// lets the theme move all of them at once.
+std::string svgIdleHex() { return svgThemeHex("color/icon_idle"); }
+
 /// Replaces the legacy gold baked into the brand SVGs (the 12 *-activate sidebar
 /// icons + ico-star) with `hex`, in place. Only those assets contain it, so this
 /// is a no-op for every other SVG. Length-preserving (#RRGGBB == #RRGGBB).
-bool recolorBakedAccent(std::string& svg, const std::string& hex) {
-    static const std::string baked = "#E5A00D";
-    if (hex.size() != baked.size()) return false;
+bool recolorOne(std::string& svg, const std::string& baked, const std::string& hex) {
+    if (hex.size() != baked.size() || hex == baked) return false;
     bool changed = false;
     for (size_t pos = svg.find(baked); pos != std::string::npos; pos = svg.find(baked, pos + hex.size())) {
         svg.replace(pos, baked.size(), hex);
         changed = true;
     }
     return changed;
+}
+
+/// Two colours are baked into this icon set, and both are the theme's business:
+/// the legacy gold of the brand/-activate icons, and the idle grey of every
+/// other glyph. Length-preserving (#RRGGBB == #RRGGBB), and a no-op for an SVG
+/// that contains neither.
+bool recolorBakedAccent(std::string& svg, const std::string& hex) {
+    bool a = recolorOne(svg, "#E5A00D", hex);
+    bool b = recolorOne(svg, "#61666D", svgIdleHex());
+    return a || b;
 }
 
 }  // namespace
@@ -63,7 +80,7 @@ void SVGImage::setImageFromSVGRes(const std::string& value) {
     // accent-keyed cache so a brand icon recolored per backend keeps a distinct
     // texture per theme; non-brand icons just gain a harmless accent suffix.
     const std::string accent = svgAccentHex();
-    const std::string cacheKey = filePath + "|" + accent;
+    const std::string cacheKey = filePath + "|" + accent + svgIdleHex();
     if (checkCache(cacheKey) > 0) return;
     auto image = romfs::get(value);
     std::string data(reinterpret_cast<const char*>(image.string().data()), image.size());
@@ -94,7 +111,7 @@ void SVGImage::setImageFromSVGFile(const std::string& value) {
     if (value.rfind("@res/", 0) == 0) return this->setImageFromSVGRes(value.substr(5));
 #endif
     const std::string accent = svgAccentHex();
-    const std::string cacheKey = value + "|" + accent;
+    const std::string cacheKey = value + "|" + accent + svgIdleHex();
     if (checkCache(cacheKey) > 0) return;
 
     std::ifstream in(value, std::ios::binary);

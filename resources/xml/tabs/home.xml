@@ -14,7 +14,7 @@
         positionTop="0"
         positionRight="0"
         width="64%"
-        height="56%">
+        height="54%">
 
         <!-- cornerRadius is not decoration here: on brls:Image with
              scalingType="fill" it is what enables the render clip, without
@@ -36,15 +36,19 @@
             scalingType="stretch"
             image="@res/img/fade-left-dark.png" />
 
-        <!-- and the bottom edge, into the rows -->
+        <!-- and the bottom edge, into the rows. Its own asset, not the card
+             fade: that one ends on (13,14,17) and never quite reaches full
+             opacity at the sampled edge, which left a line of bare artwork
+             along the bottom of the hero. This one lands on the exact page
+             background and holds it solid for its last fifth. -->
         <brls:Image
             positionType="absolute"
             positionBottom="0"
             positionLeft="0"
             width="100%"
-            height="52%"
+            height="58%"
             scalingType="stretch"
-            image="@res/img/fade-bottom-dark.png" />
+            image="@res/img/fade-hero-bottom-dark.png" />
     </brls:Box>
 
     <!-- Bottom-anchored (justifyContent=flexEnd): in the reference the synopsis
@@ -54,10 +58,10 @@
     <brls:Box
         id="home/hero"
         width="44%"
-        height="52%"
+        height="45%"
         axis="column"
         justifyContent="flexEnd"
-        paddingBottom="24"
+        paddingBottom="18"
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
@@ -91,11 +95,30 @@
             singleLine="true"
             marginBottom="8" />
 
-        <brls:Label
+        <brls:Box
             id="home/hero/meta2"
-            fontSize="21"
-            singleLine="true"
-            marginBottom="12" />
+            axis="row"
+            alignItems="center"
+            height="28"
+            marginBottom="12">
+            <brls:Label
+                id="home/hero/meta2/text"
+                fontSize="21"
+                singleLine="true" />
+            <!-- the rating's own mark (IMDb / RT / TMDb), as on the detail
+                 page — sized to the glyph's aspect in C++ -->
+            <SVGImage
+                id="home/hero/rating/icon"
+                width="36"
+                height="18"
+                visibility="gone"
+                marginRight="7" />
+            <brls:Label
+                id="home/hero/rating"
+                fontSize="21"
+                singleLine="true"
+                visibility="gone" />
+        </brls:Box>
 
         <!-- 3 rows, not 4: the band has to hold logo + meta + synopsis with
              clearance above the first row title in the worst case. -->

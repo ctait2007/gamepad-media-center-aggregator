@@ -12,6 +12,8 @@
             grow="1"
             tabBackgroundColor="@theme/color/nav_bg"
             tabItemActiveTextColor="@theme/color/app"
+            tabAccentBar="false"
+            tabItemSpacing="26"
             defaultTab="0"
             sidebarPosition="left">
 

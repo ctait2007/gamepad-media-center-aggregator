@@ -5,6 +5,8 @@
 #include "utils/image.hpp"
 #include "view/loading_spinner.hpp"
 #include "view/continue_card.hpp"
+#include "view/svg_image.hpp"
+#include "utils/rating.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "utils/keybind.hpp"
@@ -444,7 +446,10 @@ void HomeTab::renderHero() {
     auto* backdrop = dynamic_cast<brls::Image*>(this->getView("home/hero/backdrop"));
     auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
     auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
-    auto* meta2 = dynamic_cast<brls::Label*>(this->getView("home/hero/meta2"));
+    auto* meta2Text = dynamic_cast<brls::Label*>(this->getView("home/hero/meta2/text"));
+    auto* ratingIcon = dynamic_cast<SVGImage*>(this->getView("home/hero/rating/icon"));
+    auto* ratingLabel = dynamic_cast<brls::Label*>(this->getView("home/hero/rating"));
+    auto* meta2 = this->getView("home/hero/meta2");
     auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
 
     // Everything sits on the artwork's veil, so it is light in BOTH themes.
@@ -499,7 +504,7 @@ void HomeTab::renderHero() {
 
     // Line 2 — what it will cost you: time left if you are part way in, the
     // running time otherwise, then the rating.
-    if (meta2) {
+    if (meta2Text && ratingIcon && ratingLabel && meta2) {
         std::vector<std::string> bits;
         int64_t left = item.duration - item.viewOffset;
         if (item.duration > 0 && item.viewOffset > 0 && left > 0) {
@@ -510,11 +515,33 @@ void HomeTab::renderHero() {
             int min = int(item.duration / 60000);
             bits.push_back(min >= 60 ? fmt::format("{} h {:02d}", min / 60, min % 60) : fmt::format("{} min", min));
         }
-        if (item.rating > 0) bits.push_back(fmt::format("IMDb {:.1f}", item.rating));
         std::string line = join(bits);
-        meta2->setText(line);
-        meta2->setTextColor(onArtDim);
-        meta2->setVisibility(line.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+
+        // The rating carries its source's own mark here, as it does on the
+        // detail page — "IMDb 7.6" as plain text was the one place the app
+        // named a rating source without showing it.
+        bool haveRating = false;
+        if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
+            const float h = 18.f;  // matches the 21px text beside it
+            ratingIcon->setWidth(h * info->aspect);
+            ratingIcon->setHeight(h);
+            ratingIcon->setImageFromSVGRes(info->icon);
+            ratingLabel->setText(info->value);
+            haveRating = true;
+        } else if (item.rating > 0) {
+            ratingIcon->setWidth(18);
+            ratingIcon->setHeight(18);
+            ratingIcon->setImageFromSVGRes("icon/ico-star.svg");
+            ratingLabel->setText(fmt::format("{:.1f}", item.rating));
+            haveRating = true;
+        }
+        if (haveRating && !line.empty()) line += "  •  ";
+        meta2Text->setText(line);
+        meta2Text->setTextColor(onArtDim);
+        ratingLabel->setTextColor(onArtDim);
+        ratingIcon->setVisibility(haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        ratingLabel->setVisibility(haveRating ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        meta2->setVisibility(line.empty() && !haveRating ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     }
 
     if (overview) {

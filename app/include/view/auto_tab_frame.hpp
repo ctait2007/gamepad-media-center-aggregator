@@ -40,6 +40,10 @@ public:
 
     void setGroup(AutoSidebarItemGroup* group);
 
+    /// Show (default) or hide the accent bar that marks the active item in a
+    /// vertical sidebar.
+    void setAccentBarEnabled(bool enabled);
+
     void setLabel(std::string label);
 
     void setSubtitle(std::string label);
@@ -90,6 +94,7 @@ private:
     brls::GenericEvent activeEvent;
 
     AutoSidebarItemGroup* group = nullptr;
+    bool accentBar = true;
 
     AutoTabBarStyle tabStyle = AutoTabBarStyle::NONE;
 
@@ -309,6 +314,8 @@ private:
     /// tightened vertical sidebar: 28px centered icon + 4px accent flush
     /// against the right edge (76px stayed too wide, accent detached)
     float sidebarWidth = 64;
+    bool tabAccentBar = true;     // accent bar beside the active item
+    float tabItemSpacing = 0.0f;  // extra gap below each rail item
 
     std::function<void(size_t)> tabChangedAction = nullptr;
 

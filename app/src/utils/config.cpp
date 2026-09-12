@@ -1043,6 +1043,12 @@ void AppConfig::initThemes() {
     this->addColor(brls::ThemeVariant::DARK, "color/hero_scrim", nvgRGBA(13, 13, 13, 216));
     this->addColor(brls::ThemeVariant::LIGHT, "color/nav_bg", nvgRGB(235, 235, 235));
     this->addColor(brls::ThemeVariant::DARK, "color/nav_bg", nvgRGB(13, 13, 13));
+    // Idle glyph colour, swapped into the icon set at load (SVGImage). The
+    // assets bake #61666D, a dark blue-grey from the Plex-era set that all but
+    // disappears against a 13,13,13 rail; NuvioTV's nav icons sit near its
+    // textSecondary, plainly visible but clearly not the active one.
+    this->addColor(brls::ThemeVariant::LIGHT, "color/icon_idle", nvgRGB(0x61, 0x66, 0x6D));
+    this->addColor(brls::ThemeVariant::DARK, "color/icon_idle", nvgRGB(0x9A, 0x9A, 0x9A));
     this->addColor(brls::ThemeVariant::LIGHT, "color/surface", nvgRGB(255, 255, 255));
     this->addColor(brls::ThemeVariant::DARK, "color/surface", nvgRGB(36, 36, 36));  // Nuvio backgroundCard
     // banner fade towards the background (transparent -> background color)

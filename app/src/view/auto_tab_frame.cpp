@@ -140,6 +140,14 @@ AutoTabFrame::AutoTabFrame() {
     // default is true, only load pages on demand
     this->registerBoolXMLAttribute("demandMode", [this](bool value) { this->setDemandMode(value); });
 
+    // The accent bar beside the active tab. NuvioTV's rail marks the active
+    // item by the icon's colour alone, so the main frame turns it off.
+    this->registerBoolXMLAttribute("tabAccentBar", [this](bool value) { this->tabAccentBar = value; });
+
+    // Extra air between rail items: the reference spaces its icons far more
+    // widely than the stock 70px item leaves room for.
+    this->registerFloatXMLAttribute("tabItemSpacing", [this](float value) { this->tabItemSpacing = value; });
+
     this->sidebar->setAxis(brls::Axis::COLUMN);
     // side paddings 0: full-width items (the focus background covers the
     // sidebar edge to edge); the accent (marginRight 0) is flush with the
@@ -263,6 +271,8 @@ void AutoTabFrame::addTab(AutoSidebarItem* tab, TabViewCreator creator, size_t p
     tab->setDefaultBackgroundColor(this->tabItemBackgroundColor);
     tab->setActiveBackgroundColor(this->tabItemActiveBackgroundColor);
     tab->setActiveTextColor(this->tabItemActiveTextColor);
+    tab->setAccentBarEnabled(this->tabAccentBar);
+    if (this->tabItemSpacing > 0) tab->setMarginBottom(this->tabItemSpacing);
 
     this->addItem(tab, std::move(creator), this->makeTabSwitchCallback(), position);
     auto isDefaultTab = position == this->getDefaultTabIndex();
@@ -1162,7 +1172,7 @@ void AutoSidebarItem::setActive(bool active) {
         this->activeEvent.fire(this);
         if (this->tabStyle == AutoTabBarStyle::ACCENT) {
             // in horizontal mode (pills) the accent stays GONE: see applyPillStyle
-            if (!this->horizontal) this->accent->setVisibility(brls::Visibility::VISIBLE);
+            if (!this->horizontal && this->accentBar) this->accent->setVisibility(brls::Visibility::VISIBLE);
         } else if (this->tabStyle == AutoTabBarStyle::PLAIN) {
             this->setBackgroundColor(this->tabItemActiveBackgroundColor);
         }
@@ -1189,6 +1199,13 @@ void AutoSidebarItem::setActive(bool active) {
 
     this->active = active;
     this->applyPillStyle();
+}
+
+void AutoSidebarItem::setAccentBarEnabled(bool enabled) {
+    this->accentBar = enabled;
+    // GONE, not INVISIBLE: the bar must give its width back, otherwise the
+    // icon stays off-centre in the rail.
+    if (!enabled) this->accent->setVisibility(brls::Visibility::GONE);
 }
 
 void AutoSidebarItem::applyPillStyle() {
