@@ -97,11 +97,55 @@ nlohmann::json restGet(const std::string& pathAndQuery) {
     }
 }
 
+namespace {
+
+/// WHICH profile's addon rows to read — not always the active one. Mirrors
+/// NuvioTV's own AddonSyncService.getRemoteAddonUrls(): a NON-primary profile
+/// flagged `uses_primary_addons` shares the PRIMARY profile's collection, so
+/// it owns no `addons` rows of its own. Querying its own profile_id then
+/// matches nothing, and the app comes up with zero addons — no catalogs, no
+/// library sections, an empty Home — on an account that visibly has addons.
+int addonProfileIndex(int activeIndex) {
+    if (activeIndex == 1) return 1;  // primary owns its rows
+    try {
+        nlohmann::json rows = rpc("sync_pull_profiles", nlohmann::json::object());
+        if (rows.is_array()) {
+            for (auto& p : rows) {
+                if ((int)media::jint(p, "profile_index") != activeIndex) continue;
+                if (media::jbool(p, "uses_primary_addons", false)) {
+                    brls::Logger::info("nuvio: profile {} inherits the primary profile's addons", activeIndex);
+                    return 1;
+                }
+                return activeIndex;
+            }
+        }
+    } catch (const std::exception& ex) {
+        // Unknown flag: fall through to the active profile, and let the
+        // empty-result fallback in resyncAddons() cover us.
+        brls::Logger::warning("nuvio: could not read profile {} flags: {}", activeIndex, ex.what());
+    }
+    return activeIndex;
+}
+
+}  // namespace
+
 void resyncAddons() {
     try {
-        int profileIndex = AppConfig::instance().getNuvioProfileIndex();
-        nlohmann::json rows =
-            restGet(fmt::format("addons?profile_id=eq.{}&order=sort_order.asc&select=url,enabled", profileIndex));
+        int activeIndex = AppConfig::instance().getNuvioProfileIndex();
+        int profileIndex = addonProfileIndex(activeIndex);
+        auto fetch = [](int idx) {
+            return restGet(fmt::format("addons?profile_id=eq.{}&order=sort_order.asc&select=url,enabled", idx));
+        };
+
+        nlohmann::json rows = fetch(profileIndex);
+        // Last resort: no rows for this profile still must not leave the app
+        // with NO addons at all — that presents as a broken app rather than as
+        // an empty profile. Borrow the primary profile's collection.
+        if ((!rows.is_array() || rows.empty()) && profileIndex != 1) {
+            brls::Logger::warning(
+                "nuvio: profile {} returned no addon rows, falling back to the primary profile", profileIndex);
+            rows = fetch(1);
+        }
         if (!rows.is_array()) return;
 
         std::vector<std::string> fresh;

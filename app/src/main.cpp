@@ -120,6 +120,20 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // Debug logging to a FILE, from the very first line of this launch (the
+    // startup path is exactly where the interesting failures are). Consoles
+    // give the user no way to read stdout — PS4 sends it to klog over the
+    // network — so a log on disk next to the config is the only thing a user
+    // can actually retrieve and attach to a report. Opt-in, see Settings.
+    if (conf.getItem(AppConfig::DEBUG_LOG, false)) {
+        std::string logPath = conf.configDir() + "/gmca.log";
+        if (FILE* logFile = std::fopen(logPath.c_str(), "w+")) {
+            std::setvbuf(logFile, nullptr, _IOLBF, 0);  // survive a crash, see -o above
+            brls::Logger::setLogOutput(logFile);
+            brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
+        }
+    }
+
     // Init the app and i18n
     if (!brls::Application::init()) {
         brls::Logger::error("Unable to init application");

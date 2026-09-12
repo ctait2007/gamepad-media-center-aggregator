@@ -115,6 +115,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {SIDEBAR_LAYOUT, {"sidebar_layout"}},
     {HIDDEN_HUBS, {"hidden_hubs"}},
     {HUB_ORDER, {"hub_order"}},
+    {DEBUG_LOG, {"debug_log"}},
 
     {HINT_FORWARDER, {"hint_forwarder"}},
     {HINT_FORWARDER_GMCA, {"hint_forwarder_gmca"}},

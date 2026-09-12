@@ -170,6 +170,12 @@ public:
         /// order. JSON: [hubIdentifier, ...]
         HUB_ORDER,
 
+        /// Write a debug log to <configDir>/gmca.log from the next launch on.
+        /// Consoles have no console to read stdout from (PS4 logs to klog over
+        /// the network, which most users can't capture), so without this a
+        /// field bug report has nothing to attach. Toggled in Settings.
+        DEBUG_LOG,
+
         /// HOME tile install prompt (forwarder NSP) already shown at first
         /// launch in application mode (Switch).
         HINT_FORWARDER,
