@@ -1,5 +1,4 @@
 #include <borealis/core/logger.hpp>
-#include <algorithm>
 #include <fmt/format.h>
 #include "utils/thread.hpp"
 #include "utils/config.hpp"
@@ -10,25 +9,13 @@ constexpr std::chrono::milliseconds max_idle_time{60000};
 #ifdef BOREALIS_USE_STD_THREAD
 size_t ThreadPool::max_thread_num = std::thread::hardware_concurrency();
 #elif defined(__PSV__)
-size_t ThreadPool::max_thread_num = 2;  // deliberate: the Vita has little RAM to spare
+size_t ThreadPool::max_thread_num = 2;
 #else
 size_t ThreadPool::max_thread_num = 4;
 #endif
 
-/// Floor for the pool size. hardware_concurrency() is allowed to return 0 ("not
-/// computable") and on PS4 it actually returns 1 — the on-device log showed
-/// "ThreadPool start 1", which silently turned every parallelMap() fan-out
-/// (catalog rows, stream resolution) back into a sequential loop and is a large
-/// part of why loading feels slow there. These tasks are HTTP round trips, not
-/// CPU work, so the useful width is set by latency, not by core count.
-constexpr size_t min_thread_num = 4;
-
 ThreadPool::ThreadPool() {
-#ifdef __PSV__
     this->start(max_thread_num > 0 ? max_thread_num : 1);
-#else
-    this->start(std::max(max_thread_num, min_thread_num));
-#endif
 }
 
 ThreadPool::~ThreadPool() {}

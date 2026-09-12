@@ -419,12 +419,10 @@ void SettingTab::onCreate() {
     });
 
     btnDebug->init("main/setting/others/debug"_i18n, brls::Application::isDebuggingViewEnabled(), [](bool value) {
+        // On-screen overlay only. File logging is no longer gated on this:
+        // it is always on and rewritten each launch (see main.cpp), because
+        // the launches worth diagnosing are the ones that never reach here.
         brls::Application::enableDebuggingView(value);
-        // Also persist file logging: the on-screen overlay says nothing about
-        // what the backend did, and on a console stdout is unreachable. Takes
-        // effect on the next launch (main.cpp), which is the point — startup
-        // is where the log is worth having.
-        AppConfig::instance().setItem(AppConfig::DEBUG_LOG, value);
         MPVCore::instance().restart();
     });
 

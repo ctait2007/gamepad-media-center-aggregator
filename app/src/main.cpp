@@ -124,10 +124,19 @@ int main(int argc, char* argv[]) {
     // startup path is exactly where the interesting failures are). Consoles
     // give the user no way to read stdout — PS4 sends it to klog over the
     // network — so a log on disk next to the config is the only thing a user
-    // can actually retrieve and attach to a report. Opt-in, see Settings.
-    if (conf.getItem(AppConfig::DEBUG_LOG, false)) {
+    // can actually retrieve and attach to a report.
+    //
+    // ALWAYS ON, deliberately: it used to sit behind the Settings "debug"
+    // toggle, which meant the launches worth diagnosing — the ones that die
+    // before you can reach Settings, or on a fresh install — were exactly the
+    // ones that produced no log. The cost is a few hundred KB of text; the
+    // benefit is that every crash report already has the evidence in it.
+    {
         std::string logPath = conf.configDir() + "/gmca.log";
-        if (FILE* logFile = std::fopen(logPath.c_str(), "w+")) {
+        // "w" truncates: the file holds THIS launch only, so a user who
+        // reproduces a bug and grabs the log can't accidentally send a
+        // previous session's, and it can't grow without bound.
+        if (FILE* logFile = std::fopen(logPath.c_str(), "w")) {
             std::setvbuf(logFile, nullptr, _IOLBF, 0);  // survive a crash, see -o above
             brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
             brls::Logger::setThreadSafeLogging(true);   // backend verbs log from worker threads
@@ -142,8 +151,8 @@ int main(int argc, char* argv[]) {
                     int i = (int)level;
                     std::fprintf(logFile, "[%s] %s\n", (i >= 0 && i < 5) ? names[i] : "?", msg.c_str());
                 });
-            brls::Logger::info("GMCA {} on {} — debug log started", AppVersion::getVersion(),
-                AppVersion::getPlatform());
+            brls::Logger::info("GMCA {} on {} — log started (request_threads={})", AppVersion::getVersion(),
+                AppVersion::getPlatform(), ThreadPool::max_thread_num);
         }
     }
 
