@@ -342,6 +342,11 @@
       "overclock": "CPU-Übertaktung",
       "debug": "Debug-Ansicht",
       "sync": "Reihenfolge der Einstellungen beibehalten",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Aussehen (Neustart erforderlich)",
         "1": "Auto",

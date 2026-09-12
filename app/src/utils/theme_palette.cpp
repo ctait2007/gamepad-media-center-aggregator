@@ -78,4 +78,57 @@ const ThemeColors& backendPalette(media::BackendType type) {
     return kPlex;
 }
 
+// ---- NuvioTV's colour themes ------------------------------------------------
+//
+// Values transcribed from NuvioTV's own tokens, not eyeballed: AppTheme.kt for
+// the list and its order, ThemeColors.kt + SupporterThemeColors.kt for the
+// palettes, PrimitiveTokens.kt for the primitives they reference.
+//
+//   accent        = palette.secondary
+//   accentGlowTop = palette.focusRing
+//   onAccentText  = palette.onSecondary (white unless the accent is light)
+//   listValue     = palette.secondaryVariant
+//
+// NuvioTV has no light mode, so each light variant follows the convention the
+// backend palettes in this file already use: the darker `secondaryVariant` cut
+// as the accent (legible on a light ground) with white text on it.
+namespace {
+
+constexpr ThemeColors named(AccentRGB secondary, AccentRGB focusRing, AccentRGB onSecondary,
+    AccentRGB secondaryVariant) {
+    return ThemeColors{
+        /* dark  */ {secondary, focusRing, onSecondary, secondaryVariant},
+        /* light */ {secondaryVariant, secondary, {0xFF, 0xFF, 0xFF}, secondary},
+    };
+}
+
+const AccentRGB kNear = {0x11, 0x11, 0x11};   // neutral925, text on a light accent
+const AccentRGB kWhite = {0xFF, 0xFF, 0xFF};
+
+const std::vector<NamedTheme> kNamed = {
+    {"gold", "Gold", named({0xE8, 0xA9, 0x1C}, {0xFF, 0xD4, 0x5C}, kNear, {0x9A, 0x62, 0x00})},
+    {"jade", "Jade", named({0x22, 0xD3, 0x7C}, {0x7B, 0xF0, 0x8D}, kNear, {0x0B, 0xBF, 0x9A})},
+    {"rose_gold", "Rose Gold", named({0xEC, 0x70, 0xA9}, {0xFF, 0xB3, 0x7A}, kNear, {0xB7, 0x5A, 0xFF})},
+    {"arctic_blue", "Arctic Blue", named({0x31, 0x85, 0xF5}, {0x4D, 0xE3, 0xFF}, kWhite, {0x4D, 0x55, 0xE8})},
+    {"graphite", "Graphite", named({0xAA, 0xB2, 0xBE}, {0xF3, 0xF5, 0xF7}, kNear, {0x68, 0x73, 0x81})},
+    {"crimson", "Crimson", named({0xE5, 0x39, 0x35}, {0xFF, 0x52, 0x52}, kWhite, {0xC6, 0x28, 0x28})},
+    {"ocean", "Ocean", named({0x1E, 0x88, 0xE5}, {0x42, 0xA5, 0xF5}, kWhite, {0x15, 0x65, 0xC0})},
+    {"violet", "Violet", named({0x8E, 0x24, 0xAA}, {0xAB, 0x47, 0xBC}, kWhite, {0x6A, 0x1B, 0x9A})},
+    {"emerald", "Emerald", named({0x43, 0xA0, 0x47}, {0x66, 0xBB, 0x6A}, kWhite, {0x2E, 0x7D, 0x32})},
+    {"amber", "Amber", named({0xFB, 0x8C, 0x00}, {0xFF, 0xA7, 0x26}, kWhite, {0xEF, 0x6C, 0x00})},
+    {"rose", "Rose", named({0xD8, 0x1B, 0x60}, {0xEC, 0x40, 0x7A}, kWhite, {0xC2, 0x18, 0x5B})},
+    {"white", "White", named({0xF5, 0xF5, 0xF5}, {0xFF, 0xFF, 0xFF}, kNear, {0xE0, 0xE0, 0xE0})},
+};
+
+}  // namespace
+
+const std::vector<NamedTheme>& namedThemes() { return kNamed; }
+
+const ThemeColors* namedPalette(const std::string& id) {
+    if (id.empty() || id == "auto") return nullptr;
+    for (auto& t : kNamed)
+        if (id == t.id) return &t.colors;
+    return nullptr;
+}
+
 }  // namespace plenx

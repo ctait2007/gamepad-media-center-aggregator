@@ -25,6 +25,9 @@
 
 #include "api/backend.hpp"  // media::BackendType
 
+#include <string>
+#include <vector>
+
 namespace plenx {
 
 /// 8-bit RGB accent triple. Alpha (e.g. the translucent focus background) is
@@ -60,5 +63,20 @@ const ThemeColors& defaultPalette();
 
 /// Brand palette for a connected backend.
 const ThemeColors& backendPalette(media::BackendType type);
+
+/// The colour themes NuvioTV offers, in its own order and with its own names
+/// and values (AppTheme.kt / ThemeColors.kt / SupporterThemeColors.kt). `id` is
+/// what goes in the settings file; `name` is what the picker shows.
+struct NamedTheme {
+    const char* id;
+    const char* name;
+    ThemeColors colors;
+};
+
+/// All of them, in the reference's order.
+const std::vector<NamedTheme>& namedThemes();
+
+/// Look one up by id; nullptr when the id is unknown (or "auto").
+const ThemeColors* namedPalette(const std::string& id);
 
 }  // namespace plenx

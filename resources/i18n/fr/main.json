@@ -354,6 +354,11 @@
       "overclock": "Overclocking du processeur",
       "debug": "Fenêtre de débogage",
       "sync": "Enregistrer les paramètres de tri",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Coloris du thème (nécessite un redémarrage)",
         "1": "Suivant le système",

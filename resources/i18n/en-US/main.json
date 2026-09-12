@@ -363,6 +363,11 @@
       "overclock": "CPU Overclock",
       "debug": "Debug View",
       "sync": "Preserve order setting",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Theme (restart required)",
         "1": "Auto",

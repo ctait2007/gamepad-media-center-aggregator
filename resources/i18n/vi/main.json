@@ -342,6 +342,11 @@
       "overclock": "Ép xung CPU",
       "debug": "Màn hình gỡ lỗi",
       "sync": "Cài đặt bảo lưu thứ tự",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Giao diện (yêu cầu khởi động lại)",
         "1": "Tự động",

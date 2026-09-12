@@ -342,6 +342,11 @@
       "overclock": "CPU オーバークロック",
       "debug": "デバッグ表示",
       "sync": "並び順設定を保持",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "テーマ (再起動が必要)",
         "1": "自動",

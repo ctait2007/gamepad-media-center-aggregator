@@ -84,6 +84,7 @@
         <brls:Label
             id="home/hero/title"
             fontSize="56"
+            fontWeight="semibold"
             singleLine="true"
             visibility="gone"
             marginBottom="14" />
@@ -93,6 +94,7 @@
         <brls:Label
             id="home/hero/meta"
             fontSize="24"
+            fontWeight="medium"
             singleLine="true"
             marginBottom="8" />
 
@@ -105,6 +107,7 @@
             <brls:Label
                 id="home/hero/meta2/text"
                 fontSize="24"
+                fontWeight="medium"
                 singleLine="true" />
             <!-- the rating's own mark (IMDb / RT / TMDb), as on the detail
                  page — sized to the glyph's aspect in C++ -->
@@ -117,6 +120,7 @@
             <brls:Label
                 id="home/hero/rating"
                 fontSize="24"
+                fontWeight="medium"
                 singleLine="true"
                 visibility="gone" />
         </brls:Box>

@@ -342,6 +342,11 @@
       "overclock": "CPU 超頻",
       "debug": "偵錯視窗",
       "sync": "保存排序設定",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "主題配色 (需要重啟)",
         "1": "跟隨系統",

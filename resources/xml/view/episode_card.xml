@@ -67,7 +67,8 @@
             backgroundColor="@theme/color/scrim">
             <brls:Label
                 id="episode/card/number"
-                fontSize="20" />
+                fontSize="20"
+                fontWeight="medium" />
         </brls:Box>
 
         <SVGImage
@@ -109,6 +110,7 @@
                 id="episode/card/name"
                 singleLine="true"
                 fontSize="32"
+                fontWeight="medium"
                 marginBottom="4" />
             <TextBox
                 id="episode/card/overview"

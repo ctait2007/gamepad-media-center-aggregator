@@ -13,7 +13,8 @@
             tabBackgroundColor="@theme/color/nav_bg"
             tabItemActiveTextColor="@theme/color/app"
             tabAccentBar="false"
-            tabItemSpacing="26"
+            sidebarWidth="@style/main/sidebar/width"
+            tabItemSpacing="@style/main/sidebar/item_spacing"
             defaultTab="0"
             sidebarPosition="left">
 

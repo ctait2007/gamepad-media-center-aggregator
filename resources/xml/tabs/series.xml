@@ -101,6 +101,7 @@
                         <brls:Label
                             id="series/label/title"
                             fontSize="72"
+                            fontWeight="bold"
                             singleLine="true"
                             visibility="gone"
                             marginBottom="16" />
@@ -164,6 +165,7 @@
                         <brls:Label
                             id="series/label/credit"
                             fontSize="28"
+                            fontWeight="medium"
                             singleLine="true"
                             visibility="gone"
                             marginBottom="16" />
@@ -183,6 +185,7 @@
                             <brls:Label
                                 id="series/label/genres"
                                 fontSize="28"
+                                fontWeight="medium"
                                 animated="false"
                                 singleLine="true" />
                             <brls:Label
@@ -193,6 +196,7 @@
                             <brls:Label
                                 id="series/label/year"
                                 fontSize="28"
+                                fontWeight="medium"
                                 singleLine="true" />
                             <brls:Label
                                 id="series/meta/sep2"
@@ -213,7 +217,8 @@
                                 <brls:Label
                                     id="series/label/rating"
                                     singleLine="true"
-                                    fontSize="28" />
+                                    fontSize="28"
+                                    fontWeight="medium" />
                             </brls:Box>
                         </brls:Box>
 
@@ -235,7 +240,8 @@
                                 <brls:Label
                                     id="series/parental/rating"
                                     singleLine="true"
-                                    fontSize="24" />
+                                    fontSize="24"
+                                    fontWeight="medium" />
                             </brls:Box>
                             <brls:Label
                                 id="series/meta/sep4"
@@ -245,6 +251,7 @@
                             <brls:Label
                                 id="series/label/runtime"
                                 fontSize="24"
+                                fontWeight="medium"
                                 singleLine="true" />
                             <brls:Label
                                 id="series/meta/sep3"
@@ -254,6 +261,7 @@
                             <brls:Label
                                 id="series/label/country"
                                 fontSize="24"
+                                fontWeight="medium"
                                 singleLine="true"
                                 visibility="gone" />
 

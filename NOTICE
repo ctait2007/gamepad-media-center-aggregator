@@ -32,13 +32,17 @@ PS Vita in-app self-update (app/src/utils/vita_install.cpp, issue #14)
   is licence-compatible. This attribution is provided in recognition of that
   origin.
 
-Inter (resources/font/inter.ttf)
+Inter (resources/font/inter.ttf, inter_medium.ttf, inter_semibold.ttf,
+       inter_bold.ttf)
   Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter),
   licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
   Obtained from Google Fonts. It is the app's primary text face, chosen to match
-  NuvioTV, which uses Inter as its default.
+  NuvioTV, which uses Inter as its default. The Medium (500), SemiBold (600) and
+  Bold (700) cuts are static instances of the same upstream variable font,
+  produced with fontTools' instancer, so that the UI can use the weights
+  NuvioTV's Material3 type scale calls for.
 
-  The shipped file differs from the upstream build in one respect: its Private
+  Every shipped cut differs from the upstream build in one respect: its Private
   Use Area cmap entries (U+E000–U+F8FF, 745 mappings to internal alternates such
   as `four.numr`) are stripped. borealis addresses controller button glyphs at
   U+E0E0–U+E0F0, and a primary font claiming that range shadows the keymap font

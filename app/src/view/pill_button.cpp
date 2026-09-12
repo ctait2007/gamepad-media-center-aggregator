@@ -20,6 +20,7 @@ PillButton::PillButton(const std::string& text, bool active, std::function<void(
     this->label = new brls::Label();
     this->label->setText(text);
     this->label->setFontSize(32);
+    this->label->setFontWeight("medium");  // titleMedium, like the reference's chips
     this->addView(this->label);
 
     this->setActive(active);

@@ -15,6 +15,7 @@
 */
 
 #include "tab/setting_tab.hpp"
+#include "utils/theme_palette.hpp"
 #include "view/connection_switcher.hpp"
 #include "activity/server_list.hpp"
 #include "activity/hint_activity.hpp"
@@ -383,6 +384,33 @@ void SettingTab::onCreate() {
             auto& themeOptions = conf.getOptions(AppConfig::APP_THEME);
             conf.setItem(AppConfig::APP_THEME, themeOptions.options[selected]);
         });
+
+    // Colour theme: NuvioTV's own list, plus an "Automatic" that keeps the
+    // per-backend brand palette this app had before.
+    {
+        const auto& themes = plenx::namedThemes();
+        std::vector<std::string> labels{"main/setting/others/accent/auto"_i18n};
+        std::vector<std::string> ids{"auto"};
+        for (const auto& t : themes) {
+            labels.emplace_back(t.name);
+            ids.emplace_back(t.id);
+        }
+        std::string current = conf.getItem(AppConfig::ACCENT_THEME, std::string("auto"));
+        auto it = std::find(ids.begin(), ids.end(), current);
+        int accentIndex = it == ids.end() ? 0 : (int)(it - ids.begin());
+        selectorAccent->init("main/setting/others/accent/header"_i18n, labels, accentIndex,
+            [ids](int selected) {
+                auto& c = AppConfig::instance();
+                c.setItem(AppConfig::ACCENT_THEME, ids[(size_t)selected]);
+                // Repaint now rather than on relaunch: applyTheme rewrites the
+                // accent tokens and most views read them at draw time. Views
+                // that cached a colour when they were built (and icons already
+                // uploaded under the old accent key) catch up as they are
+                // rebuilt — the tabs you navigate to next.
+                c.applyTheme(c.backend().type());
+                brls::Application::notify("main/setting/others/accent/applied"_i18n);
+            });
+    }
 
     auto& threadOpt = conf.getOptions(AppConfig::REQUEST_THREADS);
     auto thIt = std::find(threadOpt.values.begin(), threadOpt.values.end(), ThreadPool::max_thread_num);

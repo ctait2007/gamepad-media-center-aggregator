@@ -28,6 +28,7 @@ const std::string iconButtonXML = R"xml(
             id="icon_button/label"
             singleLine="true"
             fontSize="16"
+            fontWeight="medium"
             horizontalAlign="center" />
 
     </brls:Box>

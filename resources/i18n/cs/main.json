@@ -342,6 +342,11 @@
       "overclock": "Přetaktování CPU",
       "debug": "Zobrazení ladění",
       "sync": "Zachovat pořadí nastavení",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Motiv (vyžaduje restart)",
         "1": "Automaticky",

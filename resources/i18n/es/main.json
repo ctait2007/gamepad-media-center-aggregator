@@ -342,6 +342,11 @@
       "overclock": "Overclock de CPU",
       "debug": "Vista de depuración",
       "sync": "Conservar configuración de ordenación",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Tema (requiere reinicio)",
         "1": "Automático",

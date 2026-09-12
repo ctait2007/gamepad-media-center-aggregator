@@ -990,8 +990,8 @@ const std::string autoSidebarItemXML = R"xml(
                 wireframe="false"
                 visibility="gone"
                 id="autoSidebar/item_icon"
-                width="28"
-                height="28"/>
+                width="@style/main/sidebar/icon"
+                height="@style/main/sidebar/icon"/>
 
             <brls:Label
                 wireframe="false"

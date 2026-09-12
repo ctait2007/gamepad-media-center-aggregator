@@ -111,6 +111,7 @@ public:
         FULLSCREEN,
         OVERCLOCK,
         APP_THEME,
+        ACCENT_THEME,  // colour theme (NuvioTV's list); "auto" follows the backend
         APP_LANG,
         APP_UPDATE,
         APP_UI_SCALE,

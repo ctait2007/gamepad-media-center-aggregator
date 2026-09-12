@@ -64,7 +64,8 @@
             backgroundColor="@theme/color/scrim">
             <brls:Label
                 id="continue/card/left"
-                fontSize="20" />
+                fontSize="20"
+                fontWeight="medium" />
         </brls:Box>
 
         <brls:Box
@@ -82,11 +83,13 @@
                 singleLine="true"
                 visibility="gone"
                 fontSize="24"
+                fontWeight="medium"
                 marginBottom="2" />
             <brls:Label
                 id="continue/card/title"
                 singleLine="true"
-                fontSize="28" />
+                fontSize="28"
+                fontWeight="medium" />
             <brls:Label
                 id="continue/card/subtitle"
                 singleLine="true"

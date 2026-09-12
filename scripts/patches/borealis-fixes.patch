@@ -1,5 +1,5 @@
 diff --git a/library/include/borealis/core/application.hpp b/library/include/borealis/core/application.hpp
-index 31713045..d8223c0c 100644
+index 3171304..d8223c0 100644
 --- a/library/include/borealis/core/application.hpp
 +++ b/library/include/borealis/core/application.hpp
 @@ -355,6 +355,12 @@ class Application
@@ -16,7 +16,7 @@ index 31713045..d8223c0c 100644
  
      static void removeWatchedKeys(const BrlsKeyCombination key);
 diff --git a/library/include/borealis/core/cache_helper.hpp b/library/include/borealis/core/cache_helper.hpp
-index 0236dfed..8dbc8159 100644
+index 0236dfe..8dbc815 100644
 --- a/library/include/borealis/core/cache_helper.hpp
 +++ b/library/include/borealis/core/cache_helper.hpp
 @@ -35,9 +35,15 @@ struct Node
@@ -137,7 +137,7 @@ index 0236dfed..8dbc8159 100644
  
      /**
 diff --git a/library/include/borealis/core/notification_manager.hpp b/library/include/borealis/core/notification_manager.hpp
-index 6f92431b..024a5dfe 100644
+index 6f92431..024a5df 100644
 --- a/library/include/borealis/core/notification_manager.hpp
 +++ b/library/include/borealis/core/notification_manager.hpp
 @@ -33,6 +33,8 @@ class Notification : public Box
@@ -150,7 +150,7 @@ index 6f92431b..024a5dfe 100644
  
    private:
 diff --git a/library/include/borealis/core/view.hpp b/library/include/borealis/core/view.hpp
-index 227cd789..a651c841 100644
+index 227cd78..a651c84 100644
 --- a/library/include/borealis/core/view.hpp
 +++ b/library/include/borealis/core/view.hpp
 @@ -245,6 +245,12 @@ class View
@@ -219,7 +219,7 @@ index 227cd789..a651c841 100644
        * Called by frame() to draw the view onscreen.
        * Views should not draw outside of their bounds (they
 diff --git a/library/include/borealis/extern/nanovg/nanovg_gxm.h b/library/include/borealis/extern/nanovg/nanovg_gxm.h
-index 8bb4ff7b..ea4d9b7b 100644
+index 8bb4ff7..ea4d9b7 100644
 --- a/library/include/borealis/extern/nanovg/nanovg_gxm.h
 +++ b/library/include/borealis/extern/nanovg/nanovg_gxm.h
 @@ -312,6 +312,10 @@ static GXMNVGtexture *gxmnvg__allocTexture(GXMNVGcontext *gxm) {
@@ -262,7 +262,7 @@ index 8bb4ff7b..ea4d9b7b 100644
  
  #endif /* NANOVG_GL_IMPLEMENTATION */
 diff --git a/library/include/borealis/extern/nanovg/nanovg_gxm_utils.h b/library/include/borealis/extern/nanovg/nanovg_gxm_utils.h
-index 28a06ed6..f2dc2bbc 100644
+index 28a06ed..f2dc2bb 100644
 --- a/library/include/borealis/extern/nanovg/nanovg_gxm_utils.h
 +++ b/library/include/borealis/extern/nanovg/nanovg_gxm_utils.h
 @@ -101,6 +101,16 @@ struct NVGXMframebufferInitOptions {
@@ -353,7 +353,7 @@ index 28a06ed6..f2dc2bbc 100644
      free(fb);
  }
 diff --git a/library/include/borealis/views/bottom_bar.hpp b/library/include/borealis/views/bottom_bar.hpp
-index 17a93796..21ff14e9 100644
+index 17a9379..21ff14e 100644
 --- a/library/include/borealis/views/bottom_bar.hpp
 +++ b/library/include/borealis/views/bottom_bar.hpp
 @@ -19,26 +19,43 @@
@@ -410,7 +410,7 @@ index 17a93796..21ff14e9 100644
  
  } // namespace brls
 diff --git a/library/include/borealis/views/h_scrolling_frame.hpp b/library/include/borealis/views/h_scrolling_frame.hpp
-index c83c51ad..4bd52ba0 100644
+index c83c51a..4bd52ba 100644
 --- a/library/include/borealis/views/h_scrolling_frame.hpp
 +++ b/library/include/borealis/views/h_scrolling_frame.hpp
 @@ -49,6 +49,7 @@ class HScrollingFrame : public Box
@@ -421,8 +421,23 @@ index c83c51ad..4bd52ba0 100644
      Rect getVisibleFrame();
  
      /**
+diff --git a/library/include/borealis/views/label.hpp b/library/include/borealis/views/label.hpp
+index 62459ba..f554bc1 100644
+--- a/library/include/borealis/views/label.hpp
++++ b/library/include/borealis/views/label.hpp
+@@ -97,6 +97,10 @@ class Label : public View
+ 
+     void setFontSize(float value);
+     void setFontQuality(float value);
++
++    /// Switch to a heavier cut of the UI font: "medium", "semibold", "bold"
++    /// (or "regular"/empty to go back). A weight that is not loaded is ignored.
++    void setFontWeight(const std::string& weight);
+     void setLineHeight(float value);
+     void setTextColor(NVGcolor color);
+ 
 diff --git a/library/include/borealis/views/recycler.hpp b/library/include/borealis/views/recycler.hpp
-index a29b5324..088e19b4 100644
+index a29b532..088e19b 100644
 --- a/library/include/borealis/views/recycler.hpp
 +++ b/library/include/borealis/views/recycler.hpp
 @@ -241,6 +241,10 @@ class RecyclerFrame : public ScrollingFrame
@@ -446,7 +461,7 @@ index a29b5324..088e19b4 100644
      void cacheCellFrames();
      void cellsRecyclingLoop();
 diff --git a/library/include/borealis/views/scrolling_frame.hpp b/library/include/borealis/views/scrolling_frame.hpp
-index bb6275a2..0dc5b817 100644
+index bb6275a..0dc5b81 100644
 --- a/library/include/borealis/views/scrolling_frame.hpp
 +++ b/library/include/borealis/views/scrolling_frame.hpp
 @@ -61,6 +61,7 @@ class ScrollingFrame : public Box
@@ -511,7 +526,7 @@ index bb6275a2..0dc5b817 100644
      void naturalScrollingBehaviour();
      void naturalScrollingButtonProcessing(FocusDirection focusDirection, bool* repeat);
 diff --git a/library/include/borealis/views/widgets/battery.hpp b/library/include/borealis/views/widgets/battery.hpp
-index 87ea464f..c54c05c8 100644
+index 87ea464..c54c05c 100644
 --- a/library/include/borealis/views/widgets/battery.hpp
 +++ b/library/include/borealis/views/widgets/battery.hpp
 @@ -27,12 +27,15 @@ namespace brls
@@ -532,7 +547,7 @@ index 87ea464f..c54c05c8 100644
      Rectangle* level;
      Platform* platform;
 diff --git a/library/include/borealis/views/widgets/wireless.hpp b/library/include/borealis/views/widgets/wireless.hpp
-index fcfd6497..28c65037 100644
+index fcfd649..28c6503 100644
 --- a/library/include/borealis/views/widgets/wireless.hpp
 +++ b/library/include/borealis/views/widgets/wireless.hpp
 @@ -27,12 +27,15 @@ namespace brls
@@ -553,7 +568,7 @@ index fcfd6497..28c65037 100644
      Image* _1;
      Image* _2;
 diff --git a/library/lib/core/application.cpp b/library/lib/core/application.cpp
-index c7d67dcb..cdba6443 100644
+index c7d67dc..cdba644 100644
 --- a/library/lib/core/application.cpp
 +++ b/library/lib/core/application.cpp
 @@ -523,9 +523,10 @@ void Application::navigate(FocusDirection direction, bool repeating)
@@ -625,7 +640,7 @@ index c7d67dcb..cdba6443 100644
  {
      if (!view)
 diff --git a/library/lib/core/box.cpp b/library/lib/core/box.cpp
-index 732b3f82..ec5b57af 100644
+index 732b3f8..ec5b57a 100644
 --- a/library/lib/core/box.cpp
 +++ b/library/lib/core/box.cpp
 @@ -21,6 +21,7 @@
@@ -683,7 +698,7 @@ index 732b3f82..ec5b57af 100644
  
      // Then try default focus
 diff --git a/library/lib/core/notification_manager.cpp b/library/lib/core/notification_manager.cpp
-index 52aefffa..af5bcf54 100644
+index 52aefff..af5bcf5 100644
 --- a/library/lib/core/notification_manager.cpp
 +++ b/library/lib/core/notification_manager.cpp
 @@ -26,10 +26,18 @@ namespace brls
@@ -770,7 +785,7 @@ index 52aefffa..af5bcf54 100644
  
  }; // namespace brls
 diff --git a/library/lib/core/style.cpp b/library/lib/core/style.cpp
-index acc310a4..538a3786 100644
+index acc310a..538a378 100644
 --- a/library/lib/core/style.cpp
 +++ b/library/lib/core/style.cpp
 @@ -36,10 +36,13 @@ static StyleValues styleValues = {
@@ -804,7 +819,7 @@ index acc310a4..538a3786 100644
      { "brls/dropdown/listPadding", 40.0f },
      { "brls/dropdown/listPaddingSides", 232.0f },
 diff --git a/library/lib/core/theme.cpp b/library/lib/core/theme.cpp
-index aa63fa09..75af9ff2 100644
+index aa63fa0..75af9ff 100644
 --- a/library/lib/core/theme.cpp
 +++ b/library/lib/core/theme.cpp
 @@ -32,6 +32,10 @@ static ThemeValues lightThemeValues = {
@@ -830,7 +845,7 @@ index aa63fa09..75af9ff2 100644
      { "brls/highlight/background", nvgRGB(31, 34, 39) },
      { "brls/highlight/color1", nvgRGB(25, 138, 198) },
 diff --git a/library/lib/core/view.cpp b/library/lib/core/view.cpp
-index 59ec77bb..546db73f 100644
+index 59ec77b..546db73 100644
 --- a/library/lib/core/view.cpp
 +++ b/library/lib/core/view.cpp
 @@ -307,14 +307,31 @@ void View::drawClickAnimation(NVGcontext* vg, FrameContext* ctx, Rect frame)
@@ -956,7 +971,7 @@ index 59ec77bb..546db73f 100644
      this->registerStringXMLAttribute("title", [this](std::string value) {
          this->getAppletFrameItem()->title = value;
 diff --git a/library/lib/platforms/desktop/desktop_font.cpp b/library/lib/platforms/desktop/desktop_font.cpp
-index ddac8a54..334dd17e 100644
+index ddac8a5..43d6eb4 100644
 --- a/library/lib/platforms/desktop/desktop_font.cpp
 +++ b/library/lib/platforms/desktop/desktop_font.cpp
 @@ -21,7 +21,7 @@
@@ -987,8 +1002,41 @@ index ddac8a54..334dd17e 100644
      if (loadFont(FONT_CHINESE_SIMPLIFIED, BRLS_ASSET("font/chinese_fallback.ttf")))
      {
          nvgAddFallbackFontId(vg, Application::getFont(FONT_REGULAR), Application::getFont(FONT_CHINESE_SIMPLIFIED));
+@@ -120,6 +132,32 @@ void DesktopFontLoader::loadFonts()
+     {
+         Logger::error("switch: could not load Material icons font from resources");
+     }
++
++    // Heavier Inter cuts, so a Label can ask for the weight its Material3
++    // counterpart uses (NuvioTV sets titles/labels Medium, headlines SemiBold,
++    // displays Bold; only body text is Regular). Each needs the same fallback
++    // chain as the regular face, otherwise a bold label loses CJK, emoji and
++    // the controller glyphs.
++    static const std::pair<const char*, const char*> kWeights[] = {
++        { "inter_medium", BRLS_ASSET("font/inter_medium.ttf") },
++        { "inter_semibold", BRLS_ASSET("font/inter_semibold.ttf") },
++        { "inter_bold", BRLS_ASSET("font/inter_bold.ttf") },
++    };
++    for (auto& w : kWeights)
++    {
++        if (!loadFont(w.first, w.second))
++        {
++            Logger::warning("Cannot load {}, that weight falls back to regular", w.first);
++            continue;
++        }
++        int id = Application::getFont(w.first);
++        for (const char* fb : { "legacy_fallback", FONT_CHINESE_SIMPLIFIED.c_str(), FONT_KOREAN_REGULAR.c_str(),
++                 FONT_EMOJI.c_str(), FONT_SWITCH_ICONS.c_str(), FONT_MATERIAL_ICONS.c_str() })
++        {
++            int fbId = Application::getFont(fb);
++            if (fbId >= 0) nvgAddFallbackFontId(vg, id, fbId);
++        }
++    }
+ }
+ 
+ } // namespace brls
 diff --git a/library/lib/platforms/glfw/glfw_input.cpp b/library/lib/platforms/glfw/glfw_input.cpp
-index 9b31fcfa..00bb8f3c 100644
+index 9b31fcf..00bb8f3 100644
 --- a/library/lib/platforms/glfw/glfw_input.cpp
 +++ b/library/lib/platforms/glfw/glfw_input.cpp
 @@ -23,6 +23,9 @@
@@ -1117,7 +1165,7 @@ index 9b31fcfa..00bb8f3c 100644
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
 diff --git a/library/lib/platforms/switch/switch_font.cpp b/library/lib/platforms/switch/switch_font.cpp
-index 3bba8891..b2c03d66 100644
+index 3bba889..b2c03d6 100644
 --- a/library/lib/platforms/switch/switch_font.cpp
 +++ b/library/lib/platforms/switch/switch_font.cpp
 @@ -32,30 +32,43 @@ void SwitchFontLoader::loadFonts()
@@ -1173,7 +1221,7 @@ index 3bba8891..b2c03d66 100644
      rc = plGetSharedFontByType(&font, PlSharedFontType_ExtChineseSimplified);
      if (R_SUCCEEDED(rc) && Application::loadFontFromMemory(FONT_CHINESE_SIMPLIFIED_EXT, font.address, font.size, false))
 diff --git a/library/lib/views/applet_frame.cpp b/library/lib/views/applet_frame.cpp
-index 9d7fd9d5..1b7c60ca 100644
+index 9d7fd9d..1b7c60c 100644
 --- a/library/lib/views/applet_frame.cpp
 +++ b/library/lib/views/applet_frame.cpp
 @@ -214,6 +214,11 @@ void AppletFrame::setContentView(View* view)
@@ -1189,7 +1237,7 @@ index 9d7fd9d5..1b7c60ca 100644
  
  void AppletFrame::handleXMLElement(tinyxml2::XMLElement* element)
 diff --git a/library/lib/views/bottom_bar.cpp b/library/lib/views/bottom_bar.cpp
-index ba4d0048..1621955e 100644
+index ba4d004..1621955 100644
 --- a/library/lib/views/bottom_bar.cpp
 +++ b/library/lib/views/bottom_bar.cpp
 @@ -14,77 +14,37 @@
@@ -1392,7 +1440,7 @@ index ba4d0048..1621955e 100644
  
  View* BottomBar::create()
 diff --git a/library/lib/views/dropdown.cpp b/library/lib/views/dropdown.cpp
-index 65c6b9ad..0da36eff 100644
+index 65c6b9a..0da36ef 100644
 --- a/library/lib/views/dropdown.cpp
 +++ b/library/lib/views/dropdown.cpp
 @@ -39,6 +39,7 @@ const std::string dropdownFrameXML = R"xml(
@@ -1418,7 +1466,7 @@ index 65c6b9ad..0da36eff 100644
  
  int Dropdown::numberOfRows(RecyclerFrame* recycler, int section)
 diff --git a/library/lib/views/h_scrolling_frame.cpp b/library/lib/views/h_scrolling_frame.cpp
-index da1210f4..6533b0a7 100644
+index da1210f..6533b0a 100644
 --- a/library/lib/views/h_scrolling_frame.cpp
 +++ b/library/lib/views/h_scrolling_frame.cpp
 @@ -113,7 +113,7 @@ void HScrollingFrame::updateScrollingIndicatior()
@@ -1528,8 +1576,22 @@ index da1210f4..6533b0a7 100644
          return currentFocus;
  
      return this;
+diff --git a/library/lib/views/header.cpp b/library/lib/views/header.cpp
+index 9ede1ca..f018d37 100644
+--- a/library/lib/views/header.cpp
++++ b/library/lib/views/header.cpp
+@@ -40,7 +40,8 @@ const std::string headerXML = R"xml(
+             id="brls/header/title"
+             width="auto"
+             height="auto"
+-            fontSize="@style/brls/header/font_size" />
++            fontSize="@style/brls/header/font_size"
++            fontWeight="medium" />
+ 
+         <brls:Padding />
+ 
 diff --git a/library/lib/views/image.cpp b/library/lib/views/image.cpp
-index 04db0522..b2a80380 100644
+index 04db052..b2a8038 100644
 --- a/library/lib/views/image.cpp
 +++ b/library/lib/views/image.cpp
 @@ -186,7 +186,17 @@ void Image::draw(NVGcontext* vg, float x, float y, float width, float height, St
@@ -1552,10 +1614,25 @@ index 04db0522..b2a80380 100644
      else
      {
 diff --git a/library/lib/views/label.cpp b/library/lib/views/label.cpp
-index 0e0474c1..f28fa18a 100644
+index 0e0474c..58f7c83 100644
 --- a/library/lib/views/label.cpp
 +++ b/library/lib/views/label.cpp
-@@ -597,7 +597,13 @@ void Label::onLayout()
+@@ -240,6 +240,14 @@ Label::Label()
+     this->registerColorXMLAttribute("textColor", [this](NVGcolor color)
+         { this->setTextColor(color); });
+ 
++    // Pick a heavier cut of the UI face by name ("medium", "semibold",
++    // "bold"); anything unknown, or a weight that failed to load, leaves the
++    // label on the regular face rather than blanking it.
++    this->registerStringXMLAttribute("fontWeight", [this](const std::string& value)
++        {
++            this->setFontWeight(value);
++        });
++
+     this->registerFloatXMLAttribute("lineHeight", [this](float value)
+         { this->setLineHeight(value); });
+ 
+@@ -597,7 +605,13 @@ void Label::onLayout()
          // Cannot do it in the measure function because the margins are not applied yet there
          auto vg = Application::getNVGContext();
          nvgFontSize(vg, this->fontSize);
@@ -1570,8 +1647,30 @@ index 0e0474c1..f28fa18a 100644
          nvgFontFaceId(vg, this->font);
          nvgTextLineHeight(vg, this->lineHeight);
  
+@@ -628,6 +642,21 @@ void Label::onLayout()
+     this->resetScrollingAnimation(); // either stops it or restarts it with the new text
+ }
+ 
++void Label::setFontWeight(const std::string& weight)
++{
++    if (weight.empty() || weight == "regular")
++    {
++        this->font = Application::getDefaultFont();
++        this->invalidate();
++        return;
++    }
++    int id = Application::getFont("inter_" + weight);
++    if (id < 0)
++        return;  // weight not shipped/loaded: stay on the regular face
++    this->font = id;
++    this->invalidate();
++}
++
+ int Label::getFont()
+ {
+     return this->font;
 diff --git a/library/lib/views/recycler.cpp b/library/lib/views/recycler.cpp
-index 8e6acb30..76c92499 100644
+index 8e6acb3..76c9249 100644
 --- a/library/lib/views/recycler.cpp
 +++ b/library/lib/views/recycler.cpp
 @@ -366,17 +366,22 @@ void RecyclerFrame::cacheCellFrames()
@@ -1618,7 +1717,7 @@ index 8e6acb30..76c92499 100644
          layouted = true;
          reloadData();
 diff --git a/library/lib/views/scrolling_frame.cpp b/library/lib/views/scrolling_frame.cpp
-index 61978bd5..6104ec8e 100644
+index 61978bd..6104ec8 100644
 --- a/library/lib/views/scrolling_frame.cpp
 +++ b/library/lib/views/scrolling_frame.cpp
 @@ -18,6 +18,7 @@
@@ -1857,7 +1956,7 @@ index 61978bd5..6104ec8e 100644
  {
      if (!contentView->getDefaultFocus())
 diff --git a/library/lib/views/widgets/battery.cpp b/library/lib/views/widgets/battery.cpp
-index 93981577..5194fc34 100644
+index 9398157..5194fc3 100644
 --- a/library/lib/views/widgets/battery.cpp
 +++ b/library/lib/views/widgets/battery.cpp
 @@ -23,22 +23,23 @@
@@ -1911,7 +2010,7 @@ index 93981577..5194fc34 100644
  }
  
 diff --git a/library/lib/views/widgets/wireless.cpp b/library/lib/views/widgets/wireless.cpp
-index 8e0fb6db..c39b5b73 100644
+index 8e0fb6d..c39b5b7 100644
 --- a/library/lib/views/widgets/wireless.cpp
 +++ b/library/lib/views/widgets/wireless.cpp
 @@ -28,36 +28,37 @@ extern "C"

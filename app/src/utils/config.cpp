@@ -59,6 +59,8 @@ constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
 
 std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
+    // options filled from plenx::namedThemes() at startup (see initThemeOptions)
+    {ACCENT_THEME, {"accent_theme", {"auto"}}},
     {APP_LANG, {"app_lang", {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT,
                                 brls::LOCALE_JA, brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_FR,
                                 brls::LOCALE_ES, brls::LOCALE_PT, "cs", "uk", "tr", "vi"}}},
@@ -949,7 +951,12 @@ void AppConfig::addColor(const brls::ThemeVariant tv, const std::string& name, N
 }
 
 void AppConfig::applyTheme(std::optional<media::BackendType> type) {
-    const plenx::ThemeColors& tc = type ? plenx::backendPalette(*type) : plenx::defaultPalette();
+    // A colour theme the user picked wins over the backend's brand palette:
+    // NuvioTV lets you choose one, and choosing one should mean it sticks
+    // whichever account you are connected to.
+    const plenx::ThemeColors* chosen = plenx::namedPalette(this->getItem(ACCENT_THEME, std::string("auto")));
+    const plenx::ThemeColors& tc =
+        chosen ? *chosen : (type ? plenx::backendPalette(*type) : plenx::defaultPalette());
     this->applyThemeVariant(brls::ThemeVariant::DARK, tc.dark);
     this->applyThemeVariant(brls::ThemeVariant::LIGHT, tc.light);
 }
@@ -1097,6 +1104,11 @@ void AppConfig::initThemes() {
         brls::getStyle().addMetric("brls/tab_frame/content_padding_sides", 30);
         brls::getStyle().addMetric("main/content_padding_sides", 15);
         brls::getStyle().addMetric("main/content_padding_top_bottom", 20);
+        // the 1080p rail scaled to this panel (a fixed 144 would eat a quarter
+        // of a 960-wide screen)
+        brls::getStyle().addMetric("main/sidebar/width", 72);
+        brls::getStyle().addMetric("main/sidebar/icon", 20);
+        brls::getStyle().addMetric("main/sidebar/item_spacing", 26);
     } else {
         // Grids lightened by one column compared to Switchfin: bigger
         // posters, readable from the couch (UI_REDESIGN.md §4).
@@ -1116,6 +1128,9 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/grid/2", 3);
             break;
         case 900:
+            brls::getStyle().addMetric("main/sidebar/width", 120);
+            brls::getStyle().addMetric("main/sidebar/icon", 30);
+            brls::getStyle().addMetric("main/sidebar/item_spacing", 56);
             brls::getStyle().addMetric("app/album/height", 240);
             brls::getStyle().addMetric("app/books/height", 305);
             brls::getStyle().addMetric("app/video/height", 325);
@@ -1129,7 +1144,10 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/grid/3", 3);
             brls::getStyle().addMetric("app/grid/2", 2);
             break;
-        default:
+        default:  // 720p
+            brls::getStyle().addMetric("main/sidebar/width", 96);
+            brls::getStyle().addMetric("main/sidebar/icon", 24);
+            brls::getStyle().addMetric("main/sidebar/item_spacing", 45);
             brls::getStyle().addMetric("app/album/height", 225);
             brls::getStyle().addMetric("app/books/height", 280);
             brls::getStyle().addMetric("app/video/height", 300);
@@ -1157,6 +1175,16 @@ void AppConfig::initThemes() {
     // its row headers in. The whole app's type scale is matched to that
     // Material3 scale doubled: label 20/24/28, body 24/28/32, title 28/32/40.
     brls::getStyle().addMetric("brls/header/font_size", 32);
+    // Line height. Borealis ships 1.65, which is far looser than the reference:
+    // NuvioTV's Material3 styles pair 14sp text with a 20sp line (1.43), 16/24
+    // (1.5), 12/16 (1.33) — clustered around 1.43, never 1.65. Everything in
+    // the app reads a shade tighter now, matching it.
+    brls::getStyle().addMetric("brls/label/default_line_height", 1.43f);
+    // Nav rail. Measured off the reference at 1080p: a 144px rail (72dp at its
+    // 2.0 density) with 36px glyphs and ~123px between item centres.
+    brls::getStyle().addMetric("main/sidebar/width", 144);
+    brls::getStyle().addMetric("main/sidebar/icon", 36);
+    brls::getStyle().addMetric("main/sidebar/item_spacing", 69);
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
     // 16 (not 12): the halo extends ~5 px beyond the frame, so its arc must
     // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)

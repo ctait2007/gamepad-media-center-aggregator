@@ -63,6 +63,7 @@ private:
     BRLS_BIND(SelectorCell, selectorKeymap, "setting/keymap");
     BRLS_BIND(SelectorCell, selectorLang, "setting/language");
     BRLS_BIND(SelectorCell, selectorTheme, "setting/ui/theme");
+    BRLS_BIND(SelectorCell, selectorAccent, "setting/ui/accent");
     BRLS_BIND(brls::RadioCell, btnOpenConfig, "tools/config_dir");
     BRLS_BIND(brls::RadioCell, btnReleaseChecker, "setting/release_checker");
     BRLS_BIND(brls::RadioCell, btnChangelog, "setting/changelog");

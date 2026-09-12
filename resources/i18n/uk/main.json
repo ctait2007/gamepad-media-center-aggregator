@@ -342,6 +342,11 @@
       "overclock": "Розгін CPU",
       "debug": "Вигляд налагоджувача",
       "sync": "Зберегти налаштування порядку",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Тема (потрібен перезапуск)",
         "1": "Авто",

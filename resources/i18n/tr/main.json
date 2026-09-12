@@ -342,6 +342,11 @@
       "overclock": "İşlemci Hız Aşırtma",
       "debug": "Hata Ayıklama Görünümü",
       "sync": "Sıralama ayarlarını koru",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "Tema (yeniden başlatma gerekli)",
         "1": "Otomatik",

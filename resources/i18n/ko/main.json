@@ -342,6 +342,11 @@
       "overclock": "CPU 오버클럭",
       "debug": "디버그 창",
       "sync": "정렬 설정 저장",
+      "accent": {
+        "header": "Colour theme",
+        "auto": "Automatic (match connection)",
+        "applied": "Theme applied"
+      },
       "theme": {
         "header": "테마 (재시작 필요)",
         "1": "자동",

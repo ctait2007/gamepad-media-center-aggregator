@@ -149,6 +149,10 @@
                 <SelectorCell
                     id="setting/ui/theme"
                     quitApp="true" />
+                <!-- colour theme (NuvioTV's list); takes effect immediately,
+                     no relaunch, so no quitApp here -->
+                <SelectorCell
+                    id="setting/ui/accent" />
             </brls:Box>
 
             <brls:Header
