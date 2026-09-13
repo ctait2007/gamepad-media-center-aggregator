@@ -103,7 +103,10 @@
         "title_actions": "Title actions",
         "item_actions": "Choose what you want to do with this item.",
         "mark_watched": "Mark as watched",
-        "mark_unwatched": "Mark as unwatched"
+        "mark_unwatched": "Mark as unwatched",
+        "mark_season_watched": "Mark season as watched",
+        "mark_season_unwatched": "Mark season as unwatched",
+        "mark_previous_watched": "Mark previous in this season as watched"
     },
     "search": {
         "hint": "Supports keywords and their initial letters",

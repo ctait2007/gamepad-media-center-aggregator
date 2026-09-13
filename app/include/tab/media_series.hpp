@@ -86,7 +86,9 @@ private:
     void doSpecial();
     /// plays the next unwatched episode (OnDeck); fully watched show:
     /// restarts the first episode from the beginning ("Replay")
-    void doPlay();
+    /// @param fromBeginning ignore the next episode's resume position
+    ///                       ("Start from beginning" in the Play sheet).
+    void doPlay(bool fromBeginning);
     /// downloads the whole show (filtered allLeaves, confirmation dialog)
     void doDownloadSeries();
     /// reveals the personal-list button (watchlist/favorite) once its state is known

@@ -69,7 +69,12 @@ private:
     /// Builds the inline Stremio source list (one row per source) and wires the
     /// Play button's enabled/muted state. No-op for single-file backends.
     /// Opens the player on a specific source row (item.media[mediaIndex]).
-    void playSource(int mediaIndex);
+    /// @param resumeMs where to start; the page's own resume position unless
+    ///                  "Start from beginning" asked for 0.
+    void playSource(int mediaIndex, int64_t resumeMs);
+    /// Play from `resumeMs`, taking whichever route this backend and this copy
+    /// of the movie call for (local file, source picker, direct).
+    void startPlay(int64_t resumeMs);
     /// Queues a download of a specific source row (Stremio: X on a release line).
     void downloadSource(int mediaIndex);
     /// reveals the personal-list button (watchlist/favorite) once its state is known

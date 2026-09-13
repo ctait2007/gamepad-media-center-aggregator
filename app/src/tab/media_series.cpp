@@ -4,6 +4,9 @@
 
 #include "activity/player_view.hpp"
 #include "utils/local_library.hpp"
+#include "view/action_sheet.hpp"
+#include "view/episode_sheet.hpp"
+#include "view/mpv_core.hpp"
 #include "api/plex.hpp"
 #include "api/plex/watchlist.hpp"
 #include "api/backend.hpp"
@@ -329,10 +332,65 @@ public:
         playWithSourcePicker(recycler, item, title);
     }
 
+    /// NuvioTV's EpisodeOptionsOverlay. The entries and their order are the
+    /// reference's, and so is which of them appear: there is nothing "previous
+    /// in this season" to mark on the first episode of one, and nothing to
+    /// start over on an episode you have not started.
     void onContextMenu(brls::Box* recycler, size_t index) {
-        auto& item = this->list.at(index);
-        brls::Box* menu = new ContextMenu(item, recycler);
-        brls::Application::pushActivity(new brls::Activity(menu));
+        if (index >= this->list.size()) return;
+        plex::Item ep = this->list.at(index);  // by value: the sheet outlives the frame
+        auto* sheet = new EpisodeSheet(ep);
+
+        // Marking anything rewrites badges and progress across the whole list,
+        // so every one of these ends on the same reload the player fires when
+        // it closes, rather than trying to patch single cells.
+        auto reload = []() { MPVCore::instance().getCustomEvent()->fire(VIDEO_CLOSE, nullptr); };
+        auto mark = [reload](const std::vector<std::string>& ids, bool watched) {
+            auto& be = AppConfig::instance().backend();
+            for (const std::string& id : ids) {
+                if (watched)
+                    be.markWatched(id);
+                else
+                    be.markUnwatched(id);
+            }
+            reload();
+        };
+
+        bool watched = ep.played();
+        sheet->addAction(watched ? "main/media/mark_unwatched"_i18n : "main/media/mark_watched"_i18n,
+            [mark, ep, watched]() { mark({ep.ratingKey}, !watched); });
+
+        std::vector<std::string> season, previous;
+        bool seasonWatched = true;
+        for (const plex::Item& e : this->list) {
+            season.push_back(e.ratingKey);
+            if (!e.played()) seasonWatched = false;
+            if (ep.index > 0 && e.index > 0 && e.index < ep.index) previous.push_back(e.ratingKey);
+        }
+        sheet->addAction(
+            seasonWatched ? "main/media/mark_season_unwatched"_i18n : "main/media/mark_season_watched"_i18n,
+            [mark, season, seasonWatched]() { mark(season, !seasonWatched); });
+        if (!previous.empty())
+            sheet->addAction("main/media/mark_previous_watched"_i18n,
+                [mark, previous]() { mark(previous, true); });
+
+        // Play and "Play manually" are the same journey today — every play on
+        // an addon backend already goes through the source picker — and will
+        // diverge when automatic source selection lands.
+        auto play = [this, recycler, ep](int64_t resumeMs) {
+            plex::Item it = ep;
+            it.viewOffset = resumeMs;
+            std::string title = it.grandparentTitle.empty()
+                                    ? fmt::format("S{}E{} — {}", it.parentIndex, it.index, it.title)
+                                    : fmt::format("{} · S{}E{} — {}", it.grandparentTitle, it.parentIndex,
+                                          it.index, it.title);
+            playWithSourcePicker(recycler, it, title);
+        };
+        sheet->addAction("main/media/play"_i18n, [play, ep]() { play(ep.viewOffset); });
+        sheet->addAction("main/media/play_manually"_i18n, [play, ep]() { play(ep.viewOffset); });
+        if (ep.viewOffset > 0) sheet->addAction("main/media/start_over"_i18n, [play]() { play(0); });
+
+        sheet->present();
     }
 
     /// show summary that arrived afterwards ("go to season" path):
@@ -663,9 +721,26 @@ MediaSeries::MediaSeries(const plex::Item& item, bool localContext)
     this->scroll->setScrollTopAnchor(this->btnPlay);
 
     this->btnPlay->registerClickAction([this](...) {
-        this->doPlay();
+        this->doPlay(false);
         return true;
     });
+
+    // NuvioTV's PlayManualOverrideDialog: long-pressing Play offers the things
+    // pressing it would not do — pick the source by hand, or start the next
+    // episode over rather than resume it.
+    auto playOptions = [this](brls::View*) {
+        if (this->onDeck.ratingKey.empty()) return false;
+        const plex::Item& ep = this->onDeck;
+        std::string head = ep.grandparentTitle.empty() ? ep.title : ep.grandparentTitle;
+        auto* sheet = new ActionSheet(head, fmt::format("S{} E{}", ep.parentIndex, ep.index));
+        sheet->addAction("main/media/play_manually"_i18n, [this]() { this->doPlay(false); });
+        if (!this->replay && ep.viewOffset > 0)
+            sheet->addAction("main/media/start_over"_i18n, [this]() { this->doPlay(true); });
+        sheet->present();
+        return true;
+    };
+    this->btnPlay->registerAction("hints/option"_i18n, brls::BUTTON_X, playOptions);
+    this->btnPlay->registerAction(KeyBind::getSetting(), playOptions);
     this->btnDownload->registerClickAction([this](...) {
         this->doDownloadSeries();
         return true;
@@ -698,7 +773,7 @@ void MediaSeries::doRequest() {
     this->doSeason();
 }
 
-void MediaSeries::doPlay() {
+void MediaSeries::doPlay(bool fromBeginning) {
     if (this->onDeck.ratingKey.empty()) return;
     // Muted Play (Stremio, no playable source for the next episode): explain
     // rather than launch a player that would just fail.
@@ -707,9 +782,10 @@ void MediaSeries::doPlay() {
         return;
     }
     // copy: "Replay" (finished show) forces the start at 0 — PlayerView
-    // would otherwise resume at the episode's residual viewOffset (player_view.cpp:101)
+    // would otherwise resume at the episode's residual viewOffset
+    // (player_view.cpp:101) — and so does "Start from beginning".
     plex::Item item = this->onDeck;
-    if (this->replay) item.viewOffset = 0;
+    if (this->replay || fromBeginning) item.viewOffset = 0;
     std::string title = item.grandparentTitle.empty()
                              ? fmt::format("S{}E{} — {}", item.parentIndex, item.index, item.title)
                              : fmt::format(

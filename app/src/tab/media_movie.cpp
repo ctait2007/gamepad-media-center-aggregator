@@ -1,5 +1,7 @@
 #include "activity/player_view.hpp"
 #include "utils/local_library.hpp"
+#include "view/action_sheet.hpp"
+#include "utils/keybind.hpp"
 #include "tab/media_movie.hpp"
 #include "tab/source_list.hpp"
 #include "view/h_recycling.hpp"
@@ -121,38 +123,26 @@ MediaMovie::MediaMovie(const plex::Item& item, bool localContext)
     this->btnWatchlist->setCustomNavigationRoute(brls::FocusDirection::DOWN, "movie/people");
 
     this->btnPlay->registerClickAction([this](...) {
-        // in the offline downloads area (or fully offline) a downloaded movie
-        // plays from the local file; from the ONLINE library it keeps streaming
-        // with the server resume position (SPEC — no online regression)
-        auto& dm = DownloadManager::instance();
-        std::string local = media::preferLocal(this->localContext) && dm.isDownloaded(this->itemId)
-                                ? dm.getLocalPath(this->itemId)
-                                : "";
-        if (!local.empty()) {
-            std::string title = this->movieItem.year
-                                     ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
-                                     : this->movieItem.title;
-            RemoteView::play(local, title, "Local");
-            return true;
-        }
-        auto bt = AppConfig::instance().backend().type();
-        if (bt == media::BackendType::Stremio || bt == media::BackendType::Nuvio) {
-            // Addon backends: pressing Play is what triggers the /stream
-            // fan-out, inside the source list. Opening this page no longer
-            // pays for it.
-            std::string title = this->movieItem.year
-                                     ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
-                                     : this->movieItem.title;
-            ui::presentDetail(this, new SourceList(this->movieItem, title, this->viewOffsetMs));
-            return true;
-        }
-        if (this->hasPlayableSource) {
-            this->playSource(-1);
-        } else {
-            Dialog::show("main/stremio/source/none"_i18n);
-        }
+        this->startPlay(this->viewOffsetMs);
         return true;
     });
+
+    // NuvioTV's PlayManualOverrideDialog: long-pressing Play offers the things
+    // pressing it would not do — pick the source by hand, or start over rather
+    // than resume.
+    auto playOptions = [this](brls::View*) {
+        std::string title = this->movieItem.year
+                                 ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
+                                 : this->movieItem.title;
+        auto* sheet = new ActionSheet(title, "main/media/play"_i18n);
+        sheet->addAction("main/media/play_manually"_i18n, [this]() { this->startPlay(this->viewOffsetMs); });
+        if (this->viewOffsetMs > 0)
+            sheet->addAction("main/media/start_over"_i18n, [this]() { this->startPlay(0); });
+        sheet->present();
+        return true;
+    };
+    this->btnPlay->registerAction("hints/option"_i18n, brls::BUTTON_X, playOptions);
+    this->btnPlay->registerAction(KeyBind::getSetting(), playOptions);
 
     auto& dm = DownloadManager::instance();
     this->updateDownloadButton();
@@ -244,6 +234,35 @@ void MediaMovie::updateDownloadButton() {
         this->btnDownload->setText("main/download/downloading"_i18n);
     } else {
         this->btnDownload->setText("main/download/start"_i18n);
+    }
+}
+
+void MediaMovie::startPlay(int64_t resumeMs) {
+    // in the offline downloads area (or fully offline) a downloaded movie plays
+    // from the local file; from the ONLINE library it keeps streaming with the
+    // server resume position (SPEC — no online regression)
+    auto& dm = DownloadManager::instance();
+    std::string local = media::preferLocal(this->localContext) && dm.isDownloaded(this->itemId)
+                            ? dm.getLocalPath(this->itemId)
+                            : "";
+    std::string title = this->movieItem.year ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
+                                             : this->movieItem.title;
+    if (!local.empty()) {
+        RemoteView::play(local, title, "Local");
+        return;
+    }
+    auto bt = AppConfig::instance().backend().type();
+    if (bt == media::BackendType::Stremio || bt == media::BackendType::Nuvio) {
+        // Addon backends: pressing Play is what triggers the /stream fan-out,
+        // inside the source list. Opening this page no longer pays for it —
+        // which is also why "Play manually" lands in the same place today.
+        ui::presentDetail(this, new SourceList(this->movieItem, title, resumeMs));
+        return;
+    }
+    if (this->hasPlayableSource) {
+        this->playSource(-1, resumeMs);
+    } else {
+        Dialog::show("main/stremio/source/none"_i18n);
     }
 }
 
@@ -345,9 +364,9 @@ void MediaMovie::doMovie() {
         });
 }
 
-void MediaMovie::playSource(int mediaIndex) {
+void MediaMovie::playSource(int mediaIndex, int64_t resumeMs) {
     // mediaIndex -1 = best (first accessible); otherwise the chosen source row.
-    PlayerView* view = new PlayerView(this->movieItem, this->viewOffsetMs, mediaIndex);
+    PlayerView* view = new PlayerView(this->movieItem, resumeMs, mediaIndex);
     view->setTitie(this->movieItem.year ? fmt::format("{} ({})", this->movieItem.title, this->movieItem.year)
                                         : this->movieItem.title);
 }
