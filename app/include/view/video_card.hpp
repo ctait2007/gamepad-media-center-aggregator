@@ -27,6 +27,13 @@ public:
         if (auto* ov = this->getView("video/card/play_overlay")) ov->setVisibility(brls::Visibility::GONE);
     }
 
+    /// Collapse the title/year block under the poster when the Layout
+    /// setting that governs it (POSTER_LABELS) is off. Called by the
+    /// subclasses right after they inflate, since the block only exists in
+    /// video_card.xml; defined in the .cpp so this header does not have to
+    /// pull in the config.
+    void applyPosterLabels();
+
     /// Enables the focus "play" overlay — only for cards that START playback on
     /// select (continue-watching, episodes, clips). Opening a detail page does
     /// not get it. The orange wash colour is applied here (theme accent, low
@@ -99,7 +106,10 @@ private:
 
 class MediaCardCell : public BaseCardCell {
 public:
-    MediaCardCell() { this->inflateFromXMLRes("xml/view/video_card.xml"); }
+    MediaCardCell() {
+        this->inflateFromXMLRes("xml/view/video_card.xml");
+        this->applyPosterLabels();
+    }
 
     static MediaCardCell* create() { return new MediaCardCell(); }
 };

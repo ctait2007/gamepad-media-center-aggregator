@@ -116,7 +116,12 @@
 
     </brls:Box>
 
+    <!-- NuvioTV prints the poster's name and release info under it only when
+         its Layout > poster labels setting is on; collapsed by BaseCardCell
+         when it is off, and the row metrics drop their label allowance to
+         match so the row closes up instead of leaving a gap. -->
     <brls:Box
+        id="video/card/labels"
         axis="column"
         marginTop="10"
         justifyContent="spaceEvenly"

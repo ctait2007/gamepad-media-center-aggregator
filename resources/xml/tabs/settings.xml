@@ -1,221 +1,279 @@
+<!-- NuvioTV's settings screen is two panes, not one long scroll: a rail of
+     category cards on the left picks what the right-hand pane shows
+     (SettingsScreen.kt). The rail entries are built in C++ (SettingsNavItem);
+     every category's content lives here, one collapsed page per category, and
+     SettingTab reveals the selected one. -->
 <brls:Box
     width="auto"
-    height="auto">
+    height="auto"
+    paddingLeft="@style/main/content_padding_sides"
+    paddingRight="@style/main/content_padding_sides"
+    paddingTop="@style/main/content_padding_top_bottom"
+    paddingBottom="@style/main/content_padding_top_bottom">
 
-    <brls:ScrollingFrame
-        width="auto"
-        height="auto"
-        marginTop="10"
-        grow="1.0">
+    <brls:Box
+        grow="1"
+        axis="row"
+        cornerRadius="40"
+        borderThickness="2"
+        borderColor="#FFFFFF14"
+        backgroundColor="#FFFFFF08"
+        paddingLeft="32"
+        paddingRight="32"
+        paddingTop="32"
+        paddingBottom="32">
 
+        <!-- left: the category rail -->
         <brls:Box
-            width="auto"
-            height="auto"
             axis="column"
-            alignItems="stretch"
-            paddingLeft="@style/main/content_padding_sides"
-            paddingRight="@style/main/content_padding_sides"
-            paddingTop="@style/main/content_padding_top_bottom"
-            paddingBottom="@style/main/content_padding_top_bottom">
-
-            <!-- Was an avatar tab pinned to the bottom of the sidebar; it is
-                 a Settings entry now, which is where switching account lives in
-                 every other app. -->
-            <DisclosureCell
-                title="@i18n/main/server/switch_title"
-                id="setting/connections"
-                marginBottom="16px" />
-
-            <DisclosureCell
-                title="@i18n/main/setting/libraries/header"
-                id="setting/libraries"
-                marginBottom="16px" />
-
-            <DisclosureCell
-                title="@i18n/main/setting/hidden_rows/header"
-                id="setting/hidden_rows"
-                marginBottom="16px" />
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/playback/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:BooleanCell
-                    id="setting/video/hwdec" />
-                <brls:SelectorCell
-                    id="setting/mpv/vo" />
-                <brls:BooleanCell
-                    id="setting/video/low_quality" />
-                <brls:SelectorCell
-                    id="setting/video/inmemory" />
-                <brls:SelectorCell
-                    id="setting/playback/audio_channels" />
-                <brls:BooleanCell
-                    id="setting/video/subs_fallback" />
-                <brls:SelectorCell
-                    id="setting/playback/subtitle_lang" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/control/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:BooleanCell
-                    id="setting/player/osd_on_toggle" />
-                <brls:BooleanCell
-                    id="setting/player/touch_gesture" />
-                <brls:BooleanCell
-                    id="setting/player/tv_model" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/transcode/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:BooleanCell
-                    id="setting/video/directplay" />
-                <brls:SelectorCell
-                    id="setting/transcode/codec" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/network/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:SelectorCell
-                    id="setting/network/threads" />
-                <brls:SelectorCell
-                    id="setting/network/timeout" />
-                <brls:BooleanCell
-                    id="setting/network/proxy_status" />
-                <brls:InputCell
-                    id="setting/network/proxy"
-                    visibility="gone" />
-                <brls:InputCell
-                    id="setting/network/proxy_user"
-                    visibility="gone" />
-                <brls:InputCell
-                    id="setting/network/proxy_passwd"
-                    type="password"
-                    visibility="gone" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/ui/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:BooleanCell
-                    id="setting/player/clip_point" />
-                <brls:BooleanCell
-                    id="setting/ui/show_fps" />
-                <SelectorCell
-                    id="setting/ui/vsync" />
-                <SelectorCell
-                    id="setting/ui/scale" 
-                    quitApp="true" />
-                <SelectorCell
-                    id="setting/keymap"
-                    quitApp="true" />
-                <SelectorCell
-                    id="setting/ui/theme"
-                    quitApp="true" />
-                <!-- colour theme (NuvioTV's list); takes effect immediately,
-                     no relaunch, so no quitApp here -->
-                <SelectorCell
-                    id="setting/ui/accent" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/tutorial/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:RadioCell
-                    id="tools/tutorial_open"
-                    title="@i18n/main/setting/tutorial/open" />
-                <brls:RadioCell
-                    id="tools/tutorial_error"
-                    title="@i18n/main/setting/tutorial/error" />
-                <brls:RadioCell
-                    id="tools/tutorial_font"
-                    title="@i18n/main/setting/tutorial/font" />
-                <brls:RadioCell
-                    id="tools/config_dir"
-                    title="@i18n/main/setting/others/config_dir" />
-            </brls:Box>
-
-            <brls:Header
-                width="auto"
-                height="auto"
-                title="@i18n/main/setting/others/header"
-                marginBottom="0px" />
-            <brls:Box
-                width="100%"
-                height="auto"
-                axis="column"
-                marginBottom="30px">
-                <brls:BooleanCell
-                    id="setting/fullscreen" />
-                <brls:BooleanCell
-                    id="setting/always_on_top" />
-                <brls:BooleanCell
-                    id="setting/single" />
-                <brls:BooleanCell
-                    id="setting/overclock" />
-                <brls:BooleanCell
-                    id="setting/sync" />
-                <SelectorCell
-                    id="setting/language"
-                    quitApp="true" />
-                <brls:BooleanCell
-                    id="setting/debug" />
-                <brls:RadioCell
-                    id="setting/release_checker" />
-                <brls:RadioCell
-                    id="setting/changelog"
-                    title="@i18n/main/setting/others/changelog" />
-                <DisclosureCell
-                    title="@i18n/main/about/header"
-                    id="setting/about" />
-            </brls:Box>
-
+            width="470">
+            <brls:ScrollingFrame
+                id="setting/nav_scroll"
+                grow="1"
+                scrollingBehavior="centered">
+                <brls:Box
+                    id="setting/nav"
+                    axis="column"
+                    width="100%"
+                    height="auto"
+                    paddingLeft="8"
+                    paddingRight="20"
+                    paddingTop="8"
+                    paddingBottom="8" />
+            </brls:ScrollingFrame>
         </brls:Box>
 
-    </brls:ScrollingFrame>
+        <!-- right: the selected category -->
+        <brls:Box
+            axis="column"
+            grow="1"
+            marginLeft="40">
 
+            <brls:Label
+                id="setting/page/title"
+                fontSize="56"
+                fontWeight="bold"
+                singleLine="true" />
+            <brls:Label
+                id="setting/page/subtitle"
+                fontSize="30"
+                marginTop="4"
+                singleLine="true"
+                textColor="@theme/font/grey" />
+
+            <brls:Box
+                grow="1"
+                axis="column"
+                marginTop="24"
+                cornerRadius="28"
+                backgroundColor="#FFFFFF0A"
+                paddingLeft="12"
+                paddingRight="12"
+                paddingTop="12"
+                paddingBottom="12">
+                <brls:ScrollingFrame
+                    id="setting/detail_scroll"
+                    grow="1"
+                    scrollingBehavior="centered">
+                    <brls:Box
+                        axis="column"
+                        width="100%"
+                        height="auto"
+                        paddingLeft="16"
+                        paddingRight="26"
+                        paddingTop="8"
+                        paddingBottom="24">
+
+                        <!-- Account -->
+                        <brls:Box
+                            id="setting/page/account"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <DisclosureCell
+                                title="@i18n/main/server/switch_title"
+                                id="setting/connections" />
+                        </brls:Box>
+
+                        <!-- Appearance -->
+                        <brls:Box
+                            id="setting/page/appearance"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <!-- colour theme (NuvioTV's list); takes effect
+                                 immediately, no relaunch, so no quitApp -->
+                            <SelectorCell
+                                id="setting/ui/accent" />
+                            <SelectorCell
+                                id="setting/ui/theme"
+                                quitApp="true" />
+                            <SelectorCell
+                                id="setting/ui/scale"
+                                quitApp="true" />
+                            <SelectorCell
+                                id="setting/language"
+                                quitApp="true" />
+                            <SelectorCell
+                                id="setting/keymap"
+                                quitApp="true" />
+                        </brls:Box>
+
+                        <!-- Layout -->
+                        <brls:Box
+                            id="setting/page/layout"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <brls:BooleanCell
+                                id="setting/ui/poster_labels" />
+                            <DisclosureCell
+                                title="@i18n/main/setting/hidden_rows/header"
+                                id="setting/hidden_rows" />
+                            <DisclosureCell
+                                title="@i18n/main/setting/libraries/header"
+                                id="setting/libraries" />
+                        </brls:Box>
+
+                        <!-- Playback -->
+                        <brls:Box
+                            id="setting/page/playback"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <brls:BooleanCell
+                                id="setting/video/hwdec" />
+                            <brls:SelectorCell
+                                id="setting/mpv/vo" />
+                            <brls:BooleanCell
+                                id="setting/video/low_quality" />
+                            <brls:SelectorCell
+                                id="setting/video/inmemory" />
+                            <brls:SelectorCell
+                                id="setting/playback/audio_channels" />
+                            <brls:BooleanCell
+                                id="setting/video/subs_fallback" />
+                            <brls:SelectorCell
+                                id="setting/playback/subtitle_lang" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/transcode/header"
+                                marginBottom="0px" />
+                            <brls:BooleanCell
+                                id="setting/video/directplay" />
+                            <brls:SelectorCell
+                                id="setting/transcode/codec" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/control/header"
+                                marginBottom="0px" />
+                            <brls:BooleanCell
+                                id="setting/player/osd_on_toggle" />
+                            <brls:BooleanCell
+                                id="setting/player/touch_gesture" />
+                            <brls:BooleanCell
+                                id="setting/player/tv_model" />
+                            <brls:BooleanCell
+                                id="setting/player/clip_point" />
+                        </brls:Box>
+
+                        <!-- Advanced -->
+                        <brls:Box
+                            id="setting/page/advanced"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <brls:SelectorCell
+                                id="setting/network/threads" />
+                            <brls:SelectorCell
+                                id="setting/network/timeout" />
+                            <brls:BooleanCell
+                                id="setting/network/proxy_status" />
+                            <brls:InputCell
+                                id="setting/network/proxy"
+                                visibility="gone" />
+                            <brls:InputCell
+                                id="setting/network/proxy_user"
+                                visibility="gone" />
+                            <brls:InputCell
+                                id="setting/network/proxy_passwd"
+                                type="password"
+                                visibility="gone" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/ui/header"
+                                marginBottom="0px" />
+                            <SelectorCell
+                                id="setting/ui/vsync" />
+                            <brls:BooleanCell
+                                id="setting/ui/show_fps" />
+                            <brls:BooleanCell
+                                id="setting/fullscreen" />
+                            <brls:BooleanCell
+                                id="setting/always_on_top" />
+                            <brls:BooleanCell
+                                id="setting/single" />
+                            <brls:BooleanCell
+                                id="setting/overclock" />
+                            <brls:BooleanCell
+                                id="setting/sync" />
+                            <brls:BooleanCell
+                                id="setting/debug" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/tutorial/header"
+                                marginBottom="0px" />
+                            <brls:RadioCell
+                                id="tools/tutorial_open"
+                                title="@i18n/main/setting/tutorial/open" />
+                            <brls:RadioCell
+                                id="tools/tutorial_error"
+                                title="@i18n/main/setting/tutorial/error" />
+                            <brls:RadioCell
+                                id="tools/tutorial_font"
+                                title="@i18n/main/setting/tutorial/font" />
+                            <brls:RadioCell
+                                id="tools/config_dir"
+                                title="@i18n/main/setting/others/config_dir" />
+                        </brls:Box>
+
+                        <!-- About -->
+                        <brls:Box
+                            id="setting/page/about"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <DisclosureCell
+                                title="@i18n/main/about/header"
+                                id="setting/about" />
+                            <brls:RadioCell
+                                id="setting/changelog"
+                                title="@i18n/main/setting/others/changelog" />
+                            <brls:RadioCell
+                                id="setting/release_checker" />
+                        </brls:Box>
+
+                    </brls:Box>
+                </brls:ScrollingFrame>
+            </brls:Box>
+        </brls:Box>
+    </brls:Box>
 </brls:Box>

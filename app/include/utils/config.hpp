@@ -116,6 +116,10 @@ public:
         APP_UPDATE,
         APP_UI_SCALE,
         SCROLLBAR,  // show the scroll indicator (scrollbar); default true
+        /// Print each poster's title and year under it. NuvioTV makes this a
+        /// Layout setting (poster_labels_enabled) rather than a fixed
+        /// behaviour; off here, which is the look its reference screens have.
+        POSTER_LABELS,
         AUDIO_CHANNELS,
         KEYMAP,
         WINDOW_STATE,

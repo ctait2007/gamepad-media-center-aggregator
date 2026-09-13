@@ -1,9 +1,15 @@
 #include "view/video_card.hpp"
 #include "view/video_source.hpp"
 #include "view/svg_image.hpp"
+#include "utils/config.hpp"
 #include "utils/keybind.hpp"
 
 using namespace brls::literals;
+
+void BaseCardCell::applyPosterLabels() {
+    if (AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false)) return;
+    if (auto* labels = this->getView("video/card/labels")) labels->setVisibility(brls::Visibility::GONE);
+}
 
 void VideoCardCell::setWatched(bool played) {
     if (played) {
@@ -18,6 +24,7 @@ void VideoCardCell::setWatched(bool played) {
 
 VideoCardCell::VideoCardCell() {
     this->inflateFromXMLRes("xml/view/video_card.xml");
+    this->applyPosterLabels();
 
     auto actionListener = [this](brls::View*) -> bool {
         // climbs the hierarchy up to the recycler (vertical RecyclingGrid

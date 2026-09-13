@@ -120,8 +120,11 @@
                 alignItems="center" />
 
             <!-- the cards live on a rounded translucent panel (radii.xl over
-                 BackgroundCard at half alpha), not straight on the artwork -->
+                 BackgroundCard at half alpha), not straight on the artwork.
+                 The fill is set in C++: it carries a little of the chosen
+                 accent so the panel follows the colour theme. -->
             <brls:Box
+                id="source/panel"
                 grow="1"
                 axis="column"
                 cornerRadius="32"

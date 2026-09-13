@@ -63,6 +63,7 @@ private:
     BRLS_BIND(brls::Label, labelEpisode, "source/epname");
     BRLS_BIND(brls::Label, labelMeta, "source/meta");
     BRLS_BIND(brls::Image, imageBackdrop, "source/backdrop");
+    BRLS_BIND(brls::Box, panel, "source/panel");
     BRLS_BIND(brls::Box, boxFilters, "source/filters");
     BRLS_BIND(brls::Box, boxList, "source/list");
     BRLS_BIND(brls::ScrollingFrame, scroll, "source/scroll");

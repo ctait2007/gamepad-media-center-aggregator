@@ -28,6 +28,7 @@
 #include "view/selector_cell.hpp"
 #include "view/library_manager.hpp"
 #include "view/hub_visibility_manager.hpp"
+#include "view/settings_nav_item.hpp"
 #include "api/plex.hpp"
 #include "api/media/langs.hpp"
 #include "utils/dialog.hpp"
@@ -499,6 +500,82 @@ void SettingTab::onCreate() {
         ui::presentDetail(view, new HubVisibilityManager());
         return true;
     });
+
+    // Poster labels. NuvioTV makes this a Layout setting rather than a fixed
+    // behaviour; the rows budget their height for the title block at startup
+    // (AppConfig::initThemes), so it only takes effect on the next launch.
+    btnPosterLabels->init("main/setting/layout/poster_labels"_i18n,
+        conf.getItem(AppConfig::POSTER_LABELS, false), [](bool value) {
+            AppConfig::instance().setItem(AppConfig::POSTER_LABELS, value);
+            Dialog::quitApp();
+        });
+
+    this->buildCategories();
+}
+
+/// Material icon paths (24x24), inlined the way DisclosureCell inlines its
+/// chevron so the rail needs no new asset files. In order: person, palette,
+/// grid_view, play_arrow, build, info — the icons NuvioTV gives the same
+/// categories in SettingsScreen.kt's section list.
+static const char* kCategoryIcons[] = {
+    "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+    "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 "
+    "0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 "
+    "9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 "
+    "0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 "
+    "9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
+    "M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z",
+    "M8 5v14l11-7z",
+    "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 "
+    "2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z",
+    "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 "
+    "0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+};
+
+void SettingTab::buildCategories() {
+    static const char* kPages[] = {
+        "setting/page/account",
+        "setting/page/appearance",
+        "setting/page/layout",
+        "setting/page/playback",
+        "setting/page/advanced",
+        "setting/page/about",
+    };
+    static const char* kNames[] = {"account", "appearance", "layout", "playback", "advanced", "about"};
+
+    this->categories.clear();
+    this->boxNav->clearViews();
+
+    for (size_t i = 0; i < sizeof(kPages) / sizeof(kPages[0]); i++) {
+        brls::View* page = this->getView(kPages[i]);
+        if (!page) continue;
+        Category c;
+        c.pageId = kPages[i];
+        c.title = brls::getStr(std::string("main/setting/category/") + kNames[i] + "/title");
+        c.subtitle = brls::getStr(std::string("main/setting/category/") + kNames[i] + "/subtitle");
+        c.page = page;
+        size_t index = this->categories.size();
+        c.item = new SettingsNavItem(kCategoryIcons[i], c.title, [this, index]() { this->selectCategory(index); });
+        this->boxNav->addView(c.item);
+        this->categories.push_back(c);
+    }
+    if (!this->categories.empty()) this->selectCategory(0);
+}
+
+void SettingTab::selectCategory(size_t index) {
+    if (index >= this->categories.size()) return;
+    this->activeCategory = index;
+    for (size_t i = 0; i < this->categories.size(); i++) {
+        Category& c = this->categories[i];
+        bool on = i == index;
+        c.item->setActive(on);
+        c.page->setVisibility(on ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    }
+    const Category& c = this->categories[index];
+    this->labelPageTitle->setText(c.title);
+    this->labelPageSubtitle->setText(c.subtitle);
+    this->labelPageSubtitle->setVisibility(
+        c.subtitle.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
 }
 
 brls::View* SettingTab::create() { return new SettingTab(); }

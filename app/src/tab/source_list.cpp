@@ -69,8 +69,32 @@ public:
         }
         this->addView(text);
 
-        // right rail: the addon that produced it, like Nuvio's source badge
+        // right rail: the addon that produced it, like Nuvio's source badge —
+        // its manifest logo (spacing.xxl square, radii.xs) over its name, the
+        // column end-aligned.
         if (!m.addonName.empty()) {
+            auto* badge = new brls::Box();
+            badge->setAxis(brls::Axis::COLUMN);
+            badge->setAlignItems(brls::AlignItems::FLEX_END);
+            // the stream text takes the slack; the badge keeps its natural width
+            badge->setShrink(0);
+            badge->setMarginLeft(32);
+
+            if (!m.addonLogo.empty()) {
+                auto* logo = new brls::Image();
+                logo->setDimensions(64, 64);
+                logo->setScalingType(brls::ImageScalingType::FIT);
+                logo->setCornerRadius(8);
+                logo->setMarginBottom(8);
+                logo->setVisibility(brls::Visibility::GONE);
+                badge->addView(logo);
+                // revealed only once its pixels arrive, so a 404 leaves the
+                // name centred rather than a hole above it
+                Image::load(logo, m.addonLogo, 64, 64, [logo](bool ok, bool) {
+                    if (ok) logo->setVisibility(brls::Visibility::VISIBLE);
+                });
+            }
+
             auto* addon = new brls::Label();
             addon->setText(m.addonName);
             addon->setFontSize(20);  // labelSmall
@@ -78,10 +102,8 @@ public:
             addon->setTextColor(kTextTertiary);
             addon->setHorizontalAlign(brls::HorizontalAlign::RIGHT);
             addon->setSingleLine(true);
-            // the stream text takes the slack; the badge keeps its natural width
-            addon->setShrink(0);
-            addon->setMarginLeft(32);
-            this->addView(addon);
+            badge->addView(addon);
+            this->addView(badge);
         }
     }
 };
@@ -200,6 +222,21 @@ SourceList::SourceList(const media::Item& item, std::string title, int64_t resum
         show(this->labelMeta, info);
     }
 
+    // The panel the cards sit on is BackgroundCard at half alpha in the
+    // reference, which is theme-neutral there because its accent IS its
+    // surface tint. Ours are independent, so mix a little of the chosen accent
+    // into it and the panel follows the colour theme.
+    {
+        NVGcolor accent = brls::Application::getTheme().getColor("color/app");
+        const float k = 0.18f;  // slight: the cards must still read above it
+        NVGcolor panelColor = nvgRGBAf(
+            0.141f * (1 - k) + accent.r * k,
+            0.141f * (1 - k) + accent.g * k,
+            0.141f * (1 - k) + accent.b * k,
+            0.5f);
+        this->panel->setBackgroundColor(panelColor);
+    }
+
     std::string art = this->item.art.empty() ? this->item.thumb : this->item.art;
     if (!art.empty()) Image::load(this->imageBackdrop, art, 1280, 720);
     // Same cut-out logo the detail page showed, so the picker is visibly for
@@ -298,12 +335,11 @@ void SourceList::buildFilters() {
     this->boxFilters->addView(new RefreshChip([this]() { this->fetchSources(); }));
     this->boxFilters->addView(new PillButton("main/stremio/source/all"_i18n, this->activeAddon.empty(),
         [this]() { this->applyFilter(""); }, PillButton::Style::Filter));
-    // Only worth chipping per-addon when more than one contributed.
-    if (addons.size() > 1) {
-        for (const auto& a : addons)
-            this->boxFilters->addView(new PillButton(
-                a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }, PillButton::Style::Filter));
-    }
+    // One chip per addon that returned something, even when it is the only
+    // one: the reference shows it, and it says WHERE the results came from.
+    for (const auto& a : addons)
+        this->boxFilters->addView(new PillButton(
+            a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }, PillButton::Style::Filter));
 }
 
 void SourceList::applyFilter(const std::string& addon) {

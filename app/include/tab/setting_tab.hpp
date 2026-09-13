@@ -19,7 +19,11 @@
 #include <view/auto_tab_frame.hpp>
 #include <view/disclosure_cell.hpp>
 
+#include <string>
+#include <vector>
+
 class SelectorCell;
+class SettingsNavItem;
 
 class SettingTab : public AttachedView {
 public:
@@ -30,6 +34,23 @@ public:
     static brls::View* create();
 
 private:
+    /// Build the category rail and show the first category. Every category's
+    /// content is already in the XML, one collapsed page each; this reveals
+    /// one at a time, the way NuvioTV's settings screen does.
+    void buildCategories();
+    void selectCategory(size_t index);
+
+    /// One rail entry and the page it reveals.
+    struct Category {
+        const char* pageId;
+        std::string title;
+        std::string subtitle;
+        SettingsNavItem* item = nullptr;
+        brls::View* page = nullptr;
+    };
+    std::vector<Category> categories;
+    size_t activeCategory = 0;
+
     BRLS_BIND(brls::RadioCell, btnTutorialOpenApp, "tools/tutorial_open");
     BRLS_BIND(brls::RadioCell, btnTutorialError, "tools/tutorial_error");
     BRLS_BIND(brls::RadioCell, btnTutorialFont, "tools/tutorial_font");
@@ -45,6 +66,7 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorScale, "setting/ui/scale");
     BRLS_BIND(brls::SelectorCell, selectorVSync, "setting/ui/vsync");
     BRLS_BIND(brls::BooleanCell, btnShowFPS, "setting/ui/show_fps");
+    BRLS_BIND(brls::BooleanCell, btnPosterLabels, "setting/ui/poster_labels");
     BRLS_BIND(brls::BooleanCell, btnOSDOnToggle, "setting/player/osd_on_toggle");
     BRLS_BIND(brls::BooleanCell, btnTouchGesture, "setting/player/touch_gesture");
     BRLS_BIND(brls::BooleanCell, btnTvOsdMode, "setting/player/tv_model");
@@ -71,4 +93,7 @@ private:
     BRLS_BIND(DisclosureCell, btnConnections, "setting/connections");
     BRLS_BIND(DisclosureCell, btnLibraries, "setting/libraries");
     BRLS_BIND(DisclosureCell, btnHiddenRows, "setting/hidden_rows");
+    BRLS_BIND(brls::Box, boxNav, "setting/nav");
+    BRLS_BIND(brls::Label, labelPageTitle, "setting/page/title");
+    BRLS_BIND(brls::Label, labelPageSubtitle, "setting/page/subtitle");
 };

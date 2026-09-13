@@ -293,6 +293,9 @@ struct Manifest {
     std::string id;
     std::string name;
     std::string version;
+    /// Optional square brand mark. NuvioTV's stream cards print it above the
+    /// addon's name, which is the only thing it is used for here.
+    std::string logo;
     std::set<std::string> resources;  // catalog | meta | stream | subtitles (flattened)
     std::set<std::string> types;      // movie | series | …
     std::vector<std::string> idPrefixes;
@@ -378,6 +381,7 @@ inline Manifest parseManifest(const nlohmann::json& j) {
     m.id = jstr(j, "id");
     m.name = jstr(j, "name", m.id);
     m.version = jstr(j, "version");
+    m.logo = jstr(j, "logo");
     // `resources` may be a list of STRINGS (["catalog","meta"]) OR a list of
     // OBJECTS ([{"name":"stream","types":[…],"idPrefixes":[…]}]). Flatten to a
     // set of names; per-resource type/id overrides are ignored for now.
@@ -768,7 +772,8 @@ inline std::string flattenAddonText(const std::string& text) {
 /// carries no `name`. Only `url` streams are playable here; infoHash/ytId/
 /// externalUrl are classified as non-playable (no torrent engine / no
 /// browser on console).
-inline media::Media streamToMedia(const StreamOption& s, const std::string& addonName) {
+inline media::Media streamToMedia(
+    const StreamOption& s, const std::string& addonName, const std::string& addonLogo = "") {
     media::Media m;
     std::string blob = s.name + " " + s.title;
     m.videoResolution = qualityLabel(blob);
@@ -777,6 +782,7 @@ inline media::Media streamToMedia(const StreamOption& s, const std::string& addo
     m.labelRaw = !s.name.empty() ? s.name : addonName;
     m.detailRaw = s.title;
     m.addonName = addonName;
+    m.addonLogo = addonLogo;
 
     if (!s.url.empty()) {
         bool cached = true;

@@ -233,6 +233,35 @@
     "empty_sub": "Downloaded movies and episodes end up here, ready to watch offline."
   },
   "setting": {
+    "category": {
+     "account": {
+      "title": "Account",
+      "subtitle": "Servers and sign-in"
+     },
+     "appearance": {
+      "title": "Appearance",
+      "subtitle": "Theme, colour and text size"
+     },
+     "layout": {
+      "title": "Layout",
+      "subtitle": "Rows, libraries and posters"
+     },
+     "playback": {
+      "title": "Playback",
+      "subtitle": "Video, audio and subtitles"
+     },
+     "advanced": {
+      "title": "Advanced",
+      "subtitle": "Network, performance and tools"
+     },
+     "about": {
+      "title": "About",
+      "subtitle": "Version, changelog and updates"
+     }
+    },
+    "layout": {
+     "poster_labels": "Show poster titles (restart required)"
+    },
     "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",
     "name": "Name",
     "version": "Version",

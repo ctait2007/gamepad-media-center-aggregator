@@ -232,7 +232,7 @@ std::vector<media::Media> resolveAllStreams(
             }
             std::vector<media::Media> out;
             out.reserve(streams.size());
-            for (auto& s : streams) out.push_back(streamToMedia(s, a.manifest.name));
+            for (auto& s : streams) out.push_back(streamToMedia(s, a.manifest.name, a.manifest.logo));
             return out;
         });
     std::vector<media::Media> all;

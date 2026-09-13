@@ -67,6 +67,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_UPDATE, {"app_update"}},
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {SCROLLBAR, {"scrollbar"}},
+    {POSTER_LABELS, {"poster_labels"}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
     {KEYMAP, {"keymap", {"xbox", "ps", "keyboard"}}},
     {WINDOW_STATE, {"window_state"}},
@@ -1196,4 +1197,16 @@ void AppConfig::initThemes() {
     // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)
     // to hug it.
     brls::getStyle().addMetric("brls/highlight/corner_radius", 16);
+
+    // Every */row metric above is "poster height + kCardLabelHeight of title
+    // block". With the labels off (video_card.xml collapses the block, see
+    // BaseCardCell::applyPosterLabels) that allowance would be an empty gap
+    // under each poster, so take it back off the row.
+    if (!this->getItem(POSTER_LABELS, false)) {
+        constexpr float kCardLabelHeight = 55;
+        for (const char* m : {"app/card/poster/row", "app/card/wide/row"}) {
+            float v = brls::getStyle()[m];
+            if (v > kCardLabelHeight) brls::getStyle().addMetric(m, v - kCardLabelHeight);
+        }
+    }
 }

@@ -208,6 +208,7 @@ struct Media {
     std::string labelRaw;
     std::string detailRaw;
     std::string addonName;  // which addon produced this stream (source filter)
+    std::string addonLogo;  // that addon's manifest `logo`, when it has one
     SourceKind kind = SourceKind::Direct;
     bool cached = true;  // debrid cache hint (best-effort; ⚡ vs pending). false = uncached
     // A source is directly playable iff it carries a real URL (parts[0].key).
