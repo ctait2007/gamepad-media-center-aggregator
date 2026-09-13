@@ -6,9 +6,35 @@
 #include "utils/config.hpp"
 #include "utils/misc.hpp"
 #include <fmt/ranges.h>
+#include <borealis/core/assets.hpp>
+#include <fstream>
 
 static inline void check_error(int status) {
     if (status < 0) brls::Logger::error("MPV ERROR => {}", mpv_error_string(status));
+}
+
+/// Copy the bundled UI font in as mpv's <config-dir>/subfont.ttf when nothing
+/// is there yet — see the note at the call site. Streamed by hand rather than
+/// via fs::copy_file: the resource lives on the console's read-only app mount,
+/// and a plain read/write works the same on every filesystem backend here.
+static void ensureSubtitleFont(const std::string& confDir) {
+    std::string dest = confDir + "/subfont.ttf";
+    std::error_code ec;
+    if (fs::exists(dest, ec)) return;
+    fs::create_directories(confDir, ec);
+
+    std::ifstream in(BRLS_ASSET("font/inter.ttf"), std::ios::binary);
+    if (!in) {
+        brls::Logger::warning("mpv: no bundled font to seed {} with — subtitles will not draw", dest);
+        return;
+    }
+    std::ofstream out(dest, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        brls::Logger::warning("mpv: cannot write {} — subtitles will not draw", dest);
+        return;
+    }
+    out << in.rdbuf();
+    brls::Logger::info("mpv: seeded the subtitle font at {}", dest);
 }
 
 #ifndef MPV_SW_RENDER
@@ -133,7 +159,16 @@ void MPVCore::init() {
     // misc
     mpv_set_option_string(mpv, "config", "yes");
     mpv_set_option_string(mpv, "config-dir", confDir.c_str());
+    // SUBTITLE FONT. libass picks fonts through a platform font provider, and
+    // the console builds have none (no fontconfig on OpenOrbis) — so a track
+    // that loads and selects perfectly still draws NOTHING, silently, because
+    // libass has not one font to draw it with. mpv's own last resort is a file
+    // called exactly subfont.ttf in the config dir; seed it from the font the
+    // app already ships. A user who drops their own subfont.ttf keeps it, and
+    // sub-fonts-dir points at the same directory, so anything else dropped
+    // there is still found by family name.
     mpv_set_option_string(mpv, "sub-fonts-dir", confDir.c_str());
+    ensureSubtitleFont(confDir);
     mpv_set_option_string(mpv, "watch-later-dir", fmt::format("{}/watch-later", confDir).c_str());
     mpv_set_option_string(mpv, "gpu-shader-cache-dir", fmt::format("{}/cache", confDir).c_str());
     mpv_set_option_string(mpv, "ytdl", "no");

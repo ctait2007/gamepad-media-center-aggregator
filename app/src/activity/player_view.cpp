@@ -27,6 +27,30 @@ using namespace brls::literals;
 /// LibraryVideoPlayedThreshold
 static const double SCROBBLE_THRESHOLD = 0.90;
 
+namespace {
+
+/// What mpv actually holds, logged after an attach. An external subtitle that
+/// fails to load and one that loads but cannot be DRAWN look identical from the
+/// outside, and this is the line that tells them apart: a track listed here
+/// with sel=yes means the file is in and selected, and anything still missing
+/// on screen is the renderer's end (see the subtitle-font note in MPVCore).
+void logSubtitleTracks(const char* when) {
+    auto& mpv = MPVCore::instance();
+    int64_t count = mpv.getInt("track-list/count");
+    std::string subs;
+    for (int64_t n = 0; n < count; n++) {
+        if (mpv.getString(fmt::format("track-list/{}/type", n)) != "sub") continue;
+        subs += fmt::format(" [id={} ext={} lang={} sel={}]", mpv.getInt(fmt::format("track-list/{}/id", n)),
+            mpv.getString(fmt::format("track-list/{}/external", n)),
+            mpv.getString(fmt::format("track-list/{}/lang", n)),
+            mpv.getString(fmt::format("track-list/{}/selected", n)));
+    }
+    brls::Logger::info(
+        "subtitles: {} sid={} tracks:{}", when, mpv.getString("sid"), subs.empty() ? " none" : subs);
+}
+
+}  // namespace
+
 PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int versionIndex)
     : itemId(item.ratingKey), item(item), preferredVersion(versionIndex) {
     // take sole ownership of MPVCore: if music was playing, the audio controller
@@ -335,7 +359,7 @@ void PlayerView::playMedia(const int64_t seekMs) {
     this->stopTranscode();
     // deliberate (re)start: allow the direct-play fallback to trigger again
     this->directPlayFallback = false;
-    this->reloadRetried = false;
+    this->reloadRetries = 0;
 
     // Fast path: the caller already resolved the exact source (Stremio source
     // picker passes the fully-resolved item + chosen index). Re-fetching would
@@ -565,7 +589,14 @@ void PlayerView::attachSubtitle(int index) {
             // load when this file is already a track — which is exactly what a
             // deterministic cache path buys us on the second visit.
             mpv.command("sub-add", file.c_str(), "cached", title.c_str(), lang.c_str());
-            mpv.setInt("sub-visibility", 1);
+            // Via the `set` command, not setInt: sub-visibility is a FLAG
+            // property and mpv will not convert a flag from INT64, so the
+            // property write would be dropped without a word.
+            mpv.command("set", "sub-visibility", "yes");
+            // sub-add is asynchronous and does its own loading, so the track
+            // list is only meaningful a moment later. No `this` — the player
+            // may well be gone by then, and MPVCore is a singleton.
+            brls::delay(1500, []() { logSubtitleTracks("after attach"); });
         });
     });
 }
@@ -605,20 +636,31 @@ void PlayerView::autoSelectSubtitle() {
 bool PlayerView::tryDirectPlayFallback() {
     auto& mpv = MPVCore::instance();
 
-    // A DIRECT stream that came back with nothing to play: try it once more
-    // before giving up. Debrid links (TorBox's requestdl, and the resolvers in
-    // front of it) hand back an error body or an empty redirect often enough
-    // that the SAME url fails and then works seconds later — the logs show
-    // exactly that, twice, on a link that played fine on the next attempt.
-    // One silent retry turns most of those into a slightly slow start instead
-    // of an error dialog. Only once per deliberate (re)load.
+    // A DIRECT stream that came back with nothing to play gets retried before
+    // giving up. Debrid links (TorBox's requestdl, and the resolvers in front
+    // of it) hand back an error body or an empty redirect often enough that the
+    // SAME url fails and then works seconds later.
+    //
+    // AFTER A PAUSE, and more than once. The reference retries twice, 1.5 s
+    // apart, keeping its loading overlay up (PlayerRuntimeControllerError
+    // Recovery: MAX_STARTUP_AUTO_RETRIES/RETRY_DELAY_MS). An immediate re-
+    // request of a link that has only just failed tends to fail identically —
+    // which is exactly what the second attempt did, "loading failed" on the
+    // heels of the first — so the wait is the part that does the work.
     if (this->playMethod != "transcode") {
-        if (this->reloadRetried) return false;
-        this->reloadRetried = true;
-        int64_t pos = int64_t(mpv.playback_time) * 1000;
-        brls::Logger::warning("PlayerView: stream returned nothing to play ({}) — retrying once", mpv.getError());
+        constexpr int kMaxReloadRetries = 2;
+        constexpr long kRetryDelayMs = 1500;
+        if (this->reloadRetries >= kMaxReloadRetries) return false;
+        this->reloadRetries++;
+        int64_t pos = int64_t(mpv.playback_time) * 1000;  // read before reset() zeroes it
+        brls::Logger::warning("PlayerView: stream returned nothing to play ({}) — retry {}/{} in {} ms",
+            mpv.getError(), this->reloadRetries, kMaxReloadRetries, kRetryDelayMs);
         mpv.reset();
-        this->startPlayback(pos);
+        ASYNC_RETAIN
+        brls::delay(kRetryDelayMs, [ASYNC_TOKEN, pos]() {
+            ASYNC_RELEASE
+            this->startPlayback(pos);
+        });
         return true;  // handled: no error dialog
     }
 

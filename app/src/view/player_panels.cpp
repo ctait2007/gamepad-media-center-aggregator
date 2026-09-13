@@ -308,7 +308,9 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
         if (selectedLang->empty()) {
             listRail->addCard("main/player/none"_i18n, "", "", selected < 0 && currentSid == 0, [onPick]() {
                 PlayerSetting::selectedSubtitle = 0;
-                MPVCore::instance().setInt("sid", 0);
+                // `sid` is a choice property ("no"/"auto"/an id) — set through
+                // the command, which speaks all three, rather than setInt.
+                MPVCore::instance().command("set", "sid", "no");
                 if (onPick) onPick(-1);
             });
             return;
@@ -329,10 +331,12 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
                     return;
                 }
                 PlayerSetting::selectedSubtitle = id;
-                if (transcode)
+                if (transcode) {
                     MPVCore::instance().getCustomEvent()->fire(QUALITY_CHANGE, nullptr);
-                else
-                    MPVCore::instance().setInt("sid", id);
+                } else {
+                    std::string sid = std::to_string(id);
+                    MPVCore::instance().command("set", "sid", sid.c_str());
+                }
             });
         }
     };

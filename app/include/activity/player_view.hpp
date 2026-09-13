@@ -109,9 +109,10 @@ private:
     /// guards tryDirectPlayFallback so a failing stream falls back at most once
     /// per (re)load; reset by playMedia on every deliberate (re)start
     bool directPlayFallback = false;
-    /// same, for the one silent retry a DIRECT stream gets when it comes back
-    /// with nothing to play — debrid links do that intermittently
-    bool reloadRetried = false;
+    /// how many silent retries a DIRECT stream has had this (re)load after
+    /// coming back with nothing to play — debrid links do that intermittently.
+    /// Reset by playMedia on every deliberate (re)start.
+    int reloadRetries = 0;
     std::vector<plex::Item> episodes;
 
     /// External subtitle sidecars (Stremio addons) for the current item, resolved
