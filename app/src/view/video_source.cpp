@@ -1,4 +1,5 @@
 #include "activity/player_view.hpp"
+#include "utils/local_library.hpp"
 #include "activity/gallery_activity.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
@@ -259,9 +260,8 @@ void VideoDataSource::onContextMenu(brls::Box* recycler, size_t index) {
 
     sheet->addAction("main/media/go_details"_i18n, [this, recycler, item]() { this->openDetail(recycler, item); });
 
-    auto& be = AppConfig::instance().backend();
-    media::ListKind kind = be.caps().listKind;
-    if (kind != media::ListKind::None && be.canList(item)) {
+    media::ListKind kind = personal::kind();
+    if (personal::canList(item)) {
         // The state is a round trip away, so the entry goes up reading "add"
         // and corrects itself when the answer lands; a sheet that waited for it
         // would pop open a beat after the button press.
@@ -269,12 +269,12 @@ void VideoDataSource::onContextMenu(brls::Box* recycler, size_t index) {
         auto listed = std::make_shared<bool>(false);
         entry->setOnClick([item, kind, listed]() {
             bool add = !*listed;
-            AppConfig::instance().backend().setWatchlisted(
+            personal::setListed(
                 item, add,
                 [add, kind]() { brls::Application::notify(media::listI18n(kind, add ? "added" : "removed")); },
                 [](const std::string& ex) { brls::Application::notify(ex); });
         });
-        be.getWatchlistState(
+        personal::state(
             item,
             [entry, kind, listed](bool state) {
                 *listed = state;
@@ -283,7 +283,7 @@ void VideoDataSource::onContextMenu(brls::Box* recycler, size_t index) {
             [](const std::string& ex) { brls::Logger::warning("poster sheet list state: {}", ex); });
     }
 
-    if (be.caps().markWatched) {
+    if (AppConfig::instance().backend().caps().markWatched) {
         bool played = item.played();
         std::string id = item.ratingKey;
         sheet->addAction(played ? "main/media/mark_unwatched"_i18n : "main/media/mark_watched"_i18n,

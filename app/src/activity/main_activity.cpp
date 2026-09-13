@@ -1,4 +1,5 @@
 #include "activity/main_activity.hpp"
+#include "utils/local_library.hpp"
 #include "view/connection_switcher.hpp"
 #include "view/music_mini_bar.hpp"
 #include "view/audio_player.hpp"
@@ -118,9 +119,9 @@ void MainActivity::addSidebarStatus() {
 
 void MainTabFrame::applyCapabilities() {
     auto& caps = AppConfig::instance().backend().caps();
-    // personal-list tab: shown as Watchlist (Plex) or Favorites (Jellyfin/Emby);
-    // removed entirely when the backend has neither
-    if (caps.listKind == media::ListKind::None) this->removeTabById("tab/watchlist");
+    // personal-list tab: Watchlist (Plex), Favorites (Jellyfin/Emby) or
+    // Library — the last being the backend's own when it has one and the
+    // on-device list when it does not, so the tab is never removed any more.
     if (!caps.playlists) this->removeTabById("tab/playlists");
 }
 
@@ -360,7 +361,7 @@ std::vector<MainTabFrame::SidebarEntry> MainTabFrame::getReorderableEntries() {
             e.label = brls::getStr("main/playlist/title");
             e.icon = "@res/icon/ico-playlist.svg";
         } else if (id == "tab/watchlist") {
-            e.label = media::listI18n(caps.listKind, "title");
+            e.label = media::listI18n(personal::kind(), "title");
             e.icon = "@res/icon/ico-bookmark-fill.svg";
         } else {
             // "lib/<sectionKey>"

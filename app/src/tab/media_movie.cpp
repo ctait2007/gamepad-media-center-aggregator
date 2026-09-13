@@ -1,4 +1,5 @@
 #include "activity/player_view.hpp"
+#include "utils/local_library.hpp"
 #include "tab/media_movie.hpp"
 #include "tab/source_list.hpp"
 #include "view/h_recycling.hpp"
@@ -247,13 +248,13 @@ void MediaMovie::updateDownloadButton() {
 }
 
 void MediaMovie::initWatchlist(const media::Item& item) {
-    auto& be = AppConfig::instance().backend();
-    // gated by the backend's personal-list capability + per-item applicability
-    if (be.caps().listKind == media::ListKind::None || !be.canList(item)) return;
+    // gated by per-item applicability only: there is always SOMEWHERE to put a
+    // movie or a show now, the on-device list when the backend has none
+    if (!personal::canList(item)) return;
     this->listItem = item;
-    // label matches the backend's personal list: Plex → Watchlist, Jellyfin/Emby
-    // → Favoris, Stremio/Nuvio → Library
-    this->btnWatchlist->setText(media::listI18n(be.caps().listKind, "title"));
+    // label matches whichever personal list backs the app: Plex → Watchlist,
+    // Jellyfin/Emby → Favoris, Stremio account or the on-device list → Library
+    this->btnWatchlist->setText(media::listI18n(personal::kind(), "title"));
 
     this->btnWatchlist->registerClickAction([this](...) {
         this->toggleWatchlist();
@@ -261,8 +262,9 @@ void MediaMovie::initWatchlist(const media::Item& item) {
     });
 
     ASYNC_RETAIN
-    // the button stays hidden until the state (watchlisted / favorite) is known
-    be.getWatchlistState(
+    // the button stays hidden until the state is known (immediate for the
+    // on-device list, a round trip for a backend's own)
+    personal::state(
         item,
         [ASYNC_TOKEN](bool state) {
             ASYNC_RELEASE
@@ -282,10 +284,9 @@ void MediaMovie::initWatchlist(const media::Item& item) {
 
 void MediaMovie::toggleWatchlist() {
     bool add = !this->watchlisted;
-    auto& be = AppConfig::instance().backend();
-    media::ListKind kind = be.caps().listKind;
+    media::ListKind kind = personal::kind();
     ASYNC_RETAIN
-    be.setWatchlisted(
+    personal::setListed(
         this->listItem, add,
         [ASYNC_TOKEN, add, kind]() {
             ASYNC_RELEASE

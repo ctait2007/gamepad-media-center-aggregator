@@ -9,6 +9,7 @@
 #include "api/plex/watchlist.hpp"
 #include "api/backend.hpp"
 #include "utils/download.hpp"
+#include "utils/local_library.hpp"
 
 using namespace brls::literals;
 
@@ -151,10 +152,10 @@ ContextMenu::ContextMenu(const plex::Item& item, brls::Box* host) : host(host), 
     // neither episodes nor seasons); the entry stays hidden until the
     // state is known (async provider request — see initWatchlist)
     auto& be = AppConfig::instance().backend();
-    if (be.caps().listKind != media::ListKind::None) {
-        if (be.canList(item)) {
+    {
+        if (personal::canList(item)) {
             this->initWatchlist(item);
-        } else if (be.caps().listKind == media::ListKind::Watchlist &&
+        } else if (personal::kind() == media::ListKind::Watchlist &&
                    (item.type == media::mediaTypeMovie || item.type == media::mediaTypeShow)) {
             // Plex: guid missing from this listing -> fetch full metadata, then init
             ASYNC_RETAIN
@@ -201,23 +202,21 @@ ContextMenu::ContextMenu(const plex::Item& item, brls::Box* host) : host(host), 
 }
 
 void ContextMenu::initWatchlist(const media::Item& item) {
-    auto& be = AppConfig::instance().backend();
-    if (!be.canList(item)) return;
+    if (!personal::canList(item)) return;
     this->listItem = item;
-    bool fav = be.caps().listKind == media::ListKind::Favorites;
+    media::ListKind kind = personal::kind();
 
     this->btnWatchlist->registerClickAction([this](brls::View* view) { return this->toggleWatchlist(); });
     this->btnWatchlist->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnWatchlist));
 
     ASYNC_RETAIN
-    // the entry stays hidden until the state (watchlisted / favorite) is known
-    be.getWatchlistState(
+    // the entry stays hidden until the state is known
+    personal::state(
         item,
-        [ASYNC_TOKEN, fav](bool state) {
+        [ASYNC_TOKEN, kind](bool state) {
             ASYNC_RELEASE
             this->watchlisted = state;
-            this->btnWatchlist->setTitle(state ? (fav ? "main/favorites/remove"_i18n : "main/watchlist/remove"_i18n)
-                                               : (fav ? "main/favorites/add"_i18n : "main/watchlist/add"_i18n));
+            this->btnWatchlist->setTitle(media::listI18n(kind, state ? "remove" : "add"));
             this->btnWatchlist->setVisibility(brls::Visibility::VISIBLE);
         },
         [ASYNC_TOKEN](const std::string& ex) {
@@ -228,18 +227,15 @@ void ContextMenu::initWatchlist(const media::Item& item) {
 
 bool ContextMenu::toggleWatchlist() {
     bool add = !this->watchlisted;
-    auto& be = AppConfig::instance().backend();
-    bool fav = be.caps().listKind == media::ListKind::Favorites;
+    media::ListKind kind = personal::kind();
     ASYNC_RETAIN
-    be.setWatchlisted(
+    personal::setListed(
         this->listItem, add,
-        [ASYNC_TOKEN, add, fav]() {
+        [ASYNC_TOKEN, add, kind]() {
             ASYNC_RELEASE
             this->watchlisted = add;
-            this->btnWatchlist->setTitle(add ? (fav ? "main/favorites/remove"_i18n : "main/watchlist/remove"_i18n)
-                                             : (fav ? "main/favorites/add"_i18n : "main/watchlist/add"_i18n));
-            brls::Application::notify(add ? (fav ? "main/favorites/added"_i18n : "main/watchlist/added"_i18n)
-                                          : (fav ? "main/favorites/removed"_i18n : "main/watchlist/removed"_i18n));
+            this->btnWatchlist->setTitle(media::listI18n(kind, add ? "remove" : "add"));
+            brls::Application::notify(media::listI18n(kind, add ? "added" : "removed"));
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE

@@ -3,6 +3,7 @@
 */
 
 #include "tab/watchlist_tab.hpp"
+#include "utils/local_library.hpp"
 #include "tab/media_movie.hpp"
 #include "tab/media_series.hpp"
 #include "api/plex/watchlist.hpp"
@@ -188,16 +189,9 @@ WatchlistTab::WatchlistTab() {
 }
 
 void WatchlistTab::onCreate() {
-    // capability gate: backends without a watchlist (Jellyfin/Emby) show a
-    // graceful empty state instead of running the Plex provider calls.
-    // (Fully hiding the tab from the bar is a follow-up — the icon-only tabs
-    // have empty labels, so AutoTabFrame::clearTab cannot target them; the
-    // clean fix is to add Watchlist/Playlists dynamically in MainTabFrame
-    // gated by caps, like the library tabs.)
-    if (AppConfig::instance().backend().caps().listKind == media::ListKind::None) {
-        this->recycler->setEmpty();
-        return;
-    }
+    // No capability gate any more: a backend without a personal list of its own
+    // falls back to the on-device Library (personal::), so there is always
+    // something for this tab to show.
 
     auto actionRefresh = [this](...) {
         this->refresh(true);
@@ -242,7 +236,7 @@ void WatchlistTab::refresh(bool reloadGuids) {
     this->recycler->showSkeleton();
     // the guid cache (Plex availability dimming) only applies to the plex.tv
     // watchlist; Jellyfin/Emby favorites are server items, no guid round-trip
-    bool plexWatchlist = AppConfig::instance().backend().caps().listKind == media::ListKind::Watchlist;
+    bool plexWatchlist = personal::kind() == media::ListKind::Watchlist;
     // guid cache to (re)load: initial load/refresh, or Availability filter
     // active while a previous load failed
     if (plexWatchlist && (reloadGuids || (!this->libraryGuids && WatchlistFilter::selectedAvailability != 0))) {
@@ -277,12 +271,11 @@ void WatchlistTab::doRequest() {
     // Everything but the plex.tv watchlist lists ORDINARY SERVER ITEMS, which
     // the standard grid renders (click opens the detail page, context menu
     // works); only Plex hands back provider stubs that need their own cell.
-    bool serverItems = AppConfig::instance().backend().caps().listKind != media::ListKind::Watchlist;
+    bool serverItems = personal::kind() != media::ListKind::Watchlist;
 
     ASYNC_RETAIN
     // personal list: Plex watchlist (provider items) or Jellyfin favorites (server items)
-    AppConfig::instance().backend().listWatchlist(
-        sort, kind, this->startIndex, this->pageSize,
+    personal::list(sort, kind, this->startIndex, this->pageSize,
         [ASYNC_TOKEN, serverItems](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
             this->startIndex = r.StartIndex + this->pageSize;
@@ -298,9 +291,8 @@ void WatchlistTab::doRequest() {
                     } else if (more) {
                         this->doRequest();
                     } else {
-                        auto kind = AppConfig::instance().backend().caps().listKind;
-                        this->recycler->setEmpty(media::listI18n(kind, "empty_title"),
-                            media::listI18n(kind, "empty_sub"), "icon/ico-bookmark.svg");
+                        this->recycler->setEmpty(media::listI18n(personal::kind(), "empty_title"),
+                            media::listI18n(personal::kind(), "empty_sub"), "icon/ico-bookmark.svg");
                     }
                 } else if (!r.Items.empty()) {
                     auto* ds = dynamic_cast<VideoDataSource*>(this->recycler->getDataSource());
