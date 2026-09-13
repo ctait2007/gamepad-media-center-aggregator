@@ -1179,7 +1179,7 @@ index 9b31fcf..00bb8f3 100644
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
 diff --git a/library/lib/platforms/ps4/ps4_ime.cpp b/library/lib/platforms/ps4/ps4_ime.cpp
-index 928fbdf..1e4eefc 100644
+index 928fbdf..1cc26a4 100644
 --- a/library/lib/platforms/ps4/ps4_ime.cpp
 +++ b/library/lib/platforms/ps4/ps4_ime.cpp
 @@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
@@ -1229,7 +1229,7 @@ index 928fbdf..1e4eefc 100644
      imeDialogSetting.type                = type;
      imeDialogSetting.enterLabel          = OrbisButtonLabel::ORBIS_BUTTON_LABEL_DEFAULT;
      imeDialogSetting.inputMethod         = OrbisInput::ORBIS__DEFAULT;
-@@ -128,43 +155,95 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+@@ -128,43 +155,126 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
      imeDialogSetting.verticalAlignment   = OrbisVAlignment::ORBIS_V_VALIGN_BOTTOM;
  }
  
@@ -1273,15 +1273,46 @@ index 928fbdf..1e4eefc 100644
          return ret;
      }
 +    Logger::info("ime: dialog opened");
++
++    // WHICH PHYSICAL BUTTON the user is holding when the dialog ends is the one
++    // thing the dialog's own report cannot tell us, and it is what separates
++    // "the firmware treats cross as cancel" from "something else closed it".
++    // The pad is still open here — the app is blocked in this loop, not
++    // detached — so borealis' own controller state is readable, and every
++    // face-button press during the dialog is logged with the status it was in.
++    auto faceButtons = []() -> std::string
++    {
++        // Read the pad FRESH. Application::getControllerState() is a snapshot
++        // refreshed by processInput() on the frame loop, and that loop is this
++        // one — blocked here — so the cached copy never changes while a dialog
++        // is up and would report nothing at all.
++        ControllerState state {};
++        Application::getPlatform()->getInputManager()->updateUnifiedControllerState(&state);
++        std::string down;
++        if (state.buttons[BUTTON_A]) down += "A(cross) ";
++        if (state.buttons[BUTTON_B]) down += "B(circle) ";
++        if (state.buttons[BUTTON_X]) down += "X(square) ";
++        if (state.buttons[BUTTON_Y]) down += "Y(triangle) ";
++        if (state.buttons[BUTTON_START]) down += "START ";
++        if (state.buttons[BUTTON_BACK]) down += "BACK ";
++        return down;
++    };
  
 +    int lastStatus = -1;
++    std::string lastDown;
      while (true)
      {
          auto status = (int)sceImeDialogGetStatus();
 +        if (status != lastStatus)
 +        {
-+            Logger::info("ime: status {} -> {}", lastStatus, status);
++            Logger::info("ime: status {} -> {} (buttons down: [{}])", lastStatus, status, faceButtons());
 +            lastStatus = status;
++        }
++        std::string down = faceButtons();
++        if (down != lastDown)
++        {
++            if (!down.empty()) Logger::info("ime: pad {} while status={}", down, status);
++            lastDown = down;
 +        }
          if (status == ORBIS_DIALOG_STATUS_RUNNING)
          {
@@ -1338,7 +1369,7 @@ index 928fbdf..1e4eefc 100644
          {
              utf16_to_utf8(input_u16, input_u8);
              f(std::string { (char*)input_u8 });
-@@ -173,7 +252,8 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+@@ -173,7 +283,8 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
          break;
      }
  
@@ -1348,7 +1379,7 @@ index 928fbdf..1e4eefc 100644
      return 0;
  }
  
-@@ -181,6 +261,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
+@@ -181,6 +292,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
      std::string subText, int maxStringLength, std::string initialText,
      int kbdDisableBitmask)
  {

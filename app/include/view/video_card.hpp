@@ -34,6 +34,14 @@ public:
     /// pull in the config.
     void applyPosterLabels();
 
+    /// Wire Square / the Setting key / a long press to the owning data
+    /// source's context menu. Every card that HAS one must call this: the
+    /// LongPressGestureRecognizer above only replays the BUTTON_X action, so a
+    /// cell that never registered one answers neither the pad nor a long press.
+    /// That is exactly what happened to the Continue Watching tiles, which are
+    /// the one card type that did not inherit VideoCardCell.
+    void registerContextMenu();
+
     /// Force the title block on (or off) for a cell that is not a catalog
     /// poster. The Cast row prints the actor's name and character under the
     /// portrait whatever the poster-labels setting says, exactly as the

@@ -27,10 +27,7 @@ void VideoCardCell::setWatched(bool played) {
     this->rectProgress->getParent()->setVisibility(brls::Visibility::GONE);
 }
 
-VideoCardCell::VideoCardCell() {
-    this->inflateFromXMLRes("xml/view/video_card.xml");
-    this->applyPosterLabels();
-
+void BaseCardCell::registerContextMenu() {
     auto actionListener = [this](brls::View*) -> bool {
         // climbs the hierarchy up to the recycler (vertical RecyclingGrid
         // or the home rows' HRecyclerFrame) rather than freezing the depth
@@ -41,6 +38,7 @@ VideoCardCell::VideoCardCell() {
         if (!recycler) return false;
         VideoDataSource* dataSrc = dynamic_cast<VideoDataSource*>(recycler->getDataSource());
         if (!dataSrc) return false;
+        // virtual: the Continue Watching row answers with its own list
         dataSrc->onContextMenu(view, this->getIndex());
         return true;
     };
@@ -49,4 +47,10 @@ VideoCardCell::VideoCardCell() {
     // gamepad in hand on console
     this->registerAction("hints/option"_i18n, brls::BUTTON_X, actionListener);
     this->registerAction(KeyBind::getSetting(), actionListener);
+}
+
+VideoCardCell::VideoCardCell() {
+    this->inflateFromXMLRes("xml/view/video_card.xml");
+    this->applyPosterLabels();
+    this->registerContextMenu();
 }

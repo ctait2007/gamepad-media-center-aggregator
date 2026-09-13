@@ -17,7 +17,14 @@
 
 class ContinueCardCell : public BaseCardCell {
 public:
-    ContinueCardCell() { this->inflateFromXMLRes("xml/view/continue_card.xml"); }
+    ContinueCardCell() {
+        this->inflateFromXMLRes("xml/view/continue_card.xml");
+        // Square on a resume tile did nothing at all: this cell is the only one
+        // that does not inherit VideoCardCell, so it never registered the
+        // action — and the long-press recogniser BaseCardCell installs only
+        // replays that action, so touch was dead too.
+        this->registerContextMenu();
+    }
 
     static ContinueCardCell* create() { return new ContinueCardCell(); }
 
