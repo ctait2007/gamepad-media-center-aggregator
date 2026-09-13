@@ -9,17 +9,19 @@
     (api/nuvio/auth.hpp, api/nuvio/sync.hpp, api/nuvio/progress.hpp) instead of
     api.strem.io. See tab/nuvio_add.cpp for sign-in + profile pick.
 
-    Watch history (this pass): Continue Watching, progress-aware Next Up
-    (resume an in-progress episode, advance to the next fresh one, or Replay
-    once the whole show is finished), and mark watched/unwatched — all backed
-    by ProgressStore (watch_progress + watched_items). Library/watchlist
-    ("My List") sync is a separate, not-yet-done piece: caps().listKind stays
-    None and canList/listWatchlist/etc. stay unoverridden (base no-ops).
+    Account state: Continue Watching, progress-aware Next Up (resume an
+    in-progress episode, advance to the next fresh one, or Replay once the
+    whole show is finished), mark watched/unwatched — backed by ProgressStore
+    (watch_progress + watched_items) — and the account LIBRARY, backed by
+    LibraryStore (sync_pull_library / sync_push_library_items /
+    sync_delete_library_items). Both are the account's, not the device's: an
+    item saved here shows up in NuvioTV, and one saved there shows up here.
 */
 
 #pragma once
 
 #include "api/backend.hpp"
+#include "api/nuvio/library.hpp"
 #include "api/nuvio/progress.hpp"
 #include "api/stremio/backend.hpp"
 
@@ -71,13 +73,13 @@ public:
     void getItemDetail(const std::string& id, bool full, media::Then<media::Item> then, media::OnError error) override {
         delegate.getItemDetail(id, full, then, error);
     }
-    void getChildren(const std::string& id, media::Then<media::Container<media::Item>> then, media::OnError error) override {
-        delegate.getChildren(id, then, error);
-    }
+    // Nuvio-specific ONLY in that the delegate's episodes come back from an
+    // addon, which knows nothing about what this account has watched — the
+    // watched flag is stamped on afterwards (see backend.cpp). Without it
+    // marking an episode watched changed nothing anyone could see.
     void getAllEpisodes(const std::string& showId, bool includeStreams, media::Then<media::Container<media::Item>> then,
-        media::OnError error) override {
-        delegate.getAllEpisodes(showId, includeStreams, then, error);
-    }
+        media::OnError error) override;
+    void getChildren(const std::string& id, media::Then<media::Container<media::Item>> then, media::OnError error) override;
     // Nuvio-specific: progress-aware (see backend.cpp) — the delegate's own
     // implementation is a stage-1 Stremio stub that always offers episode 1.
     void getNextUp(
@@ -122,6 +124,14 @@ public:
     void markWatched(const std::string& id) override;
     void markUnwatched(const std::string& id) override;
 
+    // ---- library: the account's "Saved" list (see library.hpp) ----------------
+    bool canList(const media::Item& item) const override;
+    void listWatchlist(const std::string& sortField, media::MediaKind kind, size_t start, size_t size,
+        media::Then<media::Container<media::Item>> then, media::OnError error) override;
+    void getWatchlistState(const media::Item& item, media::Then<bool> then, media::OnError error) override;
+    void setWatchlisted(
+        const media::Item& item, bool add, std::function<void()> then, media::OnError error) override;
+
     // ---- playback: unchanged, delegated ---------------------------------------
     media::PlaybackSource resolvePlayback(
         const media::Item& item, const media::Media& version, const media::PlaybackOptions& opts) override {
@@ -148,9 +158,14 @@ public:
     HTTP::Header authHeaders() const override { return delegate.authHeaders(); }
 
 private:
+    /// Stamps viewCount/viewOffset from the ProgressStore onto items an addon
+    /// returned, so watched badges and resume bars reflect this account.
+    void applyWatchState(media::Container<media::Item>& c);
+
     media::Capabilities caps_;
     stremio::StremioBackend delegate;
     ProgressStore progressStore;
+    LibraryStore libraryStore;
 };
 
 }  // namespace nuvio

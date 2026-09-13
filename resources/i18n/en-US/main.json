@@ -589,6 +589,24 @@
         "added": "Added to library",
         "removed": "Removed from library",
         "empty_title": "Your library is empty",
-        "empty_sub": "Movies and shows you save will appear here."
+        "empty_sub": "Movies and shows you save will appear here.",
+        "filter": {
+            "type": "Type",
+            "sort": "Sort",
+            "genre": "Genre",
+            "year": "Year",
+            "watched": "Watched"
+        },
+        "type": {
+            "all": "All"
+        },
+        "sort": {
+            "added_desc": "Added ↓",
+            "added_asc": "Added ↑",
+            "title_az": "Title A-Z",
+            "title_za": "Title Z-A"
+        },
+        "no_matches": "Nothing matches these filters",
+        "no_matches_sub": "Try widening Type, Genre, Year or Watched."
     }
 }

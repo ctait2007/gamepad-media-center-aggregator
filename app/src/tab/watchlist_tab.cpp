@@ -1,353 +1,248 @@
 /*
-    GMCA — "Watchlist" sidebar tab (see watchlist_tab.hpp).
+    GMCA — the Library tab (see watchlist_tab.hpp).
 */
 
 #include "tab/watchlist_tab.hpp"
-#include "utils/local_library.hpp"
-#include "tab/media_movie.hpp"
-#include "tab/media_series.hpp"
-#include "api/plex/watchlist.hpp"
+
+#include <algorithm>
+#include <set>
+
 #include "api/backend.hpp"
+#include "utils/keybind.hpp"
+#include "utils/local_library.hpp"
+#include "utils/network_state.hpp"
+#include "view/discover_picker.hpp"
 #include "view/recycling_grid.hpp"
-#include "view/svg_image.hpp"
 #include "view/video_card.hpp"
 #include "view/video_source.hpp"
-#include "view/auto_tab_frame.hpp"
-#include "utils/image.hpp"
-#include "utils/keybind.hpp"
-#include "utils/network_state.hpp"
 
 using namespace brls::literals;  // for _i18n
 
-/// Provider poster (absolute URL: tmdb, metadata-static.plex.tv —
-/// ORIGINAL sizes, several MB) proxied through the server's photo
-/// transcoder to get a thumbnail: /photo/:/transcode?url=<absolute>&width&height.
-static void loadProviderImage(brls::Image* view, const std::string& url, int width, int height) {
-    if (url.empty()) return;
-    Image::with(view, AppConfig::instance().backend().imageUrlExternal(url, width, height));
+namespace {
+
+/// The whole library in one request: every filter below is client-side and two
+/// of them are built FROM the list, so a page at a time would mean a Genre
+/// dropdown that grows as you scroll.
+constexpr size_t kFetchAll = 1000;
+
+enum Sort { SORT_ADDED_DESC = 0, SORT_ADDED_ASC, SORT_TITLE_AZ, SORT_TITLE_ZA };
+enum Watched { WATCHED_ALL = 0, WATCHED_YES, WATCHED_NO };
+enum Type { TYPE_ALL = 0, TYPE_MOVIE, TYPE_SHOW };
+
+std::string lower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    return s;
 }
 
-/// Sort/filters side panel (Y action) — same pattern as MediaFilter
-/// (media_filter.cpp), but watchlist-specific options: only the sorts
-/// HONORED by discover.provider are exposed (verified with real GETs, see
-/// plex::fetchWatchlist) and the Availability filter is purely client-side.
-class WatchlistFilter : public brls::Box {
-public:
-    WatchlistFilter() {
-        this->inflateFromXMLRes("xml/view/watchlist_filter.xml");
-        brls::Logger::debug("WatchlistFilter: create");
-
-        this->registerAction("hints/cancel"_i18n, brls::BUTTON_B, [this](...) {
-            brls::Application::popActivity(brls::TransitionAnimation::NONE, [this]() { this->event.fire(); });
-            return true;
-        });
-
-        this->cancel->registerClickAction([this](...) {
-            brls::Application::popActivity(brls::TransitionAnimation::NONE, [this]() { this->event.fire(); });
-            return true;
-        });
-        this->cancel->addGestureRecognizer(new brls::TapGestureRecognizer(this->cancel));
-
-        this->sortBy->init("main/media/sort_by"_i18n,
-            {
-                "main/media/date_add"_i18n,
-                "main/media/name"_i18n,
-                "main/media/premiere_date"_i18n,
-            },
-            selectedSort, [](int selected) { selectedSort = selected; });
-
-        this->sortOrder->init("main/media/order"_i18n,
-            {
-                "main/media/ascending"_i18n,
-                "main/media/descending"_i18n,
-            },
-            selectedOrder, [](int selected) { selectedOrder = selected; });
-
-        this->filterType->init("main/remote/type"_i18n,
-            {
-                "main/watchlist/all"_i18n,
-                "main/person/movies"_i18n,
-                "main/person/shows"_i18n,
-            },
-            selectedType, [](int selected) { selectedType = selected; });
-
-        this->filterAvailability->init("main/watchlist/availability"_i18n,
-            {
-                "main/watchlist/all"_i18n,
-                "main/watchlist/on_server"_i18n,
-                "main/watchlist/not_on_server"_i18n,
-            },
-            selectedAvailability, [](int selected) { selectedAvailability = selected; });
-    }
-
-    ~WatchlistFilter() override { brls::Logger::debug("WatchlistFilter: delete"); }
-
-    bool isTranslucent() override { return true; }
-
-    brls::VoidEvent* getEvent() { return &this->event; }
-
-    /// (Session) state shared with WatchlistTab::doRequest
-    inline static int selectedSort = 0;   // index into sortList
-    inline static int selectedOrder = 1;  // 0 ascending, 1 descending
-    inline static int selectedType = 0;   // 0 all, 1 movies, 2 shows
-    inline static int selectedAvailability = 0;  // 0 all, 1 on server, 2 absent
-
-    /// Honored provider sort fields, aligned with the selector labels
-    inline static std::string sortList[] = {
-        "watchlistedAt",
-        "titleSort",
-        "originallyAvailableAt",
-    };
-
-private:
-    BRLS_BIND(brls::Box, cancel, "filter/cancel");
-    BRLS_BIND(brls::SelectorCell, sortBy, "watchlist/sort/by");
-    BRLS_BIND(brls::SelectorCell, sortOrder, "watchlist/sort/order");
-    BRLS_BIND(brls::SelectorCell, filterType, "watchlist/filter/type");
-    BRLS_BIND(brls::SelectorCell, filterAvailability, "watchlist/filter/availability");
-
-    brls::VoidEvent event;
-};
-
-/// 2:3 poster cards: provider poster + title + year.
-/// Not a VideoDataSource: the primary click does the provider->server
-/// matching before opening the detail page, and the X/long-press context
-/// menu of VideoCardCell (which casts to VideoDataSource) stays inert
-/// here — provider ratingKeys do not exist on the server.
-class WatchlistDataSource : public RecyclingGridDataSource {
-public:
-    using MediaList = std::vector<plex::Item>;
-    using GuidSet = std::shared_ptr<std::unordered_set<std::string>>;
-
-    WatchlistDataSource(const MediaList& r, GuidSet guids) : list(std::move(r)), guids(std::move(guids)) {}
-
-    size_t getItemCount() override { return this->list.size(); }
-
-    RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override {
-        VideoCardCell* cell = dynamic_cast<VideoCardCell*>(recycler->dequeueReusableCell("Cell"));
-        auto& item = this->list.at(index);
-        cell->setId(item.ratingKey);
-        cell->labelTitle->setText(item.title);
-        if (item.year > 0) {
-            cell->labelExt->setText(std::to_string(item.year));
-            cell->labelExt->setVisibility(brls::Visibility::VISIBLE);
-        } else {
-            cell->labelExt->setVisibility(brls::Visibility::GONE);
-        }
-        // recycled cell: purge the previous media's poster
-        cell->picture->clear();
-        loadProviderImage(cell->picture, item.thumb, 325, 488);
-        // neither "watched" badge nor progress: server states, not provider's
-        cell->badgeTopRight->setVisibility(brls::Visibility::GONE);
-        cell->rectProgress->getParent()->setVisibility(brls::Visibility::GONE);
-        // title absent from the server (guid cache): poster and texts
-        // dimmed — alpha ALWAYS set (1.0 when rebinding a recycled cell
-        // that showed an absent one). No set (nullptr) = unknown
-        // presence: no dimming.
-        bool present = !this->guids || this->guids->count(item.guid) > 0;
-        cell->picture->setAlpha(present ? 1.0f : 0.4f);
-        cell->labelTitle->setAlpha(present ? 1.0f : 0.5f);
-        cell->labelExt->setAlpha(present ? 1.0f : 0.5f);
-        return cell;
-    }
-
-    void onItemSelected(brls::Box* recycler, size_t index) override {
-        auto& item = this->list.at(index);
-        // provider -> server matching by guid (plex::matchInLibrary);
-        // the MediaMovie/MediaSeries pages require a SERVER ratingKey
-        AppConfig::instance().backend().matchInLibrary(
-            item.guid,
-            [recycler, item](const media::Item& found) {
-                if (found.ratingKey.empty()) {
-                    brls::Application::notify("main/watchlist/not_in_library"_i18n);
-                    return;
-                }
-                if (found.type == media::mediaTypeShow) {
-                    ui::presentDetail(recycler, new MediaSeries(found));
-                } else {
-                    ui::presentDetail(recycler, new MediaMovie(found));
-                }
-            },
-            [](const std::string& ex) { brls::Application::notify(ex); });
-    }
-
-    void clearData() override { this->list.clear(); }
-
-    void appendData(const MediaList& data) { this->list.insert(this->list.end(), data.begin(), data.end()); }
-
-private:
-    MediaList list;
-    GuidSet guids;
-};
+}  // namespace
 
 WatchlistTab::WatchlistTab() {
-    brls::Logger::debug("WatchlistTab: create");
     this->inflateFromXMLRes("xml/tabs/watchlist.xml");
+    brls::Logger::debug("WatchlistTab: create");
 
-    this->recycler->registerCell("Cell", VideoCardCell::create);
-    this->recycler->onNextPage([this]() { this->doRequest(); });
-}
+    this->labelTitle->setText(media::listI18n(personal::kind(), "title"));
+    // The reference prints its own wordmark opposite the title; ours names the
+    // account the list belongs to, which is the same information for a Nuvio
+    // connection and honest for every other one.
+    const std::string& sid = AppConfig::instance().getUser().server_id;
+    for (const AppServer& srv : AppConfig::instance().getServers()) {
+        if (srv.id != sid) continue;
+        this->labelBrand->setText(srv.name);
+        break;
+    }
 
-void WatchlistTab::onCreate() {
-    // No capability gate any more: a backend without a personal list of its own
-    // falls back to the on-device Library (personal::), so there is always
-    // something for this tab to show.
-
-    auto actionRefresh = [this](...) {
-        this->refresh(true);
-        return true;
+    struct Spec {
+        const char* caption;
+        DiscoverPicker** slot;
+        brls::Box* row;
+        bool wide;
     };
-    this->recycler->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, actionRefresh);
-    this->registerAction(KeyBind::getRefresh(), actionRefresh);
+    const Spec specs[] = {
+        {"main/library/filter/type", &this->pickerType, this->boxTop.getView(), true},
+        {"main/library/filter/sort", &this->pickerSort, this->boxTop.getView(), true},
+        {"main/library/filter/genre", &this->pickerGenre, this->boxBottom.getView(), false},
+        {"main/library/filter/year", &this->pickerYear, this->boxBottom.getView(), false},
+        {"main/library/filter/watched", &this->pickerWatched, this->boxBottom.getView(), false},
+    };
+    for (const Spec& spec : specs) {
+        auto* p = new DiscoverPicker(brls::getStr(spec.caption));
+        p->setGrow(1);
+        p->setWidth(brls::View::AUTO);
+        if (!spec.row->getChildren().empty()) p->setMarginLeft(24);  // spacing.md
+        spec.row->addView(p);
+        *spec.slot = p;
+    }
 
-    // sort/filters panel (same Y "Sorted" hint as the libraries);
-    // on return, reload ONLY if a setting changed — the guid cache is not
-    // affected by a sort/filter change
-    this->recycler->registerAction("main/media/sort"_i18n, brls::BUTTON_Y, [this](...) {
-        auto before = std::make_tuple(WatchlistFilter::selectedSort, WatchlistFilter::selectedOrder,
-            WatchlistFilter::selectedType, WatchlistFilter::selectedAvailability);
-        WatchlistFilter* filter = new WatchlistFilter();
-        filter->getEvent()->subscribe([this, before]() {
-            auto after = std::make_tuple(WatchlistFilter::selectedSort, WatchlistFilter::selectedOrder,
-                WatchlistFilter::selectedType, WatchlistFilter::selectedAvailability);
-            if (after != before) this->refresh(false);
-        });
-        brls::Application::pushActivity(new brls::Activity(filter));
-        return true;
+    this->pickerType->onSelect([this](int picked) {
+        this->typeIndex = picked;
+        // Genre and Year list what the FILTERED set contains, so narrowing the
+        // type can strand a selection that no longer exists; start them over.
+        this->genreIndex = this->yearIndex = 0;
+        this->refreshFilters();
+        this->applyFilters();
+    });
+    this->pickerSort->onSelect([this](int picked) {
+        this->sortIndex = picked;
+        this->refreshFilters();
+        this->applyFilters();
+    });
+    this->pickerGenre->onSelect([this](int picked) {
+        this->genreIndex = picked;
+        this->refreshFilters();
+        this->applyFilters();
+    });
+    this->pickerYear->onSelect([this](int picked) {
+        this->yearIndex = picked;
+        this->refreshFilters();
+        this->applyFilters();
+    });
+    this->pickerWatched->onSelect([this](int picked) {
+        this->watchedIndex = picked;
+        this->refreshFilters();
+        this->applyFilters();
     });
 
-    this->refresh(true);
+    this->grid = new RecyclingGrid();
+    this->grid->setGrow(1.f);
+    this->grid->registerCell("Cell", VideoCardCell::create);
+    this->grid->spanCount = 6;
+    this->grid->itemImageRatio = 1.5f;
+    this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
+    // paddingTop: the top row's focus ring is drawn ~5px outside its frame, so
+    // flush under the filter row it came out clipped (same reason Discover's
+    // grid carries one).
+    this->grid->setPadding(16, 0, brls::getStyle()["main/content_padding_top_bottom"], 0);
+    this->boxGrid->addView(this->grid);
 }
-
-brls::View* WatchlistTab::getDefaultFocus() { return this->recycler; }
 
 brls::View* WatchlistTab::create() { return new WatchlistTab(); }
 
-void WatchlistTab::refresh(bool reloadGuids) {
-    // offline: the watchlist lives on discover.provider (account token) — it is
-    // unreachable without a connection (SPEC §4.4)
-    if (NetworkState::isOffline()) {
-        this->recycler->setEmpty(
+brls::View* WatchlistTab::getDefaultFocus() { return this->pickerType; }
+
+void WatchlistTab::onCreate() {
+    // Triangle, as everywhere else in the app. It had drifted back to
+    // BUTTON_BACK — the TOUCHPAD on a DualShock, which the hint bar draws as a
+    // bare "S" and nobody would think to press.
+    auto actionRefresh = [this](...) {
+        this->reload();
+        return true;
+    };
+    this->registerAction("hints/refresh"_i18n, brls::BUTTON_Y, actionRefresh);
+    this->registerAction(KeyBind::getRefresh(), actionRefresh);
+
+    this->refreshFilters();
+    this->reload();
+}
+
+void WatchlistTab::reload() {
+    if (this->loading) return;
+    if (NetworkState::isOffline() && !personal::isLocal()) {
+        this->grid->setEmpty(
             "main/download/offline_title"_i18n, "main/download/offline_section"_i18n, "icon/ico-cloud.svg");
         return;
     }
-    this->startIndex = 0;
-    this->loaded = false;
-    this->recycler->showSkeleton();
-    // the guid cache (Plex availability dimming) only applies to the plex.tv
-    // watchlist; Jellyfin/Emby favorites are server items, no guid round-trip
-    bool plexWatchlist = personal::kind() == media::ListKind::Watchlist;
-    // guid cache to (re)load: initial load/refresh, or Availability filter
-    // active while a previous load failed
-    if (plexWatchlist && (reloadGuids || (!this->libraryGuids && WatchlistFilter::selectedAvailability != 0))) {
-        ASYNC_RETAIN
-        plex::fetchLibraryGuids(
-            [ASYNC_TOKEN](std::shared_ptr<std::unordered_set<std::string>> guids) {
-                ASYNC_RELEASE
-                this->libraryGuids = guids;
-                this->doRequest();
-            },
-            [ASYNC_TOKEN](const std::string& ex) {
-                ASYNC_RELEASE
-                // degradation: no dimming and no Availability filter,
-                // but the watchlist stays browsable
-                brls::Logger::warning("WatchlistTab: fetchLibraryGuids {}", ex);
-                this->libraryGuids = nullptr;
-                this->doRequest();
-            });
-    } else {
-        this->doRequest();
-    }
-}
-
-void WatchlistTab::doRequest() {
-    // provider sort: honored field + :asc|:desc suffix (verified, see
-    // plex::fetchWatchlist); provider Type filter via type=1|2
-    std::string sort = WatchlistFilter::sortList[WatchlistFilter::selectedSort];
-    sort += WatchlistFilter::selectedOrder ? ":desc" : ":asc";
-    media::MediaKind kind = WatchlistFilter::selectedType == 1   ? media::MediaKind::Movie
-                            : WatchlistFilter::selectedType == 2 ? media::MediaKind::Show
-                                                                 : media::MediaKind::Any;
-    // Everything but the plex.tv watchlist lists ORDINARY SERVER ITEMS, which
-    // the standard grid renders (click opens the detail page, context menu
-    // works); only Plex hands back provider stubs that need their own cell.
-    bool serverItems = personal::kind() != media::ListKind::Watchlist;
+    this->loading = true;
+    this->grid->showSkeleton();
 
     ASYNC_RETAIN
-    // personal list: Plex watchlist (provider items) or Jellyfin favorites (server items)
-    personal::list(sort, kind, this->startIndex, this->pageSize,
-        [ASYNC_TOKEN, serverItems](const media::Container<media::Item>& r) {
+    personal::list("", media::MediaKind::Any, 0, kFetchAll,
+        [ASYNC_TOKEN](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
-            this->startIndex = r.StartIndex + this->pageSize;
-            bool more = !r.Items.empty() && (long)this->startIndex < r.TotalRecordCount;
-
-            if (serverItems) {
-                // ordinary server items -> standard grid (click opens the
-                // detail page, context menu works); no provider images, no dimming
-                if (!this->loaded) {
-                    if (!r.Items.empty()) {
-                        this->loaded = true;
-                        this->recycler->setDataSource(new VideoDataSource(r.Items));
-                    } else if (more) {
-                        this->doRequest();
-                    } else {
-                        this->recycler->setEmpty(media::listI18n(personal::kind(), "empty_title"),
-                            media::listI18n(personal::kind(), "empty_sub"), "icon/ico-bookmark.svg");
-                    }
-                } else if (!r.Items.empty()) {
-                    auto* ds = dynamic_cast<VideoDataSource*>(this->recycler->getDataSource());
-                    if (ds) {
-                        ds->appendData(r.Items);
-                        this->recycler->notifyDataChanged();
-                    }
-                } else if (more) {
-                    this->doRequest();
-                }
-                return;
-            }
-
-            // Availability filter: CLIENT-side (the provider knows nothing
-            // about the server), backed by the guid cache; without a cache
-            // (load failure), everything passes — unknown presence
-            std::vector<plex::Item> items;
-            int avail = WatchlistFilter::selectedAvailability;
-            if (avail == 0 || !this->libraryGuids) {
-                items = r.Items;
-            } else {
-                for (auto& item : r.Items) {
-                    bool present = this->libraryGuids->count(item.guid) > 0;
-                    if (present == (avail == 1)) items.push_back(item);
-                }
-            }
-
-            if (!this->loaded) {
-                if (!items.empty()) {
-                    this->loaded = true;
-                    this->recycler->setDataSource(new WatchlistDataSource(items, this->libraryGuids));
-                } else if (more) {
-                    // fully filtered page: chain while there are more
-                    this->doRequest();
-                } else if (r.TotalRecordCount == 0 && avail == 0 && WatchlistFilter::selectedType == 0) {
-                    this->recycler->setEmpty(
-                        "main/watchlist/empty_title"_i18n, "main/watchlist/empty_sub"_i18n, "icon/ico-bookmark.svg");
-                } else {
-                    // empty because of the filters: generic empty state
-                    this->recycler->setEmpty();
-                }
-            } else if (!items.empty()) {
-                auto dataSrc = dynamic_cast<WatchlistDataSource*>(this->recycler->getDataSource());
-                dataSrc->appendData(items);
-                this->recycler->notifyDataChanged();
-            } else if (more) {
-                this->doRequest();
-            }
+            this->loading = false;
+            this->all = r.Items;
+            this->refreshFilters();
+            this->applyFilters();
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
-            if (this->loaded) {
-                brls::Application::notify(ex);
-            } else {
-                this->recycler->setError(ex);
-            }
+            this->loading = false;
+            this->grid->setError(ex);
         });
+}
+
+void WatchlistTab::refreshFilters() {
+    this->pickerType->setOptions({"main/library/type/all"_i18n, "main/media/genres/movie"_i18n,
+                                     "main/media/genres/series"_i18n},
+        this->typeIndex);
+    this->pickerSort->setOptions({"main/library/sort/added_desc"_i18n, "main/library/sort/added_asc"_i18n,
+                                     "main/library/sort/title_az"_i18n, "main/library/sort/title_za"_i18n},
+        this->sortIndex);
+    this->pickerWatched->setOptions(
+        {"main/library/type/all"_i18n, "main/media/played"_i18n, "main/media/unplayed"_i18n}, this->watchedIndex);
+
+    // Genre and Year list only what is actually there, and only within the
+    // current Type — a Genre nothing matches is a dead option.
+    std::set<std::string> genreSet;
+    std::set<int64_t> yearSet;
+    for (const plex::Item& it : this->all) {
+        if (this->typeIndex == TYPE_MOVIE && it.type != plex::mediaTypeMovie) continue;
+        if (this->typeIndex == TYPE_SHOW && it.type != plex::mediaTypeShow) continue;
+        for (const std::string& g : it.genres)
+            if (!g.empty()) genreSet.insert(g);
+        if (it.year > 0) yearSet.insert(it.year);
+    }
+
+    this->genres.assign(1, "");
+    this->genres.insert(this->genres.end(), genreSet.begin(), genreSet.end());
+    std::vector<std::string> genreLabels{"main/library/type/all"_i18n};
+    for (size_t i = 1; i < this->genres.size(); i++) genreLabels.push_back(this->genres[i]);
+    if (this->genreIndex >= (int)this->genres.size()) this->genreIndex = 0;
+    this->pickerGenre->setOptions(genreLabels, this->genreIndex);
+
+    this->years.assign(1, 0);
+    this->years.insert(this->years.end(), yearSet.rbegin(), yearSet.rend());  // newest first
+    std::vector<std::string> yearLabels{"main/library/type/all"_i18n};
+    for (size_t i = 1; i < this->years.size(); i++) yearLabels.push_back(std::to_string(this->years[i]));
+    if (this->yearIndex >= (int)this->years.size()) this->yearIndex = 0;
+    this->pickerYear->setOptions(yearLabels, this->yearIndex);
+}
+
+void WatchlistTab::applyFilters() {
+    std::vector<plex::Item> out;
+    for (const plex::Item& it : this->all) {
+        if (this->typeIndex == TYPE_MOVIE && it.type != plex::mediaTypeMovie) continue;
+        if (this->typeIndex == TYPE_SHOW && it.type != plex::mediaTypeShow) continue;
+        if (this->watchedIndex == WATCHED_YES && !it.played()) continue;
+        if (this->watchedIndex == WATCHED_NO && it.played()) continue;
+        if (this->genreIndex > 0 && (size_t)this->genreIndex < this->genres.size()) {
+            const std::string& want = this->genres[this->genreIndex];
+            if (std::find(it.genres.begin(), it.genres.end(), want) == it.genres.end()) continue;
+        }
+        if (this->yearIndex > 0 && (size_t)this->yearIndex < this->years.size()) {
+            if (it.year != this->years[this->yearIndex]) continue;
+        }
+        out.push_back(it);
+    }
+
+    switch (this->sortIndex) {
+        case SORT_ADDED_ASC:
+            std::stable_sort(out.begin(), out.end(),
+                [](const plex::Item& a, const plex::Item& b) { return a.addedAt < b.addedAt; });
+            break;
+        case SORT_TITLE_AZ:
+            std::stable_sort(out.begin(), out.end(),
+                [](const plex::Item& a, const plex::Item& b) { return lower(a.title) < lower(b.title); });
+            break;
+        case SORT_TITLE_ZA:
+            std::stable_sort(out.begin(), out.end(),
+                [](const plex::Item& a, const plex::Item& b) { return lower(b.title) < lower(a.title); });
+            break;
+        case SORT_ADDED_DESC:
+        default:
+            std::stable_sort(out.begin(), out.end(),
+                [](const plex::Item& a, const plex::Item& b) { return a.addedAt > b.addedAt; });
+            break;
+    }
+
+    if (out.empty()) {
+        auto kind = personal::kind();
+        // An empty LIBRARY and an empty FILTER are different problems, and
+        // "nothing saved yet" would be a lie about the second.
+        bool filtered = !this->all.empty();
+        this->grid->setEmpty(filtered ? "main/library/no_matches"_i18n : media::listI18n(kind, "empty_title"),
+            filtered ? "main/library/no_matches_sub"_i18n : media::listI18n(kind, "empty_sub"),
+            "icon/ico-bookmark.svg");
+        return;
+    }
+    this->grid->setDataSource(new VideoDataSource(out));
 }

@@ -1,20 +1,55 @@
+<!-- NuvioTV's Library screen: the title with the service's name opposite it,
+     five dropdowns over two rows (Type and Sort wide, then Genre / Year /
+     Watched), and the saved titles underneath. The pickers and the grid are
+     built in C++, as Discover's are — they depend on what the library actually
+     contains. NuvioTV's "Saved / Cloud" pills are not here: Cloud is a debrid
+     account's own file list, and GMCA talks to no debrid service directly, so
+     the pair would be one pill and a dead one. -->
 <brls:Box
     width="auto"
-    height="auto">
+    height="auto"
+    axis="column"
+    paddingLeft="@style/main/content_padding_sides"
+    paddingRight="@style/main/content_padding_sides"
+    paddingTop="@style/main/content_padding_top_bottom">
 
-    <!-- insets inside the scroll: cards up to the edges (collection.xml
-         pattern). 2:3 poster cards (itemImageRatio = h/w) -->
-    <RecyclingGrid
-        grow="1"
-        wireframe="false"
-        paddingLeft="@style/main/content_padding_sides"
-        paddingRight="@style/main/content_padding_sides"
-        paddingTop="@style/main/content_padding_top_bottom"
-        paddingBottom="@style/main/content_padding_top_bottom"
-        spanCount="@style/app/grid/6"
-        itemHeight="@style/app/video/height"
-        itemImageRatio="1.5"
-        itemExtraHeight="55"
-        id="watchlist/grid" />
+    <brls:Box
+        axis="row"
+        width="100%"
+        alignItems="center">
+        <brls:Label
+            id="library/title"
+            fontSize="48"
+            fontWeight="semibold"
+            grow="1"
+            singleLine="true" />
+        <!-- the reference sets its own wordmark here; ours names whichever
+             account the list belongs to -->
+        <brls:Label
+            id="library/brand"
+            fontSize="28"
+            textColor="@theme/font/tertiary"
+            singleLine="true" />
+    </brls:Box>
+
+    <brls:Box
+        id="library/filters/top"
+        axis="row"
+        width="100%"
+        marginTop="24"
+        alignItems="center" />
+    <brls:Box
+        id="library/filters/bottom"
+        axis="row"
+        width="100%"
+        marginTop="24"
+        alignItems="center" />
+
+    <brls:Box
+        id="library/grid_box"
+        axis="column"
+        width="100%"
+        marginTop="24"
+        grow="1" />
 
 </brls:Box>
