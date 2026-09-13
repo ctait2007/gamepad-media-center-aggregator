@@ -54,6 +54,14 @@ private:
     /// true when a fallback was started (so the error dialog is suppressed).
     bool tryDirectPlayFallback();
     bool playIndex(int index);
+    /// Picked from the episode sheet: present the SOURCE PICKER for that
+    /// episode rather than starting it straight away. Auto-play is a feature
+    /// this app has not been asked for yet, and switching episode is exactly
+    /// the moment the user wants a say in which release they get.
+    void chooseEpisodeSource(int index);
+    /// Swap the playing item for `ep` on the source at `mediaIndex`, in place —
+    /// no second player.
+    void switchTo(const plex::Item& ep, const std::vector<plex::Media>& sources, int mediaIndex);
     /// Resolves external subtitle sidecars for the current item through the
     /// backend (Stremio addons), lazily and only when the played item changes.
     /// Plex/Jellyfin embed theirs in the Media streams, so this is a no-op there.

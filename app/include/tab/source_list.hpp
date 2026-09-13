@@ -20,6 +20,9 @@
 #pragma once
 
 #include <borealis.hpp>
+
+#include <functional>
+#include <vector>
 #include "api/media/types.hpp"
 
 class RecyclingGrid;
@@ -35,6 +38,15 @@ public:
     ///                 nothing about.
     SourceList(const media::Item& item, std::string title, int64_t resumeMs);
     ~SourceList() override;
+
+    /// Hand the choice back instead of starting a player. The PLAYER presents
+    /// this screen when an episode is picked from its episode sheet, and it
+    /// already has a player — a second one stacked on the first is not what
+    /// "pick a source for that episode" means. Called after this screen has
+    /// closed, with the item, the resolved sources and the chosen index.
+    void setOnChosen(std::function<void(media::Item, std::vector<media::Media>, int)> cb) {
+        this->onChosen = std::move(cb);
+    }
 
     static brls::View* create();
 
@@ -55,6 +67,8 @@ private:
     void applyLogo(const std::string& url);
     void play(int mediaIndex);
     void showMessage(const std::string& text, bool spinner);
+
+    std::function<void(media::Item, std::vector<media::Media>, int)> onChosen;
 
     media::Item item;
     std::string title;

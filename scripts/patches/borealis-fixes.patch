@@ -874,7 +874,7 @@ index aa63fa0..75af9ff 100644
      { "brls/highlight/background", nvgRGB(31, 34, 39) },
      { "brls/highlight/color1", nvgRGB(25, 138, 198) },
 diff --git a/library/lib/core/view.cpp b/library/lib/core/view.cpp
-index 59ec77b..25b45f3 100644
+index 59ec77b..b588c34 100644
 --- a/library/lib/core/view.cpp
 +++ b/library/lib/core/view.cpp
 @@ -307,14 +307,31 @@ void View::drawClickAnimation(NVGcontext* vg, FrameContext* ctx, Rect frame)
@@ -915,7 +915,29 @@ index 59ec77b..25b45f3 100644
      nvgFill(vg);
  }
  
-@@ -538,6 +555,24 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
+@@ -426,10 +443,20 @@ void View::drawWireframe(FrameContext* ctx, Rect frame)
+ 
+ void View::drawBorder(NVGcontext* vg, FrameContext* ctx, Style style, Rect frame)
+ {
++    // Inset by HALF the stroke width, so the border lands entirely inside the
++    // view's own frame. nanovg centres a stroke on its path, so drawing it on
++    // the frame edge put half of it outside — and anything that scissors its
++    // children (a ScrollingFrame, a clipped Box) then cut that half off. The
++    // symptom was focus outlines shaved along the edges of every scrolling
++    // list in the app. CSS calls this border-box, and it is what a border on a
++    // bounded view is expected to mean.
++    float inset = this->borderThickness / 2;
++    float radius = this->cornerRadius > 0 ? std::max(0.0f, this->cornerRadius - inset) : 0;
+     nvgBeginPath(vg);
+     nvgStrokeColor(vg, a(this->borderColor));
+     nvgStrokeWidth(vg, this->borderThickness);
+-    nvgRoundedRect(vg, frame.getMinX(), frame.getMinY(), frame.getWidth(), frame.getHeight(), this->cornerRadius);
++    nvgRoundedRect(vg, frame.getMinX() + inset, frame.getMinY() + inset, frame.getWidth() - inset * 2,
++        frame.getHeight() - inset * 2, radius);
+     nvgStroke(vg);
+ }
+ 
+@@ -538,6 +565,24 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
      nvgSave(vg);
      nvgResetScissor(vg);
  
@@ -940,7 +962,7 @@ index 59ec77b..25b45f3 100644
      float padding      = this->highlightPadding;
      float cornerRadius = this->highlightCornerRadius;
      float strokeWidth  = style["brls/highlight/stroke_width"];
-@@ -547,6 +582,16 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
+@@ -547,6 +592,16 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
      float width  = this->getWidth() + padding * 2 + strokeWidth;
      float height = this->getHeight() + padding * 2 + strokeWidth;
  
@@ -957,7 +979,7 @@ index 59ec77b..25b45f3 100644
      // Shake animation
      if (this->highlightShaking)
      {
-@@ -581,8 +626,10 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
+@@ -581,8 +636,10 @@ void View::drawHighlight(NVGcontext* vg, Theme theme, float alpha, Style style,
      if (background)
      {
          // Background
@@ -970,7 +992,7 @@ index 59ec77b..25b45f3 100644
          nvgBeginPath(vg);
          nvgRoundedRect(vg, x, y, width, height, cornerRadius);
          nvgFill(vg);
-@@ -718,6 +765,18 @@ void View::drawBackground(NVGcontext* vg, FrameContext* ctx, Style style, Rect f
+@@ -718,6 +775,18 @@ void View::drawBackground(NVGcontext* vg, FrameContext* ctx, Style style, Rect f
              nvgFill(vg);
              break;
          }
@@ -989,7 +1011,7 @@ index 59ec77b..25b45f3 100644
          case ViewBackground::BACKDROP:
          {
              nvgFillColor(vg, a(theme["brls/backdrop"]));
-@@ -1528,11 +1587,12 @@ View::~View()
+@@ -1528,11 +1597,12 @@ View::~View()
          }
      }
  
@@ -1007,7 +1029,7 @@ index 59ec77b..25b45f3 100644
      for (GestureRecognizer* recognizer : this->gestureRecognizers)
          delete recognizer;
  
-@@ -2240,6 +2300,7 @@ void View::registerCommonAttributes()
+@@ -2240,6 +2310,7 @@ void View::registerCommonAttributes()
              { "sidebar", ViewBackground::SIDEBAR },
              { "backdrop", ViewBackground::BACKDROP },
              { "vertical_linear", ViewBackground::VERTICAL_LINEAR },
@@ -1015,7 +1037,7 @@ index 59ec77b..25b45f3 100644
          });
  
      // background start and end color for vertical linear style
-@@ -2300,6 +2361,10 @@ void View::registerCommonAttributes()
+@@ -2300,6 +2371,10 @@ void View::registerCommonAttributes()
          this->setHighlightCornerRadius(value);
      });
  

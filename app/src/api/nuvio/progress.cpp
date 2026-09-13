@@ -154,17 +154,34 @@ void ProgressStore::invalidate() {
 
 std::vector<WatchProgressRow> ProgressStore::continueWatching(size_t limit) {
     std::lock_guard<std::mutex> lock(mtx);
-    std::vector<WatchProgressRow> out;
-    for (auto& row : progress) {
+
+    // ONE ROW PER TITLE, and for a show that means one row for the SHOW rather
+    // than one per episode — a series with six part-watched episodes is still
+    // one thing you are watching, and the reference collapses it the same way
+    // (HomeViewModelContinueWatching groups by contentId). The collapse has to
+    // happen BEFORE the watched filter, not after: filtering first would drop
+    // the episode you just finished and surface the one before it, walking the
+    // row backwards through the season instead of retiring it.
+    std::unordered_map<std::string, const WatchProgressRow*> latest;
+    for (const WatchProgressRow& row : progress) {
         if (row.positionMs <= 0) continue;
+        auto it = latest.find(row.contentId);
+        if (it == latest.end() || row.lastWatched > it->second->lastWatched) latest[row.contentId] = &row;
+    }
+
+    std::vector<WatchProgressRow> out;
+    for (auto& [contentId, row] : latest) {
+        (void)contentId;
         bool watchedFlag = false;
         for (auto& w : watched) {
-            if (w.contentId == row.contentId && w.season == row.season && w.episode == row.episode) {
+            if (w.contentId == row->contentId && w.season == row->season && w.episode == row->episode) {
                 watchedFlag = true;
                 break;
             }
         }
-        if (!watchedFlag) out.push_back(row);
+        // The furthest episode is finished: the show has nothing to resume, so
+        // it leaves the row rather than falling back to an earlier episode.
+        if (!watchedFlag) out.push_back(*row);
     }
     std::sort(out.begin(), out.end(),
         [](const WatchProgressRow& a, const WatchProgressRow& b) { return a.lastWatched > b.lastWatched; });

@@ -67,6 +67,12 @@ const std::pair<const char*, const char*> kLanguages[] = {
 /// Material "check" and "visibility" — the two badges the reference puts on an
 /// episode still.
 const char* kCheck = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+/// Material "refresh" — the same glyph the pre-playback source picker's round
+/// chip carries, so the two refreshes look like the same control.
+const char* kRefresh =
+    "M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-8 8s3.57 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 "
+    "2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z";
+
 const char* kEye =
     "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 "
     "0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
@@ -235,16 +241,25 @@ void showSubtitles(const plex::Media* src) {
     for (auto& o : options)
         if (!o.transcode && o.id == sid) activeLang = o.lang;
 
+    // Keyed on the DISPLAY NAME, not the raw code: a file and an addon will
+    // happily label the same language "en", "eng" and "en-US", and keying on
+    // the code listed English three times with the tracks split between them.
+    // One row per language, and every track that resolves to it underneath.
     std::vector<std::string> langs;  // "" is Off, and comes first
     langs.push_back("");
     for (auto& o : options) {
-        std::string key = o.lang.empty() ? "und" : o.lang;
+        std::string key = languageName(o.lang);
         if (std::find(langs.begin(), langs.end(), key) == langs.end()) langs.push_back(key);
     }
+    // English first, under Off — the language most of this app's users want is
+    // not worth scrolling for, and the reference pins the preferred one too.
+    std::stable_sort(langs.begin() + (langs.empty() ? 0 : 1), langs.end(),
+        [](const std::string& a, const std::string& b) { return a == "English" && b != "English"; });
+
     // Which language the middle rail is showing. Held by shared_ptr because
     // the language cards rebuild that rail from their own click handlers,
     // which outlive this function.
-    auto selectedLang = std::make_shared<std::string>(sid > 0 ? (activeLang.empty() ? "und" : activeLang) : "");
+    auto selectedLang = std::make_shared<std::string>(sid > 0 ? languageName(activeLang) : "");
 
     auto* langRail = new PlayerRail("main/player/panel/languages"_i18n, kSubLangWidth, 720, false);
     auto* listRail = new PlayerRail("main/player/subtitle"_i18n, kSubListWidth, 720, false);
@@ -262,8 +277,7 @@ void showSubtitles(const plex::Media* src) {
             return;
         }
         for (const SubOption& o : options) {
-            std::string key = o.lang.empty() ? "und" : o.lang;
-            if (key != *selectedLang) continue;
+            if (languageName(o.lang) != *selectedLang) continue;
             int64_t id = o.id;
             bool transcode = o.transcode;
             bool selected = transcode ? id == PlayerSetting::selectedSubtitle : id == currentSid;
@@ -277,12 +291,13 @@ void showSubtitles(const plex::Media* src) {
         }
     };
 
-    for (const std::string& code : langs) {
-        bool isOff = code.empty();
-        std::string label = isOff ? "main/player/none"_i18n : languageName(code);
+    for (const std::string& name : langs) {
         // Selecting a language does NOT close the overlay: it repopulates the
         // rail beside it, which is the entire reason the two are separate.
-        langRail->addControl(label, "", nullptr);
+        PlayerCard* card = langRail->addControl(name.empty() ? "main/player/none"_i18n : name, "", nullptr);
+        // No tick here. The accent fill already says which language is open,
+        // and a tick beside it reads as "this subtitle is on", which it is not.
+        card->setShowTick(false);
     }
     row->addView(langRail);
     row->addView(listRail);
@@ -352,18 +367,22 @@ void showSubtitles(const plex::Media* src) {
     // exists once every rail is built — so they are attached last.
     fillList(sid);
     for (size_t i = 0; i < langRail->cards().size() && i < langs.size(); i++) {
-        std::string code = langs[i];
+        std::string name = langs[i];
         PlayerCard* card = langRail->cards()[i];
         size_t which = i;
-        card->registerClickAction([selectedLang, code, fillList, langRail, which](brls::View*) {
-            *selectedLang = code;
+        card->registerClickAction([selectedLang, name, fillList, langRail, listRail, which](brls::View*) {
+            *selectedLang = name;
             const auto& all = langRail->cards();
             for (size_t j = 0; j < all.size(); j++) all[j]->setSelected(j == which);
             fillList(MPVCore::instance().getInt("sid"));
+            // Choosing the language is the first half of choosing a subtitle,
+            // so focus carries straight on into the list it just built rather
+            // than making the user step right into it.
+            if (brls::View* target = listRail->focusTarget()) brls::Application::giveFocus(target);
             return true;
         });
-        card->setSelected(code == *selectedLang);
-        if (code == *selectedLang) langRail->setFocusTarget(card);
+        card->setSelected(name == *selectedLang);
+        if (name == *selectedLang) langRail->setFocusTarget(card);
     }
 
     overlay->setFocusTarget(langRail->focusTarget());
@@ -381,13 +400,31 @@ void showAudio(const plex::Media* src) {
 
     int64_t aidActive = mpv.getInt("aid");
     bool anyEmbedded = false;
+
+    struct AudioTrack {
+        int64_t id;
+        std::string title, detail, lang;
+    };
+    std::vector<AudioTrack> embedded;
     int64_t count = mpv.getInt("track-list/count");
     for (int64_t n = 0; n < count; n++) {
         if (mpv.getString(fmt::format("track-list/{}/type", n)) != "audio") continue;
-        int64_t id = mpv.getInt(fmt::format("track-list/{}/id", n));
-        std::string title = trackTitle(n, "audio", fmt::format("{} {}", "main/player/audio"_i18n, id));
+        AudioTrack t;
+        t.id = mpv.getInt(fmt::format("track-list/{}/id", n));
+        t.title = trackTitle(n, "audio", fmt::format("{} {}", "main/player/audio"_i18n, t.id));
+        t.detail = trackDetail(n);
+        t.lang = mpv.getString(fmt::format("track-list/{}/lang", n));
+        embedded.push_back(std::move(t));
         anyEmbedded = true;
-        tracks->addCard(title, trackDetail(n), "", id == aidActive, [id]() {
+    }
+    // English first, as in the subtitle rail — stable, so a file's own track
+    // order survives within each language.
+    std::stable_sort(embedded.begin(), embedded.end(), [](const AudioTrack& a, const AudioTrack& b) {
+        return languageName(a.lang) == "English" && languageName(b.lang) != "English";
+    });
+    for (const AudioTrack& t : embedded) {
+        int64_t id = t.id;
+        tracks->addCard(t.title, t.detail, "", id == aidActive, [id]() {
             PlayerSetting::selectedAudio = id;
             MPVCore::instance().setInt("aid", id);
         });
@@ -466,7 +503,7 @@ void showSources(const std::string& subtitle, const std::vector<plex::Media>& so
             addons.push_back(m.addonName);
 
     auto activeAddon = std::make_shared<std::string>();  // empty = All
-    auto fill = [rail, sources, current, onPick, activeAddon]() {
+    auto fill = [rail, sources, current, onPick, activeAddon, panel]() {
         rail->clear();
         for (size_t i = 0; i < sources.size(); i++) {
             const plex::Media& m = sources[i];
@@ -479,12 +516,14 @@ void showSources(const std::string& subtitle, const std::vector<plex::Media>& so
                 if (onPick) onPick(index);
             });
         }
+        // The rows are new after every tab change, so the routes are too.
+        panel->linkTabs(rail->cards().empty() ? nullptr : (brls::View*)rail->cards().front());
     };
 
     auto* tabs = panel->tabs();
     tabs->setMarginBottom(24);
     if (onReload) {
-        auto* refresh = new PlayerPill("main/player/panel/refresh"_i18n, false);
+        auto* refresh = PlayerPill::icon(kRefresh);
         refresh->setMarginRight(24);  // spacing.md
         refresh->registerClickAction([onReload](brls::View*) {
             brls::Application::popActivity(brls::TransitionAnimation::NONE, [onReload]() { onReload(); });
@@ -678,16 +717,15 @@ void showEpisodes(const std::string& subtitle, const std::vector<plex::Item>& ep
     scroll->setContentView(list);
 
     auto focusRow = std::make_shared<brls::View*>(nullptr);
-    auto fill = [list, episodes, current, onPick, focusRow](int64_t season) {
+    auto fill = [list, episodes, current, onPick, focusRow, panel](int64_t season) {
         list->clearViews();
         *focusRow = nullptr;
-        bool first = true;
+        brls::View* firstRow = nullptr;
         for (size_t i = 0; i < episodes.size(); i++) {
             if (episodes[i].parentIndex != season) continue;
             int index = (int)i;
             auto* row = new EpisodeRow(episodes[i], index == current);
-            if (!first) row->setMarginTop(16);  // spacing.sm
-            first = false;
+            if (firstRow) row->setMarginTop(16);  // spacing.sm
             row->registerClickAction([onPick, index](brls::View*) {
                 brls::Application::popActivity(brls::TransitionAnimation::NONE, [onPick, index]() {
                     if (onPick) onPick(index);
@@ -695,8 +733,11 @@ void showEpisodes(const std::string& subtitle, const std::vector<plex::Item>& ep
                 return true;
             });
             list->addView(row);
+            if (!firstRow) firstRow = row;
             if (index == current || !*focusRow) *focusRow = row;
         }
+        // The rows are new after every season change, so the routes are too.
+        panel->linkTabs(firstRow);
     };
 
     auto* tabs = panel->tabs();

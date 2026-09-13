@@ -43,6 +43,11 @@ public:
     /// built — what a rail whose selection is driven from another rail needs.
     void setSelected(bool selected);
 
+    /// Suppress the tick even when the card is the current selection — for a
+    /// rail whose "selected" means "this is the row you are looking at", not
+    /// "this is the track that is on".
+    void setShowTick(bool show);
+
     /// Prints a value hard against the card's right edge, the way the
     /// reference's Delay card and every StepperRow show their current setting.
     void setTrailingText(const std::string& text);
@@ -61,6 +66,7 @@ private:
     SVGImage* tick = nullptr;
     brls::Label* trailing = nullptr;
     bool selected = false;
+    bool showTick = true;
 };
 
 /// One pill in a tab row — the reference's season tabs and its addon filter
@@ -71,7 +77,17 @@ class PlayerPill : public brls::Box {
 public:
     PlayerPill(const std::string& text, bool selected);
 
+    /// An ICON pill instead of a text one — a circle with a 24x24 Material
+    /// path in it. The pre-playback source picker's refresh chip is this
+    /// shape, and the player's needs to match it.
+    static PlayerPill* icon(const char* path);
+
     void setSelected(bool selected);
+
+    /// Suppress the tick even when the card is the current selection — for a
+    /// rail whose "selected" means "this is the row you are looking at", not
+    /// "this is the track that is on".
+    void setShowTick(bool show);
 
     void onFocusGained() override;
     void onFocusLost() override;
@@ -80,6 +96,8 @@ private:
     void applyColors();
 
     brls::Label* label = nullptr;
+    SVGImage* glyph = nullptr;
+    const char* glyphPath = nullptr;
     bool selected = false;
 };
 
@@ -185,6 +203,13 @@ public:
     /// reference puts there. Empty and zero-height until something is added.
     brls::Box* tabs() const { return this->tabsBox; }
 
+    /// Wire the tab row and the list together, both ways. borealis' geometric
+    /// traversal does not find its way out of a ScrollingFrame into a sibling
+    /// row above it, so UP off the first row and DOWN off every pill are named
+    /// explicitly. Call it after every rebuild of the list — a tab change
+    /// replaces the rows, and the routes go with them.
+    void linkTabs(brls::View* firstRow);
+
     brls::Box* body() const { return this->bodyBox; }
 
     void setFocusTarget(brls::View* v) { this->focusTargetView = v; }
@@ -198,6 +223,5 @@ public:
 private:
     brls::Box* bodyBox = nullptr;
     brls::Box* tabsBox = nullptr;
-    brls::View* closeButton = nullptr;
     brls::View* focusTargetView = nullptr;
 };

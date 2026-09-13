@@ -77,6 +77,12 @@ public:
     /// synopsis, and the player view is what actually holds those items — this
     /// view only ever had their formatted one-line titles.
     void registerEpisodes(brls::ActionListener action);
+    /// Tell the bar which episode is playing WITHOUT starting it. Firing the
+    /// play event is what starts playback, so an episode switched in place
+    /// (picked from the sheet, then a source chosen for it) has no way to say
+    /// "the index moved" — and the Next button went on offering the episode
+    /// after the OLD one.
+    void setPlayIndex(int index);
     void registerSources(brls::ActionListener action);
     /// Dismiss the transport controls — what opening a panel does first, so a
     /// bottom-anchored overlay lands on the video and not on the control row.
@@ -166,6 +172,8 @@ private:
     /// what setMainTitle was last given — the episode panel prints it under
     /// its own heading, as the reference does with the show name
     std::string mainTitle;
+    /// how many episodes setList was given, for the Next button's gate
+    int playListSize = 0;
     int playIndex = -1;
     brls::Event<int> playIndexEvent;
     brls::VoidEvent settingEvent;

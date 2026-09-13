@@ -18,6 +18,7 @@
 #include "view/video_view.hpp"
 #include "view/video_profile.hpp"
 #include "view/audio_player.hpp"
+#include "tab/source_list.hpp"
 
 using namespace brls::literals;
 
@@ -208,7 +209,8 @@ void PlayerView::setSeries(const std::string& showRatingKey) {
                 int cur = -1;
                 for (size_t i = 0; i < this->episodes.size(); i++)
                     if (this->episodes[i].ratingKey == this->itemId) cur = (int)i;
-                player_panels::showEpisodes(show, this->episodes, cur, [this](int picked) { this->playIndex(picked); });
+                player_panels::showEpisodes(
+                    show, this->episodes, cur, [this](int picked) { this->chooseEpisodeSource(picked); });
                 return true;
             });
         },
@@ -247,6 +249,37 @@ bool PlayerView::playIndex(int index) {
                        : fmt::format("{} · S{}E{} — {}", next.grandparentTitle, next.parentIndex, next.index,
                              next.title));
     return true;
+}
+
+void PlayerView::chooseEpisodeSource(int index) {
+    if (index < 0 || index >= (int)this->episodes.size()) return;
+    plex::Item ep = this->episodes.at(index);
+    std::string title = ep.grandparentTitle.empty()
+                            ? fmt::format("S{}E{} — {}", ep.parentIndex, ep.index, ep.title)
+                            : fmt::format("{} · S{}E{} — {}", ep.grandparentTitle, ep.parentIndex, ep.index, ep.title);
+
+    auto* picker = new SourceList(ep, title, 0);
+    picker->setOnChosen([this](plex::Item chosen, std::vector<plex::Media> sources, int mediaIndex) {
+        this->switchTo(chosen, sources, mediaIndex);
+    });
+    brls::Application::pushActivity(new brls::Activity(picker));
+}
+
+void PlayerView::switchTo(const plex::Item& ep, const std::vector<plex::Media>& sources, int mediaIndex) {
+    MPVCore::instance().reset();
+    this->itemId = ep.ratingKey;
+    this->item = ep;
+    this->item.media = sources;
+    this->scrobbled = false;
+    // The picker's index is into the list it just handed over, which is now
+    // item.media — so playMedia's fast path plays exactly what was chosen
+    // rather than re-resolving and possibly landing on a different release.
+    this->preferredVersion = mediaIndex;
+    this->playMedia(0);
+
+    // Keep the Next button pointing at the episode after THIS one.
+    for (size_t i = 0; i < this->episodes.size(); i++)
+        if (this->episodes[i].ratingKey == ep.ratingKey) this->view->setPlayIndex((int)i);
 }
 
 /// NuvioTV splits the player's identity across three lines rather than one

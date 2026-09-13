@@ -371,16 +371,19 @@ void VideoView::updateTime(double positionSec, double durationSec) {
 
 void VideoView::setList(const std::vector<std::string>& values, int index) {
     // 选集
+    this->playListSize = (int)values.size();
     // "Skip to next episode" appears only when there IS a next one, exactly as
     // the reference gates it on nextEpisode?.hasAired.
-    auto event = [this, values](int index) {
-        this->playIndex = index;
-        this->btnNext->setVisibility(
-            index + 1 < (int)values.size() ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
-    };
+    auto event = [this](int index) { this->setPlayIndex(index); };
 
     this->playIndexEvent.subscribe(event);
     event(index);
+}
+
+void VideoView::setPlayIndex(int index) {
+    this->playIndex = index;
+    this->btnNext->setVisibility(
+        index + 1 < this->playListSize ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
 }
 
 void VideoView::requestSeeking(int seek, int delay) {

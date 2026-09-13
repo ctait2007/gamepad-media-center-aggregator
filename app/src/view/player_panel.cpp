@@ -127,8 +127,14 @@ PlayerCard::PlayerCard(const std::string& name, const std::string& detail, const
 
 void PlayerCard::setSelected(bool selected) {
     this->selected = selected;
-    this->tick->setVisibility(selected ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    this->tick->setVisibility(
+        selected && this->showTick ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     this->applyColors();
+}
+
+void PlayerCard::setShowTick(bool show) {
+    this->showTick = show;
+    this->setSelected(this->selected);
 }
 
 void PlayerCard::setTrailingText(const std::string& text) {
@@ -207,6 +213,19 @@ PlayerPill::PlayerPill(const std::string& text, bool selected) : selected(select
     this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
 }
 
+PlayerPill* PlayerPill::icon(const char* path) {
+    auto* pill = new PlayerPill("", false);
+    pill->label->setVisibility(brls::Visibility::GONE);
+    pill->setPadding(20, 20, 20, 20);  // square, so the circle stays round
+    pill->glyphPath = path;
+    pill->glyph = new SVGImage();
+    pill->glyph->setDimensions(40, 40);
+    pill->glyph->setShrink(0);
+    pill->addView(pill->glyph);
+    pill->applyColors();
+    return pill;
+}
+
 void PlayerPill::setSelected(bool selected) {
     this->selected = selected;
     this->applyColors();
@@ -216,6 +235,15 @@ void PlayerPill::applyColors() {
     auto theme = brls::Application::getTheme();
     NVGcolor accent = theme.getColor("color/app");
     bool focused = this->isFocused();
+
+    if (this->glyph && this->glyphPath) {
+        NVGcolor fg = this->selected ? nvgRGB(0, 0, 0) : (focused ? onAccent(accent) : nvgRGB(255, 255, 255));
+        char svg[400];
+        std::snprintf(svg, sizeof(svg),
+            R"(<svg width="24" height="24" viewBox="0 0 24 24"><path d="%s" fill="%s"/></svg>)", this->glyphPath,
+            hex(fg).c_str());
+        this->glyph->setImageFromSVGString(svg);
+    }
 
     if (this->selected) {
         // The reference fills the active tab near-white and darkens it further
@@ -559,15 +587,8 @@ PlayerSidePanel::PlayerSidePanel(const std::string& title, const std::string& su
     head->setSingleLine(true);
     head->setGrow(1);
     header->addView(head);
-
-    auto* close = new PlayerCard("hints/back"_i18n, "", "", false);
-    close->setShrink(0);
-    close->registerClickAction([](brls::View*) {
-        brls::Application::popActivity();
-        return true;
-    });
-    header->addView(close);
-    this->closeButton = close;
+    // No Close button: B closes the sheet, the hint bar already says so, and a
+    // button that only repeats a hardware button costs a focus stop.
     sheet->addView(header);
 
     if (!subtitle.empty()) {
@@ -598,10 +619,25 @@ PlayerSidePanel::PlayerSidePanel(const std::string& title, const std::string& su
     });
 }
 
+void PlayerSidePanel::linkTabs(brls::View* firstRow) {
+    if (!this->tabsBox) return;
+    brls::View* firstTab = nullptr;
+    for (brls::View* v : this->tabsBox->getChildren())
+        if (v->isFocusable()) {
+            firstTab = v;
+            break;
+        }
+    if (!firstTab) return;
+
+    if (firstRow) firstRow->setCustomNavigationRoute(brls::FocusDirection::UP, firstTab);
+    for (brls::View* v : this->tabsBox->getChildren())
+        if (v->isFocusable())
+            v->setCustomNavigationRoute(brls::FocusDirection::DOWN, firstRow ? firstRow : (brls::View*)this->bodyBox);
+}
+
 void PlayerSidePanel::present() { brls::Application::pushActivity(new brls::Activity(this)); }
 
 brls::View* PlayerSidePanel::getDefaultFocus() {
     if (this->focusTargetView) return this->focusTargetView;
-    if (this->closeButton) return this->closeButton;
     return brls::Box::getDefaultFocus();
 }
