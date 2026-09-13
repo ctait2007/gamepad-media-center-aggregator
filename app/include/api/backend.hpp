@@ -20,6 +20,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <borealis/core/i18n.hpp>
+
 #include "api/http.hpp"
 #include "api/media/types.hpp"
 
@@ -41,8 +43,20 @@ enum class PlayState { Playing, Paused, Stopped };
 
 /// Personal-list flavor exposed by the backend: drives the "my list" tab/button
 /// visibility AND its wording. Plex -> Watchlist (plex.tv account), Jellyfin/Emby
-/// -> Favorites. None hides the tab/button entirely.
-enum class ListKind { None, Watchlist, Favorites };
+/// -> Favorites, Stremio/Nuvio -> Library (what both the service and NuvioTV
+/// call it). None hides the tab/button entirely.
+enum class ListKind { None, Watchlist, Favorites, Library };
+
+/// i18n group backing the wording of that list. The three flavors differ only
+/// in what they are called — "Add to Watchlist" / "Add to Favorites" / "Add to
+/// library" — so every call site asks for a suffix off this rather than
+/// carrying its own two-way ternary.
+inline std::string listI18n(ListKind kind, const std::string& suffix) {
+    const char* group = kind == ListKind::Favorites ? "main/favorites"
+                        : kind == ListKind::Library ? "main/library"
+                                                    : "main/watchlist";
+    return brls::getStr(std::string(group) + "/" + suffix);
+}
 
 /// Library grid query — abstracts sort/filter/type. `sortField` is a neutral
 /// token mapped per backend (canonical tokens follow the Plex set:
@@ -239,6 +253,10 @@ public:
     /// Can this item be added to the personal list? (Plex: movie/show with a
     /// provider guid; Jellyfin: any real item.)
     virtual bool canList(const Item& item) const { return false; }
+    /// Drop an item from Continue Watching WITHOUT marking it watched — the
+    /// reference's "Remove" on a resume tile. Default: nothing to do, for
+    /// backends whose resume list is derived server-side.
+    virtual void removeFromContinueWatching(const std::string& id) { }
     /// List the personal-list contents (Plex watchlist / Jellyfin favorites).
     virtual void listWatchlist(
         const std::string& sortField, MediaKind kind, size_t start, size_t size, Then<Container<Item>> then,

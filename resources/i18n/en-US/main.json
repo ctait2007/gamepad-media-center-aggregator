@@ -1,566 +1,583 @@
 {
-  "rename": {
-    "title": "pleNx is now GMCA",
-    "intro": "Same app, all grown up. pleNx has become GMCA — the Gamepad Media Center Aggregator — and it does a whole lot more.",
-    "whats_new": "WHAT'S NEW",
-    "feature_backends": "One app, every server — Plex, Jellyfin, Emby and Stremio",
-    "feature_music": "Your music library, right next to movies and shows",
-    "feature_offline": "Offline downloads to watch anywhere, no connection needed",
-    "feature_updates": "Regular updates, delivered straight to the app",
-    "reassure": "Your logins, settings and downloads came across automatically — nothing to set up again. Enjoy!",
-    "continue": "Let's go"
-  },
-  "tabs": {
-    "home": "Home",
-    "genres": "Genres",
-    "suggest": "Suggestions",
-    "search": "Search",
-    "downloads": "Downloads",
-    "setting": "Settings",
-    "remote": "Remote"
-  },
-  "home": {
-    "resume": "Continue Watching",
-    "nextup": "Next Up",
-    "latest": "Recently Added",
-    "empty": "Nothing to show here yet — no catalogs were loaded. Check that your account still has addons enabled, then press the refresh button."
-  },
-  "recommend": {
-    "like": "Because you like {}",
-    "watched": "Because you watched {}",
-    "directed": "Directed by {}",
-    "starring": "Starring {}"
-  },
-  "about": {
-    "header": "About",
-    "brief": "Yet another third-party media client",
-    "repo_header": "Repository"
-  },
-  "changelog": {
-    "header": "Changelog",
-    "empty": "Changelog unavailable"
-  },
-  "player": {
-    "subtitle": "Subtitle",
-    "none": "None",
-    "audio": "Audio track",
-    "common": "Common",
-    "speed": "Playback Speed",
-    "quality": "Video Quality",
-    "chapter": "Chapter",
-    "auto": "Auto",
-    "toggle": "Play/Pause",
-    "prev": "Prev",
-    "next": "Next",
-    "error": "Playback error",
-    "direct_fallback": "Transcode failed, playing directly",
-    "episode": "Episode",
-    "speed_up": "Current speed {}"
-  },
-  "media": {
-    "choose_source": "Choose a source",
-    "sort": "Sort",
-    "sort_by": "Sort By",
-    "filter": "Filter",
-    "order": "Order",
-    "ascending": "Ascending",
-    "descending": "Descending",
-    "name": "Name",
-    "mark_played": "Mark played",
-    "mark_unplayed": "Mark unplayed",
-    "play": "Play",
-    "open": "Open",
-    "replay": "Play again",
-    "see_all": "See all",
-    "intro": "Intro",
-    "people": "People",
-    "cast": "Cast",
-    "special": "Special Features",
-    "similar": "More Like This",
-    "date_add": "Date Add",
-    "date_played": "Date Played",
-    "premiere_date": "Premiere Date",
-    "play_count": "Play Count",
-    "rating": "Community Rating",
-    "random": "Random",
-    "played": "Played",
-    "unplayed": "Unplayed",
-    "collections": "Collections",
-    "season": "season",
-    "seasons": "seasons",
-    "episode": "episode",
-    "episodes": "episodes",
-    "seasons_title": "Seasons",
-    "go_series": "Go to show",
-    "go_season": "Go to season",
-    "director": "Director",
-    "more_info": "More info",
-    "episode_n": "EPISODE {}"
-  },
-  "search": {
-    "hint": "Supports keywords and their initial letters",
-    "clear": "Clear",
-    "delete": "Delete",
-    "paste": "Paste",
-    "history": "History",
-    "suggest": "Suggest",
-    "clear_history": "Confirm to clear search history?",
-    "genres": {
-      "movie": "Movie",
-      "series": "Series",
-      "episode": "Episode"
+    "rename": {
+        "title": "pleNx is now GMCA",
+        "intro": "Same app, all grown up. pleNx has become GMCA — the Gamepad Media Center Aggregator — and it does a whole lot more.",
+        "whats_new": "WHAT'S NEW",
+        "feature_backends": "One app, every server — Plex, Jellyfin, Emby and Stremio",
+        "feature_music": "Your music library, right next to movies and shows",
+        "feature_offline": "Offline downloads to watch anywhere, no connection needed",
+        "feature_updates": "Regular updates, delivered straight to the app",
+        "reassure": "Your logins, settings and downloads came across automatically — nothing to set up again. Enjoy!",
+        "continue": "Let's go"
     },
-    "no_history": "No recent searches",
-    "no_results": "No results",
-    "placeholder": "Search movies & shows",
-    "results": "Results",
-    "keyboard": "Keyboard",
-    "space": "Space",
-    "no_results_sub": "Try another title, actor or genre.",
-    "no_history_sub": "Your recent searches will show up here.",
-      "recent": "Recent searches",
-    "from_addon": "from {}",
-    "clear_history_action": "Clear history",
-      "remove": "Remove",
-      "start_title": "Start searching",
-      "start_sub": "Find movies and shows across every addon."
-  },
-  "person": {
-    "movies": "Movies",
-    "shows": "TV Shows",
-    "as": "As {}"
-  },
-  "playlist": {
-    "title": "Playlists",
-    "item": "item",
-    "items": "items"
-  },
-  "music": {
-    "album": "album",
-    "albums": "albums",
-    "track": "track",
-    "tracks": "tracks",
-    "play_album": "Play album",
-    "play_artist": "Shuffle play",
-    "shuffle": "Shuffle",
-    "repeat": "Repeat",
-    "queue": "Queue",
-    "move": "Move",
-    "now_playing": "Now Playing"
-  },
-  "favorites": {
-    "title": "Favorites",
-    "add": "Add to Favorites",
-    "remove": "Remove from Favorites",
-    "added": "Added to Favorites",
-    "removed": "Removed from Favorites",
-    "empty_title": "No favorites yet",
-    "empty_sub": "Mark movies and shows as favorite to find them here."
-  },
-  "watchlist": {
-    "title": "Watchlist",
-    "add": "Add to Watchlist",
-    "remove": "Remove from Watchlist",
-    "added": "Added to Watchlist",
-    "removed": "Removed from Watchlist",
-    "empty_title": "Your Watchlist is empty",
-    "empty_sub": "Movies and shows you save will appear here.",
-    "not_in_library": "This title is not in your library",
-    "all": "All",
-    "availability": "Availability",
-    "on_server": "On the server",
-    "not_on_server": "Not on the server"
-  },
-  "remote": {
-    "empty_title": "No files",
-    "empty_sub": "Browse local storage and your WebDAV, FTP or SFTP servers.",
-    "local": "Files",
-    "folder": "Folder",
-    "up": "Up",
-    "bluray": "Play Blu-ray",
-    "add_server": "Add a server",
-    "edit_server": "Edit server",
-    "manage": "Manage server",
-    "edit": "Edit",
-    "delete": "Delete",
-    "delete_confirm": "Delete “{}”?",
-    "type": "Type",
-    "name": "Name",
-    "host": "Host",
-    "port": "Port",
-    "username": "Username",
-    "password": "Password",
-    "path": "Start path",
-    "optional": "Optional",
-    "save": "Test and save",
-    "test_failed": "Connection failed: {}",
-    "retry": "Try again?",
-    "required": "Enter at least a name and a host.",
-    "sort": "Sort files",
-    "date": "Date modified",
-    "size": "Size",
-    "pin": "Pin to Files",
-    "unpin": "Remove from Files",
-    "pinned": "Pinned to Files",
-    "unpinned": "Removed from Files",
-    "already_pinned": "Already pinned",
-    "pin_missing": "This folder is no longer available. Remove it from Files?"
-  },
-  "download": {
-    "start": "Download",
-    "cancel": "Cancel Download",
-    "remove": "Remove Download",
-    "downloading": "Downloading...",
-    "eta": "{} left",
-    "completed": "Downloaded",
-    "failed": "Download Failed",
-    "queued": "Queued",
-    "no_downloads": "No Downloads",
-    "confirm_remove": "Remove this download?",
-    "play_offline": "Play Offline",
-    "confirm_cancel": "Cancel this download?",
-    "season": "Download season",
-    "confirm_season": "Download {} episodes?",
-    "season_queued": "Season added to downloads",
-    "offline_title": "You're offline",
-    "offline_sub": "No downloaded content. Retry to reconnect to your server.",
-    "offline_retry": "Retry",
-    "reconnecting": "Reconnecting…",
-    "still_offline": "Still offline",
-    "offline_section": "This section isn't available offline.",
-    "confirm_episode": "Download this episode?",
-    "unavailable_offline": "Not available offline",
-    "storage": "Storage",
-    "storage_free": "{} free of {}",
-    "section_active": "In Progress",
-    "section_done": "Downloaded",
-    "remove_all": "Remove All",
-    "confirm_remove_all": "Remove all downloads?",
-    "empty_sub": "Downloaded movies and episodes end up here, ready to watch offline."
-  },
-  "discover": {
-    "title": "Discover",
-    "filter": {
-      "type": "Type",
-      "catalog": "Catalog",
-      "genre": "Genre"
+    "tabs": {
+        "home": "Home",
+        "genres": "Genres",
+        "suggest": "Suggestions",
+        "search": "Search",
+        "downloads": "Downloads",
+        "setting": "Settings",
+        "remote": "Remote"
     },
-    "genre_default": "Default",
-    "no_catalog": "No catalog",
-    "empty": "Nothing in this catalog"
-  },
-  "setting": {
-    "category": {
-     "account": {
-      "title": "Account",
-      "subtitle": "Servers and sign-in"
-     },
-     "appearance": {
-      "title": "Appearance",
-      "subtitle": "Theme, colour and text size"
-     },
-     "layout": {
-      "title": "Layout",
-      "subtitle": "Rows, libraries and posters"
-     },
-     "playback": {
-      "title": "Playback",
-      "subtitle": "Video, audio and subtitles"
-     },
-     "advanced": {
-      "title": "Advanced",
-      "subtitle": "Network, performance and tools"
-     },
-     "about": {
-      "title": "About",
-      "subtitle": "Version, changelog and updates"
-     }
+    "home": {
+        "resume": "Continue Watching",
+        "nextup": "Next Up",
+        "latest": "Recently Added",
+        "empty": "Nothing to show here yet — no catalogs were loaded. Check that your account still has addons enabled, then press the refresh button."
     },
-    "layout": {
-     "poster_labels": "Show poster titles (restart required)"
+    "recommend": {
+        "like": "Because you like {}",
+        "watched": "Because you watched {}",
+        "directed": "Directed by {}",
+        "starring": "Starring {}"
     },
-    "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",
-    "name": "Name",
-    "version": "Version",
-    "os": "Operating System",
-    "url": "URL",
-    "user": "User",
-    "username": "Username",
-    "password": "Password",
+    "about": {
+        "header": "About",
+        "brief": "Yet another third-party media client",
+        "repo_header": "Repository"
+    },
+    "changelog": {
+        "header": "Changelog",
+        "empty": "Changelog unavailable"
+    },
+    "player": {
+        "subtitle": "Subtitle",
+        "none": "None",
+        "audio": "Audio track",
+        "common": "Common",
+        "speed": "Playback Speed",
+        "quality": "Video Quality",
+        "chapter": "Chapter",
+        "auto": "Auto",
+        "toggle": "Play/Pause",
+        "prev": "Prev",
+        "next": "Next",
+        "error": "Playback error",
+        "direct_fallback": "Transcode failed, playing directly",
+        "episode": "Episode",
+        "speed_up": "Current speed {}"
+    },
+    "media": {
+        "choose_source": "Choose a source",
+        "sort": "Sort",
+        "sort_by": "Sort By",
+        "filter": "Filter",
+        "order": "Order",
+        "ascending": "Ascending",
+        "descending": "Descending",
+        "name": "Name",
+        "mark_played": "Mark played",
+        "mark_unplayed": "Mark unplayed",
+        "play": "Play",
+        "open": "Open",
+        "replay": "Play again",
+        "see_all": "See all",
+        "intro": "Intro",
+        "people": "People",
+        "cast": "Cast",
+        "special": "Special Features",
+        "similar": "More Like This",
+        "date_add": "Date Add",
+        "date_played": "Date Played",
+        "premiere_date": "Premiere Date",
+        "play_count": "Play Count",
+        "rating": "Community Rating",
+        "random": "Random",
+        "played": "Played",
+        "unplayed": "Unplayed",
+        "collections": "Collections",
+        "season": "season",
+        "seasons": "seasons",
+        "episode": "episode",
+        "episodes": "episodes",
+        "seasons_title": "Seasons",
+        "go_series": "Go to show",
+        "go_season": "Go to season",
+        "director": "Director",
+        "more_info": "More info",
+        "episode_n": "EPISODE {}",
+        "go_details": "Go to details",
+        "play_manually": "Play manually",
+        "start_over": "Start from beginning",
+        "remove_resume": "Remove",
+        "title_actions": "Title actions",
+        "item_actions": "Choose what you want to do with this item.",
+        "mark_watched": "Mark as watched",
+        "mark_unwatched": "Mark as unwatched"
+    },
+    "search": {
+        "hint": "Supports keywords and their initial letters",
+        "clear": "Clear",
+        "delete": "Delete",
+        "paste": "Paste",
+        "history": "History",
+        "suggest": "Suggest",
+        "clear_history": "Confirm to clear search history?",
+        "genres": {
+            "movie": "Movie",
+            "series": "Series",
+            "episode": "Episode"
+        },
+        "no_history": "No recent searches",
+        "no_results": "No results",
+        "placeholder": "Search movies & shows",
+        "results": "Results",
+        "keyboard": "Keyboard",
+        "space": "Space",
+        "no_results_sub": "Try another title, actor or genre.",
+        "no_history_sub": "Your recent searches will show up here.",
+        "recent": "Recent searches",
+        "from_addon": "from {}",
+        "clear_history_action": "Clear history",
+        "remove": "Remove",
+        "start_title": "Start searching",
+        "start_sub": "Find movies and shows across every addon."
+    },
+    "person": {
+        "movies": "Movies",
+        "shows": "TV Shows",
+        "as": "As {}"
+    },
+    "playlist": {
+        "title": "Playlists",
+        "item": "item",
+        "items": "items"
+    },
+    "music": {
+        "album": "album",
+        "albums": "albums",
+        "track": "track",
+        "tracks": "tracks",
+        "play_album": "Play album",
+        "play_artist": "Shuffle play",
+        "shuffle": "Shuffle",
+        "repeat": "Repeat",
+        "queue": "Queue",
+        "move": "Move",
+        "now_playing": "Now Playing"
+    },
+    "favorites": {
+        "title": "Favorites",
+        "add": "Add to Favorites",
+        "remove": "Remove from Favorites",
+        "added": "Added to Favorites",
+        "removed": "Removed from Favorites",
+        "empty_title": "No favorites yet",
+        "empty_sub": "Mark movies and shows as favorite to find them here."
+    },
+    "watchlist": {
+        "title": "Watchlist",
+        "add": "Add to Watchlist",
+        "remove": "Remove from Watchlist",
+        "added": "Added to Watchlist",
+        "removed": "Removed from Watchlist",
+        "empty_title": "Your Watchlist is empty",
+        "empty_sub": "Movies and shows you save will appear here.",
+        "not_in_library": "This title is not in your library",
+        "all": "All",
+        "availability": "Availability",
+        "on_server": "On the server",
+        "not_on_server": "Not on the server"
+    },
+    "remote": {
+        "empty_title": "No files",
+        "empty_sub": "Browse local storage and your WebDAV, FTP or SFTP servers.",
+        "local": "Files",
+        "folder": "Folder",
+        "up": "Up",
+        "bluray": "Play Blu-ray",
+        "add_server": "Add a server",
+        "edit_server": "Edit server",
+        "manage": "Manage server",
+        "edit": "Edit",
+        "delete": "Delete",
+        "delete_confirm": "Delete “{}”?",
+        "type": "Type",
+        "name": "Name",
+        "host": "Host",
+        "port": "Port",
+        "username": "Username",
+        "password": "Password",
+        "path": "Start path",
+        "optional": "Optional",
+        "save": "Test and save",
+        "test_failed": "Connection failed: {}",
+        "retry": "Try again?",
+        "required": "Enter at least a name and a host.",
+        "sort": "Sort files",
+        "date": "Date modified",
+        "size": "Size",
+        "pin": "Pin to Files",
+        "unpin": "Remove from Files",
+        "pinned": "Pinned to Files",
+        "unpinned": "Removed from Files",
+        "already_pinned": "Already pinned",
+        "pin_missing": "This folder is no longer available. Remove it from Files?"
+    },
+    "download": {
+        "start": "Download",
+        "cancel": "Cancel Download",
+        "remove": "Remove Download",
+        "downloading": "Downloading...",
+        "eta": "{} left",
+        "completed": "Downloaded",
+        "failed": "Download Failed",
+        "queued": "Queued",
+        "no_downloads": "No Downloads",
+        "confirm_remove": "Remove this download?",
+        "play_offline": "Play Offline",
+        "confirm_cancel": "Cancel this download?",
+        "season": "Download season",
+        "confirm_season": "Download {} episodes?",
+        "season_queued": "Season added to downloads",
+        "offline_title": "You're offline",
+        "offline_sub": "No downloaded content. Retry to reconnect to your server.",
+        "offline_retry": "Retry",
+        "reconnecting": "Reconnecting…",
+        "still_offline": "Still offline",
+        "offline_section": "This section isn't available offline.",
+        "confirm_episode": "Download this episode?",
+        "unavailable_offline": "Not available offline",
+        "storage": "Storage",
+        "storage_free": "{} free of {}",
+        "section_active": "In Progress",
+        "section_done": "Downloaded",
+        "remove_all": "Remove All",
+        "confirm_remove_all": "Remove all downloads?",
+        "empty_sub": "Downloaded movies and episodes end up here, ready to watch offline."
+    },
+    "discover": {
+        "title": "Discover",
+        "filter": {
+            "type": "Type",
+            "catalog": "Catalog",
+            "genre": "Genre"
+        },
+        "genre_default": "Default",
+        "no_catalog": "No catalog",
+        "empty": "Nothing in this catalog"
+    },
+    "setting": {
+        "category": {
+            "account": {
+                "title": "Account",
+                "subtitle": "Servers and sign-in"
+            },
+            "appearance": {
+                "title": "Appearance",
+                "subtitle": "Theme, colour and text size"
+            },
+            "layout": {
+                "title": "Layout",
+                "subtitle": "Rows, libraries and posters"
+            },
+            "playback": {
+                "title": "Playback",
+                "subtitle": "Video, audio and subtitles"
+            },
+            "advanced": {
+                "title": "Advanced",
+                "subtitle": "Network, performance and tools"
+            },
+            "about": {
+                "title": "About",
+                "subtitle": "Version, changelog and updates"
+            }
+        },
+        "layout": {
+            "poster_labels": "Show poster titles (restart required)"
+        },
+        "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",
+        "name": "Name",
+        "version": "Version",
+        "os": "Operating System",
+        "url": "URL",
+        "user": "User",
+        "username": "Username",
+        "password": "Password",
+        "server": {
+            "header": "Server",
+            "detail": "Server Details",
+            "connect_new": "New Server",
+            "connect_to": "Connect to a media server",
+            "invalid": "URL must start with http:// or https://",
+            "connect": "Connect",
+            "delete": "Confirm to delete?",
+            "local": "Local Servers",
+            "users": "{} users",
+            "sigin_to": "Sign In to  {}",
+            "signin": "Sign In"
+        },
+        "playback": {
+            "header": "Playback",
+            "low_quality": "Low quality decoding (with less CPU usage)",
+            "in_memory_cache": "Inmemory cache",
+            "subs_fallback": "Autoload subtitles",
+            "subtitle_lang": {
+                "header": "Subtitle language",
+                "auto": "Automatic (app language)",
+                "off": "Off"
+            },
+            "vo": "Video output",
+            "hwdec": "Hardware decode",
+            "force_directplay": "Force direct play",
+            "osd_on_toggle": "Show OSD when paused",
+            "touch_gesture": "Touch gesture for seeking step",
+            "clip_point": "Show clip point of chapter",
+            "transcodec": "Codec",
+            "audio_channels": "Audio Channels",
+            "video_quality": "Video Quality",
+            "subsync": "Subtitle Sync"
+        },
+        "transcode": {
+            "header": "Transcode"
+        },
+        "control": {
+            "header": "Playback Control",
+            "tv_osd": "TV style OSD control"
+        },
+        "filter": {
+            "mirror": "Video flip",
+            "hflip": "Horizontally flip",
+            "vflip": "Vertically flip",
+            "rotation": "Rotation"
+        },
+        "aspect": {
+            "header": "Video aspect",
+            "crop": "Crop",
+            "stretch": "Stretch",
+            "auto": "Auto"
+        },
+        "equalizer": {
+            "header": "Equalizer",
+            "brightness": "Brightness",
+            "contrast": "Contrast",
+            "saturation": "Saturation",
+            "gamma": "Gamma",
+            "hue": "Hue",
+            "reset": "Reset"
+        },
+        "network": {
+            "header": "Network",
+            "threads": "Number of image loading threads",
+            "timeout": "Request timeout (ms)",
+            "proxy": "Proxy Setting",
+            "host": "Host",
+            "port": "Port"
+        },
+        "ui": {
+            "header": "UI",
+            "scale": {
+                "header": "UI Scale (restart required)",
+                "544p": "544p",
+                "720p": "720p",
+                "900p": "900p",
+                "1080p": "1080p"
+            },
+            "vsync": "Vertical Sync",
+            "show_fps": "Show FPS"
+        },
+        "tutorial": {
+            "header": "Tutorial",
+            "open": "How to install desktop icon",
+            "error": "If you encounter a bug",
+            "hot_key": "Hot keys",
+            "font": "Set custom font",
+            "error_q1": "Unable to access the network",
+            "error_a1": "1. Ensure the atmosphere and system firmware are up to date\n2. Confirm that the system time is correct\n3. Restore the default network settings, including IP, DNS, etc\n4.Using in China",
+            "error_q2": "Exits with random error",
+            "error_a2": "1. Using a Fat32 format memory card\n2. Ensure the atmosphere and system firmware are up to date\n3. Waiting for developers to repair",
+            "font_q1": "How to set custom font or keymap icon",
+            "font_a1": "1. Download the font or icon font you want\n2. Rename font to: font.ttf; Rename icon to: icon.ttf\n3. Place font files in the config directory\n4. Restart the application",
+            "font_q2": "FAQ",
+            "font_a2": "1. GMCA prioritizes the display of custom fonts, with built-in fonts as a fallback\n2. \"Settings - Tutorial\" provides a menu item to quickly open the config directory\n3. On Linux, GMCA uses xdg-open to open the directory. If the configuration directory cannot be opened correctly, you can consider installing this tool",
+            "font_q3": "Subtitles didn't display",
+            "font_a3": "Put any ttf file at {}/subfont.ttf"
+        },
+        "libraries": {
+            "header": "Libraries",
+            "description": "Reorder and hide the sidebar tabs (libraries, playlists, Watchlist). This setting is saved per server.",
+            "grab": "Move",
+            "drop": "Drop",
+            "toggle": "Show / Hide",
+            "visible": "Shown",
+            "hidden": "Hidden",
+            "empty": "No tabs to organize"
+        },
+        "hidden_rows": {
+            "header": "Home Rows",
+            "description": "Reorder and hide rows (Continue Watching, catalogs, …). Reordering applies to Home; hiding applies wherever a row appears — Home, the Movie/Show suggestion tabs, and their own catalog tabs. Shown rows always sort above hidden ones. This setting applies to every connection.",
+            "empty": "No rows to organize yet — connect and browse a bit first"
+        },
+        "others": {
+            "header": "Others",
+            "fullscreen": "Fullscreen",
+            "always_on_top": "Always on top",
+            "single": "Single instance",
+            "overclock": "CPU Overclock",
+            "debug": "Debug View",
+            "sync": "Preserve order setting",
+            "accent": {
+                "header": "Colour theme",
+                "auto": "Automatic (match connection)",
+                "applied": "Theme applied"
+            },
+            "theme": {
+                "header": "Theme (restart required)",
+                "1": "Auto",
+                "2": "Light",
+                "3": "Dark"
+            },
+            "language": {
+                "header": "Language (restart required)",
+                "auto": "Auto"
+            },
+            "keymap": {
+                "header": "Keymap style",
+                "xbox": "Xbox",
+                "ps": "PlayStation",
+                "keyboard": "Keyboard"
+            },
+            "config_dir": "Config directory",
+            "logout": "Logout of the current account \n(the application will quit)",
+            "up2date": "App is up to date",
+            "upgrade": "{} is available now! Ready to update?",
+            "updating": "Updating in progress, cancel now?",
+            "downloading": "Downloading {}… {}%",
+            "installing": "Installing the update…",
+            "updated": "Update installed. The application will now close: launch it again to use the new version",
+            "release": "Check for updates",
+            "changelog": "Changelog"
+        }
+    },
+    "hints": {
+        "title": "Launch GMCA as a full application",
+        "text_applet": "GMCA is running in applet mode: the available memory is not sufficient for video playback. Launch it as a full application using one of the options below.",
+        "text_app": "GMCA is running as a full application. Install the HOME menu tile to launch it this way directly.",
+        "install_title": "HOME menu tile (recommended)",
+        "install_text": "Installs the embedded NSP forwarder: the tile launches GMCA as a full application straight from the HOME menu.",
+        "install_button": "Install the tile",
+        "takeover_title": "Alternative: title takeover",
+        "takeover_text": "Hold R while launching any installed game to open the homebrew menu as a full application, then launch GMCA from there.",
+        "prompt": "Install the GMCA tile on the HOME menu?\nThe tile launches the app as a full application (required for video playback).",
+        "hint_confirm": "Installing NSP forwarder may result in a ban\nPlease confirm again",
+        "remove_old": "GMCA is on your HOME menu. If an old pleNx tile is still there, remove it from System Settings > Data Management > Delete Software."
+    },
+    "plex": {
+        "title": "Sign in to your Plex account",
+        "generating": "Generating code…",
+        "waiting": "Waiting for confirmation…",
+        "connected": "Connected!",
+        "expired": "The code expired, please try again",
+        "step1": "1. On your phone or computer, open plex.tv/link",
+        "step2": "2. Sign in to your Plex account",
+        "step3": "3. Enter the code shown above",
+        "regenerate": "Generate a new code",
+        "choose_server": "Choose a server",
+        "choose_profile": "Choose a profile",
+        "profile_pin": "Profile PIN",
+        "wrong_pin": "Wrong PIN",
+        "no_server": "No server found on this account",
+        "connecting": "Connecting to the server…",
+        "connecting_slow": "This is taking longer than usual — still trying to reach your server. Hang tight…",
+        "unreachable": "Server unreachable"
+    },
     "server": {
-      "header": "Server",
-      "detail": "Server Details",
-      "connect_new": "New Server",
-      "connect_to": "Connect to a media server",
-      "invalid": "URL must start with http:// or https://",
-      "connect": "Connect",
-      "delete": "Confirm to delete?",
-      "local": "Local Servers",
-      "users": "{} users",
-      "sigin_to": "Sign In to  {}",
-      "signin": "Sign In"
+        "choose_type": "Choose your connection type",
+        "switch_title": "Connections",
+        "add": "Add",
+        "jellyfin": {
+            "title_jellyfin": "Sign in to Jellyfin",
+            "title_emby": "Sign in to Emby",
+            "url": "Server address",
+            "username": "Username",
+            "password": "Password",
+            "connect": "Connect"
+        },
+        "stremio": {
+            "title": "Sign in to Stremio",
+            "email": "Email",
+            "password": "Password",
+            "connect": "Connect",
+            "invalid": "Enter your email and password"
+        },
+        "nuvio": {
+            "title": "Sign in to Nuvio",
+            "url": "Backend URL",
+            "email": "Email",
+            "password": "Password",
+            "connect": "Connect",
+            "invalid": "Enter your email and password",
+            "bad_credentials": "Wrong email or password",
+            "no_profile": "No profile found on this account",
+            "wrong_pin": "Wrong PIN"
+        }
     },
-    "playback": {
-      "header": "Playback",
-      "low_quality": "Low quality decoding (with less CPU usage)",
-      "in_memory_cache": "Inmemory cache",
-      "subs_fallback": "Autoload subtitles",
-      "subtitle_lang": {
-        "header": "Subtitle language",
-        "auto": "Automatic (app language)",
-        "off": "Off"
-      },
-      "vo": "Video output",
-      "hwdec": "Hardware decode",
-      "force_directplay": "Force direct play",
-      "osd_on_toggle": "Show OSD when paused",
-      "touch_gesture": "Touch gesture for seeking step",
-      "clip_point": "Show clip point of chapter",
-      "transcodec": "Codec",
-      "audio_channels": "Audio Channels",
-      "video_quality": "Video Quality",
-      "subsync": "Subtitle Sync"
-    },
-    "transcode": {
-      "header": "Transcode"
-    },
-    "control": {
-      "header": "Playback Control",
-      "tv_osd": "TV style OSD control"
-    },
-    "filter": {
-      "mirror": "Video flip",
-      "hflip": "Horizontally flip",
-      "vflip": "Vertically flip",
-      "rotation": "Rotation"
-    },
-    "aspect": {
-      "header": "Video aspect",
-      "crop": "Crop",
-      "stretch": "Stretch",
-      "auto": "Auto"
-    },
-    "equalizer": {
-      "header": "Equalizer",
-      "brightness": "Brightness",
-      "contrast": "Contrast",
-      "saturation": "Saturation",
-      "gamma": "Gamma",
-      "hue": "Hue",
-      "reset": "Reset"
-    },
-    "network": {
-      "header": "Network",
-      "threads": "Number of image loading threads",
-      "timeout": "Request timeout (ms)",
-      "proxy": "Proxy Setting",
-      "host": "Host",
-      "port": "Port"
-    },
-    "ui": {
-      "header": "UI",
-      "scale": {
-        "header": "UI Scale (restart required)",
-        "544p": "544p",
-        "720p": "720p",
-        "900p": "900p",
-        "1080p": "1080p"
-      },
-      "vsync": "Vertical Sync",
-      "show_fps": "Show FPS"
-    },
-    "tutorial": {
-      "header": "Tutorial",
-      "open": "How to install desktop icon",
-      "error": "If you encounter a bug",
-      "hot_key": "Hot keys",
-      "font": "Set custom font",
-      "error_q1": "Unable to access the network",
-      "error_a1": "1. Ensure the atmosphere and system firmware are up to date\n2. Confirm that the system time is correct\n3. Restore the default network settings, including IP, DNS, etc\n4.Using in China",
-      "error_q2": "Exits with random error",
-      "error_a2": "1. Using a Fat32 format memory card\n2. Ensure the atmosphere and system firmware are up to date\n3. Waiting for developers to repair",
-      "font_q1": "How to set custom font or keymap icon",
-      "font_a1": "1. Download the font or icon font you want\n2. Rename font to: font.ttf; Rename icon to: icon.ttf\n3. Place font files in the config directory\n4. Restart the application",
-      "font_q2": "FAQ",
-      "font_a2": "1. GMCA prioritizes the display of custom fonts, with built-in fonts as a fallback\n2. \"Settings - Tutorial\" provides a menu item to quickly open the config directory\n3. On Linux, GMCA uses xdg-open to open the directory. If the configuration directory cannot be opened correctly, you can consider installing this tool",
-      "font_q3": "Subtitles didn't display",
-      "font_a3": "Put any ttf file at {}/subfont.ttf"
-    },
-    "libraries": {
-      "header": "Libraries",
-      "description": "Reorder and hide the sidebar tabs (libraries, playlists, Watchlist). This setting is saved per server.",
-      "grab": "Move",
-      "drop": "Drop",
-      "toggle": "Show / Hide",
-      "visible": "Shown",
-      "hidden": "Hidden",
-      "empty": "No tabs to organize"
-    },
-    "hidden_rows": {
-      "header": "Home Rows",
-      "description": "Reorder and hide rows (Continue Watching, catalogs, …). Reordering applies to Home; hiding applies wherever a row appears — Home, the Movie/Show suggestion tabs, and their own catalog tabs. Shown rows always sort above hidden ones. This setting applies to every connection.",
-      "empty": "No rows to organize yet — connect and browse a bit first"
-    },
-    "others": {
-      "header": "Others",
-      "fullscreen": "Fullscreen",
-      "always_on_top": "Always on top",
-      "single": "Single instance",
-      "overclock": "CPU Overclock",
-      "debug": "Debug View",
-      "sync": "Preserve order setting",
-      "accent": {
-        "header": "Colour theme",
-        "auto": "Automatic (match connection)",
-        "applied": "Theme applied"
-      },
-      "theme": {
-        "header": "Theme (restart required)",
-        "1": "Auto",
-        "2": "Light",
-        "3": "Dark"
-      },
-      "language": {
-        "header": "Language (restart required)",
-        "auto": "Auto"
-      },
-      "keymap": {
-        "header": "Keymap style",
-        "xbox": "Xbox",
-        "ps": "PlayStation",
-        "keyboard": "Keyboard"
-      },
-      "config_dir": "Config directory",
-      "logout": "Logout of the current account \n(the application will quit)",
-      "up2date": "App is up to date",
-      "upgrade": "{} is available now! Ready to update?",
-      "updating": "Updating in progress, cancel now?",
-      "downloading": "Downloading {}… {}%",
-      "installing": "Installing the update…",
-      "updated": "Update installed. The application will now close: launch it again to use the new version",
-      "release": "Check for updates",
-      "changelog": "Changelog"
-    }
-  },
-  "hints": {
-    "title": "Launch GMCA as a full application",
-    "text_applet": "GMCA is running in applet mode: the available memory is not sufficient for video playback. Launch it as a full application using one of the options below.",
-    "text_app": "GMCA is running as a full application. Install the HOME menu tile to launch it this way directly.",
-    "install_title": "HOME menu tile (recommended)",
-    "install_text": "Installs the embedded NSP forwarder: the tile launches GMCA as a full application straight from the HOME menu.",
-    "install_button": "Install the tile",
-    "takeover_title": "Alternative: title takeover",
-    "takeover_text": "Hold R while launching any installed game to open the homebrew menu as a full application, then launch GMCA from there.",
-    "prompt": "Install the GMCA tile on the HOME menu?\nThe tile launches the app as a full application (required for video playback).",
-    "hint_confirm": "Installing NSP forwarder may result in a ban\nPlease confirm again",
-    "remove_old": "GMCA is on your HOME menu. If an old pleNx tile is still there, remove it from System Settings > Data Management > Delete Software."
-  },
-  "plex": {
-    "title": "Sign in to your Plex account",
-    "generating": "Generating code…",
-    "waiting": "Waiting for confirmation…",
-    "connected": "Connected!",
-    "expired": "The code expired, please try again",
-    "step1": "1. On your phone or computer, open plex.tv/link",
-    "step2": "2. Sign in to your Plex account",
-    "step3": "3. Enter the code shown above",
-    "regenerate": "Generate a new code",
-    "choose_server": "Choose a server",
-    "choose_profile": "Choose a profile",
-    "profile_pin": "Profile PIN",
-    "wrong_pin": "Wrong PIN",
-    "no_server": "No server found on this account",
-    "connecting": "Connecting to the server…",
-    "connecting_slow": "This is taking longer than usual — still trying to reach your server. Hang tight…",
-    "unreachable": "Server unreachable"
-  },
-  "server": {
-    "choose_type": "Choose your connection type",
-    "switch_title": "Connections",
-    "add": "Add",
-    "jellyfin": {
-      "title_jellyfin": "Sign in to Jellyfin",
-      "title_emby": "Sign in to Emby",
-      "url": "Server address",
-      "username": "Username",
-      "password": "Password",
-      "connect": "Connect"
-    },
-    "stremio": {
-      "title": "Sign in to Stremio",
-      "email": "Email",
-      "password": "Password",
-      "connect": "Connect",
-      "invalid": "Enter your email and password"
+    "empty": {
+        "title": "Nothing to show",
+        "error": "Unable to load"
     },
     "nuvio": {
-      "title": "Sign in to Nuvio",
-      "url": "Backend URL",
-      "email": "Email",
-      "password": "Password",
-      "connect": "Connect",
-      "invalid": "Enter your email and password",
-      "bad_credentials": "Wrong email or password",
-      "no_profile": "No profile found on this account",
-      "wrong_pin": "Wrong PIN"
-    }
-  },
-  "empty": {
-    "title": "Nothing to show",
-    "error": "Unable to load"
-  },
-  "nuvio": {
-    "subtitle": {
-      "none": "No subtitles available. Install a subtitles addon (e.g. OpenSubtitles) in your Nuvio account to get some here."
-    }
-  },
-  "stremio": {
-    "subtitle": {
-      "none": "No subtitles available. Install a subtitles addon (e.g. OpenSubtitles) in your Stremio account to get some here."
+        "subtitle": {
+            "none": "No subtitles available. Install a subtitles addon (e.g. OpenSubtitles) in your Nuvio account to get some here."
+        }
     },
-    "movies": "Movies",
-    "series": "Series",
-    "popular": "Popular",
-    "new": "New",
-    "featured": "Featured",
-    "genre": {
-      "action": "Action",
-      "adventure": "Adventure",
-      "animation": "Animation",
-      "biography": "Biography",
-      "comedy": "Comedy",
-      "crime": "Crime",
-      "documentary": "Documentary",
-      "drama": "Drama",
-      "family": "Family",
-      "fantasy": "Fantasy",
-      "history": "History",
-      "horror": "Horror",
-      "mystery": "Mystery",
-      "romance": "Romance",
-      "scifi": "Sci-Fi",
-      "sport": "Sport",
-      "thriller": "Thriller",
-      "war": "War",
-      "western": "Western"
+    "stremio": {
+        "subtitle": {
+            "none": "No subtitles available. Install a subtitles addon (e.g. OpenSubtitles) in your Stremio account to get some here."
+        },
+        "movies": "Movies",
+        "series": "Series",
+        "popular": "Popular",
+        "new": "New",
+        "featured": "Featured",
+        "genre": {
+            "action": "Action",
+            "adventure": "Adventure",
+            "animation": "Animation",
+            "biography": "Biography",
+            "comedy": "Comedy",
+            "crime": "Crime",
+            "documentary": "Documentary",
+            "drama": "Drama",
+            "family": "Family",
+            "fantasy": "Fantasy",
+            "history": "History",
+            "horror": "Horror",
+            "mystery": "Mystery",
+            "romance": "Romance",
+            "scifi": "Sci-Fi",
+            "sport": "Sport",
+            "thriller": "Thriller",
+            "war": "War",
+            "western": "Western"
+        },
+        "source": {
+            "unavailable": "No playable source",
+            "none": "No sources available for this item.",
+            "cached": "Cached",
+            "uncached": "Download",
+            "direct": "Direct",
+            "torrent_badge": "Torrent",
+            "link_badge": "Link",
+            "torrents": "{} torrent source(s) — debrid required",
+            "links": "{} external link(s) — not playable here",
+            "more": "+{} more playable source(s)",
+            "torrents_help": "These sources are raw torrents. This platform has no torrent client: install a debrid-enabled addon (Torrentio + Real-Debrid, Comet, MediaFusion…) in your Stremio account to get playable links.",
+            "links_help": "These sources are external links (browser or third-party service) that cannot be played directly in the app on this platform.",
+            "loading": "Finding sources…",
+            "failed": "Could not load sources. Press Triangle to try again.",
+            "refresh": "Refresh",
+            "all": "All"
+        }
     },
-    "source": {
-      "unavailable": "No playable source",
-      "none": "No sources available for this item.",
-      "cached": "Cached",
-      "uncached": "Download",
-      "direct": "Direct",
-      "torrent_badge": "Torrent",
-      "link_badge": "Link",
-      "torrents": "{} torrent source(s) — debrid required",
-      "links": "{} external link(s) — not playable here",
-      "more": "+{} more playable source(s)",
-      "torrents_help": "These sources are raw torrents. This platform has no torrent client: install a debrid-enabled addon (Torrentio + Real-Debrid, Comet, MediaFusion…) in your Stremio account to get playable links.",
-      "links_help": "These sources are external links (browser or third-party service) that cannot be played directly in the app on this platform.",
-      "loading": "Finding sources…",
-      "failed": "Could not load sources. Press Triangle to try again.",
-      "refresh": "Refresh",
-      "all": "All"
+    "library": {
+        "title": "Library",
+        "add": "Add to library",
+        "remove": "Remove from library",
+        "added": "Added to library",
+        "removed": "Removed from library",
+        "empty_title": "Your library is empty",
+        "empty_sub": "Movies and shows you save will appear here."
     }
-  }
 }

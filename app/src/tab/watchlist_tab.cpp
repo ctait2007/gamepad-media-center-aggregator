@@ -274,20 +274,23 @@ void WatchlistTab::doRequest() {
     media::MediaKind kind = WatchlistFilter::selectedType == 1   ? media::MediaKind::Movie
                             : WatchlistFilter::selectedType == 2 ? media::MediaKind::Show
                                                                  : media::MediaKind::Any;
-    bool favorites = AppConfig::instance().backend().caps().listKind == media::ListKind::Favorites;
+    // Everything but the plex.tv watchlist lists ORDINARY SERVER ITEMS, which
+    // the standard grid renders (click opens the detail page, context menu
+    // works); only Plex hands back provider stubs that need their own cell.
+    bool serverItems = AppConfig::instance().backend().caps().listKind != media::ListKind::Watchlist;
 
     ASYNC_RETAIN
     // personal list: Plex watchlist (provider items) or Jellyfin favorites (server items)
     AppConfig::instance().backend().listWatchlist(
         sort, kind, this->startIndex, this->pageSize,
-        [ASYNC_TOKEN, favorites](const media::Container<media::Item>& r) {
+        [ASYNC_TOKEN, serverItems](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
             this->startIndex = r.StartIndex + this->pageSize;
             bool more = !r.Items.empty() && (long)this->startIndex < r.TotalRecordCount;
 
-            if (favorites) {
-                // favorites are normal server items -> standard grid (click opens
-                // the detail page, context menu works); no provider images, no dimming
+            if (serverItems) {
+                // ordinary server items -> standard grid (click opens the
+                // detail page, context menu works); no provider images, no dimming
                 if (!this->loaded) {
                     if (!r.Items.empty()) {
                         this->loaded = true;
@@ -295,8 +298,9 @@ void WatchlistTab::doRequest() {
                     } else if (more) {
                         this->doRequest();
                     } else {
-                        this->recycler->setEmpty("main/favorites/empty_title"_i18n,
-                            "main/favorites/empty_sub"_i18n, "icon/ico-bookmark.svg");
+                        auto kind = AppConfig::instance().backend().caps().listKind;
+                        this->recycler->setEmpty(media::listI18n(kind, "empty_title"),
+                            media::listI18n(kind, "empty_sub"), "icon/ico-bookmark.svg");
                     }
                 } else if (!r.Items.empty()) {
                     auto* ds = dynamic_cast<VideoDataSource*>(this->recycler->getDataSource());

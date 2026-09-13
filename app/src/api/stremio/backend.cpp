@@ -363,8 +363,9 @@ StremioBackend::StremioBackend() {
     // Stremio's "library" is a server-side list of full items (id/name/poster),
     // displayed and opened like Jellyfin favorites — NOT a provider-guid watchlist
     // (which would route through the Plex-only fetchLibraryGuids/matchInLibrary
-    // path in WatchlistTab). So map it onto Favorites.
-    caps_.listKind = account ? media::ListKind::Favorites : media::ListKind::None;
+    // path in WatchlistTab). It gets its own wording because that is what both
+    // Stremio and the reference call it.
+    caps_.listKind = account ? media::ListKind::Library : media::ListKind::None;
     caps_.ratings = true;
     caps_.skipIntro = false;
     caps_.transcode = false;
@@ -1142,6 +1143,21 @@ void StremioBackend::markWatched(const std::string& id) {
             });
         } catch (const std::exception& ex) {
             brls::Logger::warning("stremio markWatched: {}", ex.what());
+        }
+    });
+}
+
+void StremioBackend::removeFromContinueWatching(const std::string& id) {
+    if (accountKey().empty()) return;
+    std::string rk = id;
+    brls::async([this, rk]() {
+        try {
+            // Continue Watching is "has a resume offset and is not flagged
+            // watched" (getContinueWatching); clearing the offset takes the tile
+            // off the row without claiming the user finished it.
+            upsertLibrary(engine, rk, [](nlohmann::json& st) { st["timeOffset"] = 0; });
+        } catch (const std::exception& ex) {
+            brls::Logger::warning("stremio removeFromContinueWatching: {}", ex.what());
         }
     });
 }

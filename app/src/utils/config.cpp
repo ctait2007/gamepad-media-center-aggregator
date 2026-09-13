@@ -1094,6 +1094,14 @@ void AppConfig::initThemes() {
     // "from <addon>" line under a row title in.
     this->addColor(brls::ThemeVariant::LIGHT, "font/tertiary", nvgRGB(168, 173, 180));
     this->addColor(brls::ThemeVariant::DARK, "font/tertiary", nvgRGB(128, 128, 128));
+    // A focused pill in a long-press sheet INVERTS rather than picking up a
+    // ring: tv-material3's Button defaults its focused colours to onSurface on
+    // inverseOnSurface, which in a dark theme is white text-on-panel becoming
+    // dark text on white. Not accent-tinted — the reference's is not.
+    this->addColor(brls::ThemeVariant::LIGHT, "color/sheet/focus_bg", nvgRGB(26, 26, 26));
+    this->addColor(brls::ThemeVariant::LIGHT, "color/sheet/focus_fg", nvgRGB(255, 255, 255));
+    this->addColor(brls::ThemeVariant::DARK, "color/sheet/focus_bg", nvgRGB(255, 255, 255));
+    this->addColor(brls::ThemeVariant::DARK, "color/sheet/focus_fg", nvgRGB(26, 26, 26));
 
     // establish the neutral pleNx DEFAULT accent for all pre-connection screens;
     // checkLogin()/addUser() re-apply the connected backend's palette afterwards.

@@ -16,7 +16,15 @@ public:
 
     void onItemSelected(brls::Box* recycler, size_t index) override;
 
-    void onContextMenu(brls::Box* recycler, size_t index);
+    /// virtual: the Continue Watching row offers a different list
+    virtual void onContextMenu(brls::Box* recycler, size_t index);
+
+    /// "Go to details": always a PAGE, never playback (an episode's is its
+    /// show's). Shared with the Continue Watching sheet.
+    void openDetail(brls::Box* recycler, const plex::Item& item);
+    /// Reflect a watched toggle on the originating recycler's cached item and
+    /// its visible cell, instead of re-fetching the whole view.
+    void refreshCard(brls::Box* recycler, const std::string& itemId, bool played);
 
     int setPlayed(const std::string& itemId, bool played) override;
 

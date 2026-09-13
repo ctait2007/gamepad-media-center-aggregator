@@ -251,10 +251,9 @@ void MediaMovie::initWatchlist(const media::Item& item) {
     // gated by the backend's personal-list capability + per-item applicability
     if (be.caps().listKind == media::ListKind::None || !be.canList(item)) return;
     this->listItem = item;
-    // label matches the backend's personal list: Plex → Watchlist, Jellyfin/Emby → Favoris
-    this->btnWatchlist->setText(be.caps().listKind == media::ListKind::Favorites
-                                    ? "main/favorites/title"_i18n
-                                    : "main/watchlist/title"_i18n);
+    // label matches the backend's personal list: Plex → Watchlist, Jellyfin/Emby
+    // → Favoris, Stremio/Nuvio → Library
+    this->btnWatchlist->setText(media::listI18n(be.caps().listKind, "title"));
 
     this->btnWatchlist->registerClickAction([this](...) {
         this->toggleWatchlist();
@@ -284,16 +283,15 @@ void MediaMovie::initWatchlist(const media::Item& item) {
 void MediaMovie::toggleWatchlist() {
     bool add = !this->watchlisted;
     auto& be = AppConfig::instance().backend();
-    bool fav = be.caps().listKind == media::ListKind::Favorites;
+    media::ListKind kind = be.caps().listKind;
     ASYNC_RETAIN
     be.setWatchlisted(
         this->listItem, add,
-        [ASYNC_TOKEN, add, fav]() {
+        [ASYNC_TOKEN, add, kind]() {
             ASYNC_RELEASE
             this->watchlisted = add;
             this->updateWatchlistButton();
-            brls::Application::notify(add ? (fav ? "main/favorites/added"_i18n : "main/watchlist/added"_i18n)
-                                          : (fav ? "main/favorites/removed"_i18n : "main/watchlist/removed"_i18n));
+            brls::Application::notify(media::listI18n(kind, add ? "added" : "removed"));
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE

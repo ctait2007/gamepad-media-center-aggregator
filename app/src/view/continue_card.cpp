@@ -1,7 +1,13 @@
 #include "view/continue_card.hpp"
 
+#include "activity/player_view.hpp"
 #include "api/plex.hpp"
+#include "api/backend.hpp"
+#include "tab/source_list.hpp"
 #include "utils/image.hpp"
+#include "view/action_sheet.hpp"
+#include "view/auto_tab_frame.hpp"
+#include "view/mpv_core.hpp"
 
 using namespace brls::literals;
 
@@ -67,4 +73,54 @@ RecyclingGridItem* ContinueDataSource::cellForRow(RecyclingView* recycler, size_
     cell->setPlayOverlay(true);
     cell->updateActionHint(brls::BUTTON_A, "main/media/play"_i18n);
     return cell;
+}
+
+/// NuvioTV's ContinueWatchingOptionsDialog: Go to details, then Play manually,
+/// Start from beginning (only when there IS something to start over) and
+/// Remove. The wording and the order are the reference's.
+void ContinueDataSource::onContextMenu(brls::Box* recycler, size_t index) {
+    if (index >= this->list.size()) return;
+    plex::Item item = this->list.at(index);  // by value: the sheet outlives the frame
+
+    // The reference heads the sheet with the thing being resumed, which for an
+    // episode is the show, not the episode name.
+    std::string head = item.type == plex::mediaTypeEpisode && !item.grandparentTitle.empty()
+                           ? item.grandparentTitle
+                           : item.title;
+    auto* sheet = new ActionSheet(head, "main/media/item_actions"_i18n);
+
+    sheet->addAction("main/media/go_details"_i18n, [this, recycler, item]() { this->openDetail(recycler, item); });
+
+    // "Play manually" = let me pick the source. Today EVERY play on an addon
+    // backend goes through the picker, so it is the same journey as Play; the
+    // entry exists because the reference has it, and because it is what will
+    // stay honest once automatic source selection lands and Play stops asking.
+    auto play = [recycler, item](int64_t resumeMs) {
+        plex::Item it = item;
+        it.viewOffset = resumeMs;
+        std::string title = it.type == plex::mediaTypeEpisode
+                                ? fmt::format("S{}E{} - {}", it.parentIndex, it.index, it.title)
+                                : (it.year ? fmt::format("{} ({})", it.title, it.year) : it.title);
+        auto bt = AppConfig::instance().backend().type();
+        if (bt == media::BackendType::Stremio || bt == media::BackendType::Nuvio) {
+            ui::presentDetail(recycler, new SourceList(it, title, resumeMs));
+            return;
+        }
+        PlayerView* view = new PlayerView(it, resumeMs);
+        view->setTitie(title);
+        if (!it.grandparentRatingKey.empty()) view->setSeries(it.grandparentRatingKey);
+    };
+
+    sheet->addAction("main/media/play_manually"_i18n, [play, item]() { play(item.viewOffset); });
+
+    if (item.viewOffset > 0) sheet->addAction("main/media/start_over"_i18n, [play]() { play(0); });
+
+    std::string id = item.ratingKey;
+    sheet->addAction("main/media/remove_resume"_i18n, [id]() {
+        AppConfig::instance().backend().removeFromContinueWatching(id);
+        // the row is rebuilt from the backend, which has just been told
+        MPVCore::instance().getCustomEvent()->fire(VIDEO_CLOSE, nullptr);
+    });
+
+    sheet->present();
 }

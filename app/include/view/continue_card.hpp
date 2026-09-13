@@ -34,6 +34,10 @@ public:
     using VideoDataSource::VideoDataSource;
 
     RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override;
+
+    /// NuvioTV's ContinueWatchingOptionsDialog rather than the poster one:
+    /// a resume tile's useful actions are about the resume, not the title.
+    void onContextMenu(brls::Box* recycler, size_t index) override;
 };
 
 /// "27m" / "1h 29m" — the reference's phrasing, not a clock reading (sec2Time

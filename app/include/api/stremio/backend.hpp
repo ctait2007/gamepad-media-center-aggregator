@@ -78,6 +78,7 @@ public:
 
     // ---- item actions --------------------------------------------------------
     void markWatched(const std::string& id) override;
+    void removeFromContinueWatching(const std::string& id) override;
     void markUnwatched(const std::string& id) override;
 
     // ---- playback (étape 2) --------------------------------------------------

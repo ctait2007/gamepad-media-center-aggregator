@@ -17,7 +17,8 @@
 #include "view/svg_image.hpp"
 #include "view/video_card.hpp"
 #include "view/video_source.hpp"
-#include "view/context_menu.hpp"
+#include "view/action_sheet.hpp"
+#include "view/mpv_core.hpp"
 #include "view/auto_tab_frame.hpp"
 
 using namespace brls::literals;  // for _i18n
@@ -220,11 +221,107 @@ void VideoDataSource::onItemSelected(brls::Box* recycler, size_t index) {
     }
 }
 
+void VideoDataSource::openDetail(brls::Box* recycler, const plex::Item& item) {
+    // "Go to details" always lands on a PAGE, never on playback — which is the
+    // difference between it and selecting the card, since an episode or a clip
+    // starts playing when selected. An episode's page is its show's.
+    if (item.type == plex::mediaTypeEpisode || item.type == plex::mediaTypeClip) {
+        if (item.grandparentRatingKey.empty()) return;
+        plex::Item series;
+        series.ratingKey = item.grandparentRatingKey;
+        series.type = plex::mediaTypeShow;
+        series.title = item.grandparentTitle;
+        series.thumb = item.grandparentThumb;
+        ui::presentDetail(recycler, new MediaSeries(series, this->localContext));
+        return;
+    }
+    if (item.type == plex::mediaTypeMovie) {
+        ui::presentDetail(recycler, new MediaMovie(item, this->localContext));
+        return;
+    }
+    if (item.type == plex::mediaTypeShow || item.type == plex::mediaTypeSeason) {
+        ui::presentDetail(recycler, new MediaSeries(item, this->localContext));
+        return;
+    }
+    // anything else (photo, track, playlist) has no page of its own; the
+    // sheet does not offer the entry for those, so there is nothing to do
+}
+
+/// NuvioTV's PosterOptionsDialog: the title, "Title actions", then Go to
+/// details / the library toggle / the watched toggle. The download entry after
+/// them is ours — the reference has no downloads, and dropping the only way to
+/// queue one to match it would cost more than the parity is worth.
 void VideoDataSource::onContextMenu(brls::Box* recycler, size_t index) {
     if (index >= this->list.size()) return;  // "+" card: no menu
-    auto& item = this->list.at(index);
-    brls::Box* menu = new ContextMenu(item, recycler);
-    brls::Application::pushActivity(new brls::Activity(menu));
+    plex::Item item = this->list.at(index);  // by value: the sheet outlives the frame
+
+    auto* sheet = new ActionSheet(item.title, "main/media/title_actions"_i18n);
+
+    sheet->addAction("main/media/go_details"_i18n, [this, recycler, item]() { this->openDetail(recycler, item); });
+
+    auto& be = AppConfig::instance().backend();
+    media::ListKind kind = be.caps().listKind;
+    if (kind != media::ListKind::None && be.canList(item)) {
+        // The state is a round trip away, so the entry goes up reading "add"
+        // and corrects itself when the answer lands; a sheet that waited for it
+        // would pop open a beat after the button press.
+        auto* entry = sheet->addAction(media::listI18n(kind, "add"), []() { });
+        auto listed = std::make_shared<bool>(false);
+        entry->setOnClick([item, kind, listed]() {
+            bool add = !*listed;
+            AppConfig::instance().backend().setWatchlisted(
+                item, add,
+                [add, kind]() { brls::Application::notify(media::listI18n(kind, add ? "added" : "removed")); },
+                [](const std::string& ex) { brls::Application::notify(ex); });
+        });
+        be.getWatchlistState(
+            item,
+            [entry, kind, listed](bool state) {
+                *listed = state;
+                entry->setLabel(media::listI18n(kind, state ? "remove" : "add"));
+            },
+            [](const std::string& ex) { brls::Logger::warning("poster sheet list state: {}", ex); });
+    }
+
+    if (be.caps().markWatched) {
+        bool played = item.played();
+        std::string id = item.ratingKey;
+        sheet->addAction(played ? "main/media/mark_unwatched"_i18n : "main/media/mark_watched"_i18n,
+            [this, recycler, id, played]() {
+                auto& b = AppConfig::instance().backend();
+                if (played)
+                    b.markUnwatched(id);
+                else
+                    b.markWatched(id);
+                this->refreshCard(recycler, id, !played);
+            });
+    }
+
+    auto& dm = DownloadManager::instance();
+    if (item.type == plex::mediaTypeMovie || item.type == plex::mediaTypeEpisode ||
+        item.type == plex::mediaTypeClip) {
+        std::string id = item.ratingKey;
+        bool have = dm.isDownloaded(id) || dm.isDownloading(id);
+        sheet->addAction(have ? "main/download/completed"_i18n : "main/download/start"_i18n, [id, have]() {
+            if (have) return;
+            DownloadManager::instance().addDownload(id);
+            brls::Application::notify("main/download/queued"_i18n);
+        });
+    }
+
+    sheet->present();
+}
+
+void VideoDataSource::refreshCard(brls::Box* recycler, const std::string& itemId, bool played) {
+    auto* view = dynamic_cast<RecyclingView*>(recycler);
+    int index = (view && view->getDataSource()) ? view->getDataSource()->setPlayed(itemId, played) : -1;
+    if (index < 0) {
+        // no targeted support (season episodes): fall back to the global
+        // "watched/progress changed" signal
+        MPVCore::instance().getCustomEvent()->fire(VIDEO_CLOSE, nullptr);
+        return;
+    }
+    if (auto* cell = dynamic_cast<VideoCardCell*>(view->getGridItemByIndex(index))) cell->setWatched(played);
 }
 
 int VideoDataSource::setPlayed(const std::string& itemId, bool played) {

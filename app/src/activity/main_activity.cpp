@@ -360,8 +360,7 @@ std::vector<MainTabFrame::SidebarEntry> MainTabFrame::getReorderableEntries() {
             e.label = brls::getStr("main/playlist/title");
             e.icon = "@res/icon/ico-playlist.svg";
         } else if (id == "tab/watchlist") {
-            e.label = caps.listKind == media::ListKind::Favorites ? brls::getStr("main/favorites/title")
-                                                                  : brls::getStr("main/watchlist/title");
+            e.label = media::listI18n(caps.listKind, "title");
             e.icon = "@res/icon/ico-bookmark-fill.svg";
         } else {
             // "lib/<sectionKey>"
