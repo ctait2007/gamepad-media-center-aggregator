@@ -545,6 +545,9 @@ struct Hub {
     std::string key;
     std::string hubIdentifier;  // e.g. home.continue, home.ondeck
     std::string title;
+    /// Optional second line under the row title, rendered smaller and dimmer
+    /// (NuvioTV's CatalogRowSection draws "from <addon>" there). Empty = no line.
+    std::string subtitle;
     std::string type;
     bool more = false;
     std::vector<Item> items;

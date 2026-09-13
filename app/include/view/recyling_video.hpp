@@ -20,6 +20,8 @@ public:
 
     void reset() { this->start = 0; }
     void setTitle(const std::string& text);
+    /// Dim second line under the title ("from <addon>"); empty hides it.
+    void setSubtitle(const std::string& text);
     void setFrameHeight(float height);
     void setItemWidth(float width);
     /// side inset carried by the row itself: the title is indented,
@@ -41,6 +43,7 @@ public:
 
 private:
     BRLS_BIND(brls::Header, title, "recycler/title");
+    BRLS_BIND(brls::Label, subtitle, "recycler/subtitle");
     BRLS_BIND(HRecyclerFrame, recycler, "recycler/videos");
 
     Callback queryCallback = nullptr;

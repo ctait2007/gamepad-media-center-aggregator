@@ -17,6 +17,17 @@ const std::string recylingVideoContentXML = R"xml(
             marginBottom="6"
             id="recycler/title" />
 
+        <!-- NuvioTV's CatalogRowSection stacks a dim "from <addon>" line under
+             the row title. Gone unless one is set, so every other row keeps
+             the spacing it had. -->
+        <brls:Label
+            id="recycler/subtitle"
+            fontSize="24"
+            marginTop="-4"
+            marginBottom="12"
+            textColor="@theme/font/tertiary"
+            visibility="gone" />
+
         <HRecyclerFrame
             id="recycler/videos" />
 
@@ -55,9 +66,16 @@ RecylingVideo::~RecylingVideo() {}
 
 void RecylingVideo::setTitle(const std::string& text) { this->title->setTitle(text); }
 
+void RecylingVideo::setSubtitle(const std::string& text) {
+    this->subtitle->setText(text);
+    this->subtitle->setVisibility(text.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+}
+
 void RecylingVideo::setSidePadding(float padding) {
     this->title->setMarginLeft(padding);
     this->title->setMarginRight(padding);
+    this->subtitle->setMarginLeft(padding);
+    this->subtitle->setMarginRight(padding);
     // padding inside the HRecyclerFrame: the cards slide up to the edges
     this->recycler->setPaddingLeft(padding);
     this->recycler->setPaddingRight(padding);

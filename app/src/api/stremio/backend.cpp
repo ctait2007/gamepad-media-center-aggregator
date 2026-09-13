@@ -976,7 +976,9 @@ void StremioBackend::searchHubs(
     const std::string& query, media::Then<media::Container<media::Hub>> then, media::OnError error) {
     std::string q = query;
     L10n loc = loadL10n();
-    brls::async([this, q, loc, then, error]() {
+    // resolved here, on the UI thread: the i18n table is not the worker's to read
+    std::string from = "main/search/from_addon"_i18n;
+    brls::async([this, q, loc, from, then, error]() {
         try {
             engine.ensureLoaded();
             // Only the catalogs that advertise the `search` extra can answer,
@@ -989,7 +991,7 @@ void StremioBackend::searchHubs(
                 if (pc.second.hasSearch()) searchable.push_back(pc);
 
             auto rows = parallelMap<std::pair<Addon, Catalog>, media::Hub>(
-                searchable, [this, &q, &loc](const std::pair<Addon, Catalog>& pc) -> media::Hub {
+                searchable, [this, &q](const std::pair<Addon, Catalog>& pc) -> media::Hub {
                     media::Hub h;
                     std::string url =
                         engine.resourceUrl(pc.first, "catalog", pc.second.type, pc.second.id, {{"search", q}});
@@ -999,23 +1001,62 @@ void StremioBackend::searchHubs(
                         brls::Logger::warning("stremio searchHubs {}: {}", url, ex.what());
                         return h;
                     }
-                    if (h.items.empty()) return h;
-                    // "Addon · Catalog", as the reference titles its rows —
-                    // the addon first, because that is what distinguishes two
-                    // rows that both came back as "Popular".
-                    std::string cat = bestCatalogLabel(loc, pc.first, pc.second);
-                    h.title = pc.first.manifest.name.empty() || pc.first.manifest.name == cat
-                                  ? cat
-                                  : pc.first.manifest.name + "  ·  " + cat;
-                    h.key = catalogKey(pc.first.base, pc.second.type, pc.second.id);
-                    h.hubIdentifier = h.key;
-                    h.type = mapType(pc.second.type);
+                    // The Stremio type ("movie"/"series") and the addon that
+                    // answered are all the grouping below needs; the row title
+                    // is built from the bucket, not from the catalog.
+                    h.key = pc.second.type;
+                    h.hubIdentifier = pc.first.manifest.name;
                     return h;
                 });
 
+            // GROUPED BY TYPE, not by catalog. With a dozen addons installed a
+            // per-catalog list is a dozen near-identical rows of the same
+            // handful of titles; two rows — Movies, Series — is what actually
+            // reads. Movies first, then series, then anything else in the order
+            // the addons declared it, so the screen does not reshuffle between
+            // searches. Duplicates (every metadata addon knows the same IMDb
+            // id) collapse to the first one seen.
+            std::vector<std::string> order;
+            std::map<std::string, media::Hub> buckets;
+            std::map<std::string, std::set<std::string>> seenIds, seenAddons;
+            std::map<std::string, std::vector<std::string>> addonNames;
+            for (auto& h : rows) {
+                if (h.items.empty()) continue;
+                const std::string& stype = h.key;
+                if (!buckets.count(stype)) {
+                    order.push_back(stype);
+                    media::Hub b;
+                    b.key            = stype;
+                    b.hubIdentifier  = stype;
+                    b.title          = typeLabel(loc, stype);
+                    b.type           = mapType(stype);
+                    buckets[stype]   = std::move(b);
+                }
+                if (!h.hubIdentifier.empty() && seenAddons[stype].insert(h.hubIdentifier).second)
+                    addonNames[stype].push_back(h.hubIdentifier);
+                for (auto& it : h.items)
+                    if (seenIds[stype].insert(it.ratingKey).second)
+                        buckets[stype].items.push_back(std::move(it));
+            }
+            std::sort(order.begin(), order.end(), [](const std::string& a, const std::string& b) {
+                auto rank = [](const std::string& t) { return t == "movie" ? 0 : t == "series" ? 1 : 2; };
+                return rank(a) < rank(b);
+            });
+
             media::Container<media::Hub> c;
-            for (auto& h : rows)
-                if (!h.items.empty()) c.Items.push_back(std::move(h));
+            for (const std::string& stype : order) {
+                media::Hub& b = buckets[stype];
+                // "from AIOMetadata" under the title, as the reference's
+                // CatalogRowSection draws it; every addon that contributed,
+                // because the row no longer belongs to just one of them.
+                const auto& names = addonNames[stype];
+                if (!names.empty()) {
+                    std::string joined = names[0];
+                    for (size_t i = 1; i < names.size(); i++) joined += ", " + names[i];
+                    b.subtitle = fmt::format(fmt::runtime(from), joined);
+                }
+                c.Items.push_back(std::move(b));
+            }
             c.TotalRecordCount = (long)c.Items.size();
             brls::sync(std::bind(then, std::move(c)));
         } catch (const std::exception& ex) {

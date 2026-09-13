@@ -373,6 +373,7 @@ void SearchTab::showHubs(const std::vector<media::Hub>& hubs) {
         if (h.items.empty()) continue;
         auto* row = new RecylingVideo();
         row->setTitle(h.title);
+        row->setSubtitle(h.subtitle);
         row->setFrameHeight(frameHeight);
         // The tab already carries the page's side padding, so the row adds
         // only enough for a card's focus ring (drawn ~5px outside its frame)

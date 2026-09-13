@@ -1090,6 +1090,10 @@ void AppConfig::initThemes() {
     // 深浅配色通用的灰色字体颜色
     this->addColor(brls::ThemeVariant::LIGHT, "font/grey", nvgRGB(148, 153, 160));
     this->addColor(brls::ThemeVariant::DARK, "font/grey", nvgRGB(179, 179, 179));  // Nuvio textSecondary (neutral400)
+    // One step dimmer again — Nuvio textTertiary (neutral600), what it sets the
+    // "from <addon>" line under a row title in.
+    this->addColor(brls::ThemeVariant::LIGHT, "font/tertiary", nvgRGB(168, 173, 180));
+    this->addColor(brls::ThemeVariant::DARK, "font/tertiary", nvgRGB(128, 128, 128));
 
     // establish the neutral pleNx DEFAULT accent for all pre-connection screens;
     // checkLogin()/addUser() re-apply the connected backend's palette afterwards.
