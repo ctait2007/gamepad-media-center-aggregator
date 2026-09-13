@@ -71,8 +71,9 @@ public:
 
         // right rail: the addon that produced it, like Nuvio's source badge —
         // its manifest logo (spacing.xxl square, radii.xs) over its name, the
-        // column end-aligned.
-        if (!m.addonName.empty()) {
+        // column end-aligned. Layout > Addon logo on sources turns it off, as
+        // the reference's settings_stream_addon_logo_title does.
+        if (!m.addonName.empty() && AppConfig::instance().getItem(AppConfig::STREAM_ADDON_LOGO, true)) {
             auto* badge = new brls::Box();
             badge->setAxis(brls::Axis::COLUMN);
             badge->setAlignItems(brls::AlignItems::FLEX_END);

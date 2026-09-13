@@ -121,6 +121,25 @@ public:
         /// behaviour; off here, which is the look its reference screens have.
         POSTER_LABELS,
 
+        // --- Layout toggles the reference exposes and we did not (NuvioTV
+        // LayoutSettingsScreen.kt). All default to what the app already did, so
+        // an existing install sees no change until it asks for one.
+        /// Hero carousel at the top of Home (layout_show_hero).
+        SHOW_HERO,
+        /// The Continue Watching row on Home (layout_cw_enabled).
+        SHOW_CONTINUE,
+        /// "from <addon>" under a row title (layout_addon_name).
+        CATALOG_ADDON_NAME,
+        /// The type half of a row title — "Movies · Popular" vs "Popular"
+        /// (layout_catalog_type).
+        CATALOG_TYPE_SUFFIX,
+        /// The addon's logo and name on a stream card
+        /// (settings_stream_addon_logo_title).
+        STREAM_ADDON_LOGO,
+        /// Episode long-press overlay: its own artwork behind it, or the plain
+        /// gradient (layout_episode_options_overlay ARTWORK vs NONE).
+        EPISODE_OVERLAY_ART,
+
         /// Discover's last filter, as "<type>\t<catalogKey>\t<genre>". The
         /// reference keeps its own (DiscoverSelectionDataStore) so the screen
         /// reopens where you left it. Matched by value, not by index, so an

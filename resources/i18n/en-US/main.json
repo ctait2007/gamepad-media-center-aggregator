@@ -288,7 +288,13 @@
             }
         },
         "layout": {
-            "poster_labels": "Show poster titles (restart required)"
+            "poster_labels": "Show poster titles (restart required)",
+            "show_hero": "Show hero section",
+            "show_continue": "Show Continue Watching",
+            "catalog_addon_name": "Show addon name",
+            "catalog_type": "Show catalog type",
+            "stream_addon_logo": "Addon logo on sources",
+            "episode_overlay_art": "Episode artwork behind the options menu"
         },
         "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",
         "name": "Name",

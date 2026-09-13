@@ -510,6 +510,28 @@ void SettingTab::onCreate() {
             Dialog::quitApp();
         });
 
+    // The rest of NuvioTV's Layout toggles that GMCA had as fixed behaviour.
+    // Each takes effect the next time the screen it affects is built, so they
+    // are plain setItem calls — no restart, unlike poster titles, whose row
+    // heights are computed once at startup.
+    struct LayoutToggle {
+        brls::BooleanCell* cell;
+        AppConfig::Item key;
+        const char* label;
+    };
+    for (const LayoutToggle& t : std::vector<LayoutToggle>{
+             {btnShowHero, AppConfig::SHOW_HERO, "main/setting/layout/show_hero"},
+             {btnShowContinue, AppConfig::SHOW_CONTINUE, "main/setting/layout/show_continue"},
+             {btnAddonName, AppConfig::CATALOG_ADDON_NAME, "main/setting/layout/catalog_addon_name"},
+             {btnCatalogType, AppConfig::CATALOG_TYPE_SUFFIX, "main/setting/layout/catalog_type"},
+             {btnStreamLogo, AppConfig::STREAM_ADDON_LOGO, "main/setting/layout/stream_addon_logo"},
+             {btnEpisodeArt, AppConfig::EPISODE_OVERLAY_ART, "main/setting/layout/episode_overlay_art"},
+         }) {
+        AppConfig::Item key = t.key;
+        t.cell->init(brls::getStr(t.label), conf.getItem(key, true),
+            [key](bool value) { AppConfig::instance().setItem(key, value); });
+    }
+
     this->buildCategories();
 }
 

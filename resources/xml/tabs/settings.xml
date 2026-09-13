@@ -130,6 +130,18 @@
                             visibility="gone">
                             <brls:BooleanCell
                                 id="setting/ui/poster_labels" />
+                            <brls:BooleanCell
+                                id="setting/layout/show_hero" />
+                            <brls:BooleanCell
+                                id="setting/layout/show_continue" />
+                            <brls:BooleanCell
+                                id="setting/layout/catalog_addon_name" />
+                            <brls:BooleanCell
+                                id="setting/layout/catalog_type" />
+                            <brls:BooleanCell
+                                id="setting/layout/stream_addon_logo" />
+                            <brls:BooleanCell
+                                id="setting/layout/episode_overlay_art" />
                             <DisclosureCell
                                 title="@i18n/main/setting/hidden_rows/header"
                                 id="setting/hidden_rows" />

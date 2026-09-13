@@ -1,5 +1,6 @@
 #include "view/episode_sheet.hpp"
 
+#include "utils/config.hpp"
 #include "utils/image.hpp"
 #include "view/action_sheet.hpp"
 #include "view/text_box.hpp"
@@ -107,11 +108,15 @@ EpisodeSheet::EpisodeSheet(const media::Item& episode) {
     else
         this->labelSummary->setText(episode.summary);
 
-    // the episode's own still, else the show's art — same fallback the cards use
+    // the episode's own still, else the show's art — same fallback the cards
+    // use. Layout > Episode artwork behind the options menu turns it off, which
+    // is the reference's ARTWORK/NONE choice: with no still, what is left is
+    // the flat scrim, and that is exactly what its "None" style looks like.
     const std::string& art = !episode.thumb.empty() ? episode.thumb
                              : !episode.grandparentArt.empty() ? episode.grandparentArt
                                                                : episode.art;
-    if (!art.empty()) Image::load(this->backdrop, art, 1280, 720);
+    if (!art.empty() && AppConfig::instance().getItem(AppConfig::EPISODE_OVERLAY_ART, true))
+        Image::load(this->backdrop, art, 1280, 720);
 
     this->registerAction("hints/cancel"_i18n, brls::BUTTON_B, [](brls::View*) {
         brls::Application::popActivity();

@@ -10,6 +10,7 @@
          it. The hero never scrolls and is never focusable: focus lives
          entirely in the rows below. -->
     <brls:Box
+        id="home/hero/art"
         positionType="absolute"
         positionTop="0"
         positionRight="0"

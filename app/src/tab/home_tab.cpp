@@ -147,6 +147,10 @@ void HomeTab::willAppear(bool resetState) {
 }
 
 void HomeTab::fetchResume() {
+    // Layout > Show Continue Watching (the reference's layout_cw_enabled).
+    // Gated at the FETCH, not at the render: with the row switched off there is
+    // no reason to ask the backend for it at all.
+    if (!AppConfig::instance().getItem(AppConfig::SHOW_CONTINUE, true)) return;
     ASYNC_RETAIN
     AppConfig::instance().backend().getContinueWatching(20,
         [ASYNC_TOKEN](const media::Container<media::Hub>& r) {
@@ -202,6 +206,7 @@ void HomeTab::fetchHubs() {
                 RowData row;
                 row.identifier = hub.hubIdentifier;
                 row.title = hub.title;
+                row.subtitle = hub.subtitle;
                 row.items = std::move(items);
                 if (hub.more && !hub.key.empty()) row.moreKey = hub.key;
                 this->pendingRows.push_back(std::move(row));
@@ -265,16 +270,25 @@ void HomeTab::renderRows() {
         this->boxHome->addView(empty);
     }
 
-    // Seed the hero before anything is focused, then let focus drive it.
-    for (auto& row : this->pendingRows) {
-        if (row.items.empty()) continue;
-        this->showHero(row.items.front());
-        break;
-    }
-    if (!this->focusSubscribed) {
-        this->focusSub = brls::Application::getGlobalFocusChangeEvent()->subscribe(
-            [this](brls::View*) { this->updateHeroFromFocus(); });
-        this->focusSubscribed = true;
+    // Layout > Show hero section (the reference's layout_show_hero). Both
+    // halves go: the artwork is absolute so hiding it just stops it drawing,
+    // and the text block is a sibling of the scroll, so hiding THAT is what
+    // gives the rows the space back.
+    if (!AppConfig::instance().getItem(AppConfig::SHOW_HERO, true)) {
+        if (auto* art = this->getView("home/hero/art")) art->setVisibility(brls::Visibility::GONE);
+        this->boxHero->setVisibility(brls::Visibility::GONE);
+    } else {
+        // Seed the hero before anything is focused, then let focus drive it.
+        for (auto& row : this->pendingRows) {
+            if (row.items.empty()) continue;
+            this->showHero(row.items.front());
+            break;
+        }
+        if (!this->focusSubscribed) {
+            this->focusSub = brls::Application::getGlobalFocusChangeEvent()->subscribe(
+                [this](brls::View*) { this->updateHeroFromFocus(); });
+            this->focusSubscribed = true;
+        }
     }
 
     this->spinner->setSpinning(false);
@@ -291,6 +305,7 @@ void HomeTab::renderRows() {
 RecylingVideo* HomeTab::buildRow(const RowData& row) {
     RecylingVideo* view = new RecylingVideo();
     view->setTitle(row.title);
+    view->setSubtitle(row.subtitle);
     float frameHeight = brls::getStyle()["app/card/poster/row"];
     if (row.isResume) {
         // NuvioTV's Continue Watching is a row of LANDSCAPE tiles with the

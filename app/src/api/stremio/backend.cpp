@@ -441,7 +441,12 @@ void StremioBackend::getHomeHubs(
     int count, bool, media::Then<media::Container<media::Hub>> then, media::OnError error) {
     int cnt = count;
     L10n loc = loadL10n();
-    brls::async([this, cnt, loc, then, error]() {
+    // Read on the UI thread, like the l10n table: the worker has no business
+    // touching either.
+    bool typeSuffix  = AppConfig::instance().getItem(AppConfig::CATALOG_TYPE_SUFFIX, true);
+    bool addonName   = AppConfig::instance().getItem(AppConfig::CATALOG_ADDON_NAME, true);
+    std::string from = "main/search/from_addon"_i18n;
+    brls::async([this, cnt, loc, typeSuffix, addonName, from, then, error]() {
         try {
             engine.ensureLoaded();
             // Browsable movie then series catalogs, each a row titled with its
@@ -472,7 +477,7 @@ void StremioBackend::getHomeHubs(
             // HTTP round trip, and with several addons/catalogs a sequential
             // loop made this the single biggest source of Home load latency.
             auto hubs = parallelMap<std::pair<Addon, Catalog>, media::Hub>(
-                visible, [cnt, loc](const std::pair<Addon, Catalog>& pc) -> media::Hub {
+                visible, [cnt, loc, typeSuffix, addonName, &from](const std::pair<Addon, Catalog>& pc) -> media::Hub {
                     const Catalog& cat = pc.second;
                     media::Hub h;  // empty items == skipped below
                     std::string url = buildCatalogUrl(pc.first.base, cat.type, cat.id);
@@ -493,7 +498,12 @@ void StremioBackend::getHomeHubs(
                     }
                     brls::Logger::info(
                         "stremio home: {}/{} '{}' -> {} item(s)", cat.type, cat.id, cat.name, res.items.size());
-                    h.title = typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat);
+                    // Layout > Show catalog type / Show addon name (the
+                    // reference's layout_catalog_type and layout_addon_name).
+                    h.title = typeSuffix ? typeLabel(loc, cat.type) + " · " + bestCatalogLabel(loc, pc.first, cat)
+                                         : bestCatalogLabel(loc, pc.first, cat);
+                    if (addonName && !pc.first.manifest.name.empty())
+                        h.subtitle = fmt::format(fmt::runtime(from), pc.first.manifest.name);
                     h.key = catalogKey(pc.first.base, cat.type, cat.id);  // "see all" -> getHubPage
                     // Stable identity (addon base + type + catalog id), NOT the
                     // iteration index: an index shifts if a catalog ahead of it
@@ -977,9 +987,11 @@ void StremioBackend::searchHubs(
     const std::string& query, media::Then<media::Container<media::Hub>> then, media::OnError error) {
     std::string q = query;
     L10n loc = loadL10n();
-    // resolved here, on the UI thread: the i18n table is not the worker's to read
+    // resolved here, on the UI thread: neither the i18n table nor the settings
+    // are the worker's to read
     std::string from = "main/search/from_addon"_i18n;
-    brls::async([this, q, loc, from, then, error]() {
+    bool addonName   = AppConfig::instance().getItem(AppConfig::CATALOG_ADDON_NAME, true);
+    brls::async([this, q, loc, from, addonName, then, error]() {
         try {
             engine.ensureLoaded();
             // Only the catalogs that advertise the `search` extra can answer,
@@ -1051,7 +1063,7 @@ void StremioBackend::searchHubs(
                 // CatalogRowSection draws it; every addon that contributed,
                 // because the row no longer belongs to just one of them.
                 const auto& names = addonNames[stype];
-                if (!names.empty()) {
+                if (addonName && !names.empty()) {
                     std::string joined = names[0];
                     for (size_t i = 1; i < names.size(); i++) joined += ", " + names[i];
                     b.subtitle = fmt::format(fmt::runtime(from), joined);

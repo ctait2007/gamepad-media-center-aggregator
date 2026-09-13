@@ -67,6 +67,12 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorVSync, "setting/ui/vsync");
     BRLS_BIND(brls::BooleanCell, btnShowFPS, "setting/ui/show_fps");
     BRLS_BIND(brls::BooleanCell, btnPosterLabels, "setting/ui/poster_labels");
+    BRLS_BIND(brls::BooleanCell, btnShowHero, "setting/layout/show_hero");
+    BRLS_BIND(brls::BooleanCell, btnShowContinue, "setting/layout/show_continue");
+    BRLS_BIND(brls::BooleanCell, btnAddonName, "setting/layout/catalog_addon_name");
+    BRLS_BIND(brls::BooleanCell, btnCatalogType, "setting/layout/catalog_type");
+    BRLS_BIND(brls::BooleanCell, btnStreamLogo, "setting/layout/stream_addon_logo");
+    BRLS_BIND(brls::BooleanCell, btnEpisodeArt, "setting/layout/episode_overlay_art");
     BRLS_BIND(brls::BooleanCell, btnOSDOnToggle, "setting/player/osd_on_toggle");
     BRLS_BIND(brls::BooleanCell, btnTouchGesture, "setting/player/touch_gesture");
     BRLS_BIND(brls::BooleanCell, btnTvOsdMode, "setting/player/tv_model");

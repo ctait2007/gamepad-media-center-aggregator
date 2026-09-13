@@ -36,6 +36,8 @@ private:
     struct RowData {
         std::string identifier;
         std::string title;
+        /// "from <addon>", when Layout > Show addon name is on
+        std::string subtitle;
         std::string moreKey;  // hub.key when hub.more, else empty
         std::vector<plex::Item> items;
         bool isResume = false;
@@ -140,6 +142,7 @@ private:
     // be measured with an indefinite height and stay top-aligned
     brls::View* offlineEmpty = nullptr;
 
+    BRLS_BIND(brls::Box, boxHero, "home/hero");
     BRLS_BIND(brls::Box, boxHome, "home/box");
     BRLS_BIND(brls::ScrollingFrame, scroll, "home/scroll");
 };
