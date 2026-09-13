@@ -822,6 +822,12 @@ struct SubtitleOption {
     std::string id;
     std::string url;   // absolute http(s) URL to the subtitle file (SRT/VTT)
     std::string lang;  // ISO 639-2 code, or free text (SDK fallback)
+    /// OpenSubtitles-style extras, both optional. One language can carry a
+    /// dozen entries, and the release they were timed against is the only
+    /// thing that tells them apart — so the picker shows this, not "English"
+    /// twelve times over.
+    std::string fileName;     // subtitleFileName
+    std::string releaseName;  // movieReleaseName
 };
 
 inline std::vector<SubtitleOption> parseSubtitles(const nlohmann::json& j) {
@@ -833,6 +839,8 @@ inline std::vector<SubtitleOption> parseSubtitles(const nlohmann::json& j) {
         so.id = jstr(s, "id");
         so.url = jstr(s, "url");
         so.lang = jstr(s, "lang");
+        so.fileName = jstr(s, "subtitleFileName");
+        so.releaseName = jstr(s, "movieReleaseName");
         if (!so.url.empty()) out.push_back(std::move(so));  // a url is the only usable field
     }
     return out;

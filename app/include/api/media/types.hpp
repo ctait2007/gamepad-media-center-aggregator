@@ -149,6 +149,10 @@ struct Stream {
     bool forced = false;
     int channels = 0;
     std::string key;  // external subtitle: sidecar path (/library/streams/{id})
+    /// Who is offering this track — the Stremio addon's name for an external
+    /// subtitle. Transient (never in a backend's JSON): the subtitle panel puts
+    /// it under the track's own title, the way the reference credits the addon.
+    std::string sourceName;
 };
 inline void from_json(const nlohmann::json& j, Stream& r) {
     r.id = jint(j, "id");

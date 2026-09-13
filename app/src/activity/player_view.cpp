@@ -12,6 +12,7 @@
 #include "api/backend.hpp"
 #include "utils/dialog.hpp"
 #include "utils/misc.hpp"
+#include "utils/subtitle_cache.hpp"
 #include "view/mpv_core.hpp"
 #include "view/player_panels.hpp"
 #include "view/player_setting.hpp"
@@ -45,7 +46,21 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
     // direct-access OSD pickers; &stream lets them switch transcode-side
     // tracks (the Vita default) as well as embedded ones
     view->registerVideoSubtitle([this](...) {
-        player_panels::showSubtitles(&this->stream);
+        // The sidecars are the player's to attach, so the panel reports the
+        // pick back rather than touching mpv itself: index into
+        // sidecarSubtitles(), or -1 for "None".
+        player_panels::showSubtitles(&this->stream, this->sidecarSubtitles(), this->selectedSidecar, [this](int i) {
+            if (i < 0) {
+                this->selectedSidecar = -1;
+                // A deliberate "None" must stick: without this the next event
+                // that reaches autoSelectSubtitle would put the preferred
+                // language straight back on.
+                this->autoSubTried = true;
+                return;
+            }
+            this->autoSubTried = true;
+            this->attachSubtitle(i);
+        });
         return true;
     });
     view->registerVideoAudio([this](...) {
@@ -114,21 +129,12 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
             this->reportStop();
             break;
         case MpvEventEnum::MPV_LOADED: {
-            const char* flag = MPVCore::SUBS_FALLBACK ? "select" : "auto";
-            // External (sidecar) subtitles embedded in the Media streams at detail
-            // time (Plex/Jellyfin direct play).
-            for (auto& part : this->stream.parts) {
-                for (auto& s : part.streams) {
-                    if (s.streamType != media::streamTypeSubtitle || s.key.empty()) continue;
-                    std::string url = AppConfig::instance().backend().subtitleSidecarUrl(s.key);
-                    mpv.command("sub-add", url.c_str(), flag, s.displayTitle.c_str());
-                }
-            }
-            // External subtitles resolved lazily by the backend (Stremio addons):
-            // mpv dropped the previous load's tracks, so (re)add them here. If the
-            // fetch is still in flight, its callback adds them once it lands.
+            // Sidecars are NOT bulk-attached here any more. mpv drops external
+            // tracks on every loadfile, so this used to re-issue one sub-add per
+            // resolved subtitle — a dozen or more, each one a network fetch on
+            // mpv's own worker pool. See attachSubtitle() for what replaced it.
             this->mpvLoaded = true;
-            this->addExternalSubtitles();
+            this->autoSelectSubtitle();
             break;
         }
         case MpvEventEnum::UPDATE_PROGRESS:
@@ -392,10 +398,14 @@ void PlayerView::playMedia(const int64_t seekMs) {
 
 void PlayerView::startPlayback(const int64_t seekMs, bool forceDirect) {
     // We are about to (re)load: mpv will drop any sub-add'ed tracks. Clear the
-    // loaded flag so a subtitle fetch landing mid-load waits for MPV_LOADED to
-    // re-add. (External subtitles are resolved AFTER the playback task is queued
-    // — see the note at the end of this function.)
+    // loaded flag so a subtitle fetch landing mid-load waits for MPV_LOADED,
+    // and forget which sidecar was attached — the track it named no longer
+    // exists, and the preferred-language pick is owed a fresh run.
+    // (External subtitles are resolved AFTER the playback task is queued — see
+    // the note at the end of this function.)
     this->mpvLoaded = false;
+    this->selectedSidecar = -1;
+    this->autoSubTried = false;
 
     media::PlaybackOptions opts;
     opts.seekMs = seekMs;
@@ -465,9 +475,9 @@ void PlayerView::startPlayback(const int64_t seekMs, bool forceDirect) {
     // (ensureLoaded + one getSync per subtitles addon, up to a 15 s timeout each)
     // would otherwise run to completion BEFORE the fast resolvePlayback task and
     // stall the video start behind it. Queuing playback first lets mpv start
-    // loading while subtitles resolve; the mpvLoaded/addExternalSubtitles handoff
-    // adds them whenever the fetch lands. (No-op for Plex/Jellyfin: getSubtitles
-    // returns synchronously.)
+    // loading while subtitles resolve; the mpvLoaded/autoSelectSubtitle handoff
+    // picks the preferred language whenever the fetch lands. (No-op for
+    // Plex/Jellyfin: getSubtitles returns synchronously.)
     this->resolveExternalSubtitles();
 }
 
@@ -478,6 +488,8 @@ void PlayerView::resolveExternalSubtitles() {
     if (key.empty() || key == this->externalSubsItem) return;
     this->externalSubsItem = key;
     this->externalSubs.clear();  // drop the previous item's subs before the switch lands
+    this->selectedSidecar = -1;
+    subtitle_cache::clear();     // the previous item's downloads are dead weight now
 
     ASYNC_RETAIN
     AppConfig::instance().backend().getSubtitles(
@@ -486,41 +498,108 @@ void PlayerView::resolveExternalSubtitles() {
             ASYNC_RELEASE
             // a newer switch superseded this fetch -> its result is stale
             if (key != this->externalSubsItem) return;
+            brls::Logger::info("PlayerView: {} external subtitle(s) resolved", subs.size());
             this->externalSubs = std::move(subs);
-            // if the file is already playing, add now; otherwise MPV_LOADED will
-            if (this->mpvLoaded) this->addExternalSubtitles();
+            // The file may already be playing by the time these land — that is
+            // the usual case, since the fan-out is slower than the video start.
+            this->autoSelectSubtitle();
         },
-        [ASYNC_TOKEN, key](const std::string&) {
+        [ASYNC_TOKEN, key](const std::string& ex) {
             ASYNC_RELEASE
             // resolution failed (offline / addon error): leave the set empty, the
             // player still plays; no dialog (subtitles are best-effort).
+            brls::Logger::warning("PlayerView: external subtitles failed: {}", ex);
         });
 }
 
-void PlayerView::addExternalSubtitles() {
-    if (this->externalSubs.empty()) return;
-    auto& mpv = MPVCore::instance();
-    auto& backend = AppConfig::instance().backend();
+std::vector<plex::Stream> PlayerView::sidecarSubtitles() const {
+    std::vector<plex::Stream> out;
+    // The backend listed these on the chosen Media at detail time (Plex and
+    // Jellyfin sidecar files). They are urls like the addon ones, and they are
+    // attached the same way, so the picker sees a single list.
+    for (const auto& part : this->stream.parts) {
+        for (const auto& st : part.streams) {
+            if (st.streamType != media::streamTypeSubtitle || st.key.empty()) continue;
+            out.push_back(st);
+        }
+    }
+    out.insert(out.end(), this->externalSubs.begin(), this->externalSubs.end());
+    return out;
+}
+
+void PlayerView::attachSubtitle(int index) {
+    std::vector<plex::Stream> subs = this->sidecarSubtitles();
+    if (index < 0 || index >= (int)subs.size()) return;
+    const plex::Stream sub = subs[index];
+    if (sub.key.empty()) return;
+
+    std::string url = AppConfig::instance().backend().subtitleSidecarUrl(sub.key);
+    std::string title = sub.displayTitle.empty() ? sub.language : sub.displayTitle;
+    std::string lang = sub.languageTag.empty() ? sub.language : sub.languageTag;
+    this->selectedSidecar = index;
+
+    ASYNC_RETAIN
+    brls::async([ASYNC_TOKEN, url, title, lang, index]() {
+        // WE fetch the file, not mpv. `sub-add <http url>` asks mpv to open the
+        // url on its own command worker: that path went through libavformat
+        // rather than the libcurl stack the rest of the app uses, and on the PS4
+        // build every single one of them came back "error running command" while
+        // the same links worked in the reference app. It is also the path that
+        // has to guess the file's charset, which this mpv (built --disable-iconv)
+        // cannot convert away from. Downloading here sidesteps both: mpv only
+        // ever opens a local, UTF-8, correctly-suffixed file.
+        std::string path;
+        try {
+            path = subtitle_cache::fetch(url);
+        } catch (const std::exception& ex) {
+            brls::Logger::warning("PlayerView: subtitle download failed ({}): {}", url, ex.what());
+        }
+        // Falling back to the url is not much of a fallback, but it costs
+        // nothing and it is what the reference does on the same failure.
+        std::string file = path.empty() ? url : path;
+        brls::sync([ASYNC_TOKEN, file, title, lang, index]() {
+            ASYNC_RELEASE
+            if (this->selectedSidecar != index) return;  // superseded while downloading
+            auto& mpv = MPVCore::instance();
+            // "cached" both adds and selects, and re-selects without a second
+            // load when this file is already a track — which is exactly what a
+            // deterministic cache path buys us on the second visit.
+            mpv.command("sub-add", file.c_str(), "cached", title.c_str(), lang.c_str());
+            mpv.setInt("sub-visibility", 1);
+        });
+    });
+}
+
+void PlayerView::autoSelectSubtitle() {
+    if (!this->mpvLoaded || this->autoSubTried) return;
+    std::vector<plex::Stream> subs = this->sidecarSubtitles();
+    if (subs.empty()) return;
 
     // Preferred language: "auto" follows the app locale, "off" disables auto-
     // selection, otherwise an explicit 2-letter code (PLAYER_SUBTITLE_LANG).
     std::string pref = AppConfig::instance().getItem(AppConfig::PLAYER_SUBTITLE_LANG, std::string("auto"));
+    if (pref == "off") {
+        this->autoSubTried = true;
+        return;
+    }
     if (pref == "auto") {
         std::string loc = brls::Application::getLocale();  // "es", "en-US", "zh-Hans"...
         pref = loc.substr(0, loc.find('-'));
-    } else if (pref == "off") {
-        pref.clear();
+    }
+    if (pref.empty()) {
+        this->autoSubTried = true;
+        return;
     }
 
-    for (auto& s : this->externalSubs) {
-        if (s.key.empty()) continue;
-        std::string url = backend.subtitleSidecarUrl(s.key);
-        // select the track matching the preferred language; add the rest as
-        // "auto" so they stay pickable in the subtitle menu without stealing it.
-        bool preferred = !pref.empty() && s.languageTag == pref;
-        const char* flag = preferred ? "select" : "auto";
-        mpv.command("sub-add", url.c_str(), flag, s.displayTitle.c_str(), s.languageTag.c_str());
+    for (size_t i = 0; i < subs.size(); i++) {
+        if (subs[i].languageTag != pref) continue;
+        this->autoSubTried = true;
+        this->attachSubtitle((int)i);
+        return;
     }
+    // Nothing in the preferred language: stop looking for this load rather than
+    // re-scanning on every event.
+    this->autoSubTried = true;
 }
 
 bool PlayerView::tryDirectPlayFallback() {

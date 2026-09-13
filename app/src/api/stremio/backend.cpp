@@ -23,6 +23,7 @@
 #include "api/stremio/auth.hpp"
 #include "api/media/langs.hpp"
 #include "utils/config.hpp"
+#include "utils/misc.hpp"
 #include <borealis/core/logger.hpp>
 #include <borealis/core/thread.hpp>
 #include <borealis/core/i18n.hpp>
@@ -278,18 +279,21 @@ std::vector<media::Media> resolveAllStreams(
 /// Fan out /subtitles across the addons serving (type,id) and return the tracks
 /// as neutral subtitle Streams (streamType 3, key = absolute SRT/VTT url). The
 /// set is per-video (same for every source), so this is resolved once at play
-/// time, not per source. Deduped to ONE track per language (first wins, addons
-/// in collection order) to keep the player's subtitle menu readable — a single
-/// addon (OpenSubtitles) can return dozens of entries per language. `languageTag`
-/// carries the canonical 2-letter code for preferred-language matching.
+/// time, not per source.
+///
+/// EVERY track is kept, not one per language. The reference lists them all and
+/// groups them by language in the picker (SubtitleSelectionOverlay's two rails),
+/// which is the whole point of the middle rail: OpenSubtitles returns a dozen
+/// English entries timed against different releases, and collapsing them to one
+/// picked an arbitrary release that fit no one's file. Deduped by url only.
+/// `displayTitle` names the release, `sourceName` the addon that offered it.
 std::vector<media::Stream> resolveAllSubtitles(
     AddonEngine& engine, const std::string& stremioType, const std::string& stremioId) {
-    // Queried concurrently (see resolveAllStreams); the "first wins, addons in
-    // collection order" dedup below still runs as a sequential pass afterward,
-    // over parallelMap's results (which keep the addons' original order), so
-    // fetching them in parallel doesn't change which addon's track wins.
+    // Queried concurrently (see resolveAllStreams); the sequential pass below
+    // runs over parallelMap's results, which keep the addons' original order.
+    std::vector<Addon> addons = engine.addonsFor("subtitles", stremioType, stremioId);
     auto perAddon = parallelMap<Addon, std::vector<SubtitleOption>>(
-        engine.addonsFor("subtitles", stremioType, stremioId), [&engine, &stremioType, &stremioId](const Addon& a) {
+        addons, [&engine, &stremioType, &stremioId](const Addon& a) {
             std::string url = engine.resourceUrl(a, "subtitles", stremioType, stremioId);
             try {
                 return parseSubtitles(getSync(url, 15000));
@@ -299,20 +303,28 @@ std::vector<media::Stream> resolveAllSubtitles(
             }
         });
 
+    // A whole addon collection's worth of subtitles is a list nobody scrolls;
+    // it is also a lot of Streams to carry around for the length of a playback.
+    constexpr size_t kMaxTracks = 300;
+
     std::vector<media::Stream> out;
-    std::set<std::string> seenLangs;
-    for (auto& subs : perAddon) {
-        for (auto& s : subs) {
-            std::string code = media::subtitleLangCode(s.lang);
-            // dedup key: canonical code when known, else the raw lang verbatim
-            std::string key = code.empty() ? s.lang : code;
-            if (key.empty() || !seenLangs.insert(key).second) continue;
+    std::set<std::string> seenUrls;
+    for (size_t i = 0; i < perAddon.size(); i++) {
+        const std::string& addonName = i < addons.size() ? addons[i].manifest.name : std::string{};
+        for (auto& s : perAddon[i]) {
+            if (out.size() >= kMaxTracks) break;
+            if (s.url.empty() || !seenUrls.insert(s.url).second) continue;
             media::Stream st;
             st.streamType = media::streamTypeSubtitle;
             st.key = s.url;  // absolute url; subtitleSidecarUrl() passes it through
             st.language = s.lang;
-            st.languageTag = code;  // 2-letter code (empty if unrecognized)
-            st.displayTitle = media::subtitleLangDisplay(s.lang);
+            st.languageTag = media::subtitleLangCode(s.lang);  // 2-letter code (empty if unknown)
+            // The release the track was timed against is what distinguishes one
+            // English entry from the next; the language name is the fallback for
+            // an addon that sends neither.
+            std::string label = !s.releaseName.empty() ? s.releaseName : s.fileName;
+            st.displayTitle = !label.empty() ? label : media::subtitleLangDisplay(s.lang);
+            st.sourceName = addonName;
             out.push_back(std::move(st));
         }
     }
@@ -1189,7 +1201,7 @@ void StremioBackend::markUnwatched(const std::string& id) {
 // ---- playback (étape 2) --------------------------------------------------------
 
 media::PlaybackSource StremioBackend::resolvePlayback(
-    const media::Item&, const media::Media& version, const media::PlaybackOptions&) {
+    const media::Item&, const media::Media& version, const media::PlaybackOptions& opts) {
     // getItemDetail already fanned out /stream and stored the chosen playback URL
     // in version.parts[0].key (Stremio has no per-request transcode decision). An
     // empty url means no playable source -> the player shows a "playback failed"
@@ -1197,6 +1209,11 @@ media::PlaybackSource StremioBackend::resolvePlayback(
     // (which does not wrap tasks in try/catch) would abort the app.
     if (version.parts.empty() || version.parts.front().key.empty()) return {};
     std::string extra = "network-timeout=" + std::to_string(HTTP::TIMEOUT / 100);
+    // RESUME. There is no server to hand the offset to here — an addon/debrid
+    // link is a plain file — so the seek is mpv's, exactly as Plex and Jellyfin
+    // do it for their own direct-play sources. Without this every resume, from
+    // Continue Watching or from the detail page, silently started at zero.
+    if (opts.seekMs > 0) extra += ",start=" + misc::sec2Time(opts.seekMs / 1000);
     if (HTTP::PROXY_STATUS) extra += ",http-proxy=\"" + HTTP::PROXY + "\"";
     return {version.parts.front().key, extra, false, "directplay"};
 }

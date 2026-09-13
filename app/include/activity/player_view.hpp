@@ -66,10 +66,19 @@ private:
     /// backend (Stremio addons), lazily and only when the played item changes.
     /// Plex/Jellyfin embed theirs in the Media streams, so this is a no-op there.
     void resolveExternalSubtitles();
-    /// sub-adds the resolved external subtitles into mpv, selecting the track
-    /// matching the preferred-language setting (PLAYER_SUBTITLE_LANG). Called on
-    /// every (re)load — mpv drops sub-add'ed tracks on each loadfile.
-    void addExternalSubtitles();
+    /// Every subtitle this playback can offer that is NOT already inside the
+    /// file: the addon sidecars resolved above, plus the sidecar streams a
+    /// backend listed on the chosen Media (Plex/Jellyfin). One list, because
+    /// they are attached the same way.
+    std::vector<plex::Stream> sidecarSubtitles() const;
+    /// Fetches sidecarSubtitles()[index] ourselves, writes it into the subtitle
+    /// cache as UTF-8, and sub-adds the LOCAL FILE. See the note on the
+    /// definition for why mpv is never handed the remote url.
+    void attachSubtitle(int index);
+    /// Attaches the sidecar matching the preferred-language setting
+    /// (PLAYER_SUBTITLE_LANG), once per load. No-op when the setting is "off",
+    /// nothing matches, or the user has already picked one by hand.
+    void autoSelectSubtitle();
     /// POST /:/timeline report (time/duration in ms)
     void reportTimeline(const std::string& state, int64_t timeMs);
     void reportStop();
@@ -113,6 +122,13 @@ private:
     std::vector<plex::Stream> externalSubs;
     std::string externalSubsItem;
     bool mpvLoaded = false;
+    /// Which sidecarSubtitles() entry is attached right now, or -1. The picker
+    /// reads it: an attached sidecar is an ordinary mpv track, but mpv's own
+    /// track list cannot say WHICH of a language's dozen entries it came from.
+    int selectedSidecar = -1;
+    /// One preferred-language auto-attach per (re)load, so re-entering the
+    /// panel or switching source never overrides a hand-picked track.
+    bool autoSubTried = false;
 
     MPVEvent::Subscription eventSubscribeID;
     brls::VoidEvent::Subscription exitSubscribeID;

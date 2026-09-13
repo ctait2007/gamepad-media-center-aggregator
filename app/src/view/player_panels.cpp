@@ -177,27 +177,39 @@ namespace player_panels {
 
 namespace {
 
-/// One selectable subtitle: an mpv track id, or a transcode-side stream that
-/// needs a re-transcode to apply.
+/// One selectable subtitle. Three kinds land here, and the handler differs:
+///   - an mpv track that came with the file (`id` is its mpv id)
+///   - a sidecar the player can fetch and attach (`sidecar` indexes into the
+///     list PlayerView handed us)
+///   - a transcode-side stream, which needs a re-transcode to apply
 struct SubOption {
     std::string name;
     std::string detail;
     std::string lang;
     int64_t id = 0;
+    int sidecar = -1;
     bool transcode = false;
 };
 
-/// Every subtitle the player can currently offer, in mpv's order. Embedded
-/// tracks and the addon subtitles PlayerView sub-adds both land here, which is
-/// why one list covers what the reference splits across a Built-in and an
-/// Addons tab.
-std::vector<SubOption> collectSubtitles(const plex::Media* src) {
+/// Every subtitle the player can offer.
+///
+/// The IN-FILE tracks are read off mpv; the sidecars come from the caller. The
+/// distinction matters because an attached sidecar is BOTH — it is an mpv track
+/// once it has been fetched — and listing it twice was the obvious trap. mpv
+/// marks the ones it did not find inside the file as `external`, so those are
+/// skipped here and represented by their sidecar entry instead.
+std::vector<SubOption> collectSubtitles(const plex::Media* src, const std::vector<plex::Stream>& sidecars) {
     auto& mpv = MPVCore::instance();
     std::vector<SubOption> out;
 
     int64_t count = mpv.getInt("track-list/count");
     for (int64_t n = 0; n < count; n++) {
         if (mpv.getString(fmt::format("track-list/{}/type", n)) != "sub") continue;
+        // Read as a STRING: `external` is an mpv FLAG property, and mpv will
+        // not convert a flag to INT64 — getInt() silently returns its default
+        // and every attached sidecar got listed a second time as an in-file
+        // track.
+        if (mpv.getString(fmt::format("track-list/{}/external", n)) == "yes") continue;  // ours, listed below
         SubOption o;
         o.id = mpv.getInt(fmt::format("track-list/{}/id", n));
         o.lang = mpv.getString(fmt::format("track-list/{}/lang", n));
@@ -205,6 +217,17 @@ std::vector<SubOption> collectSubtitles(const plex::Media* src) {
         o.detail = mpv.getString(fmt::format("track-list/{}/codec", n));
         out.push_back(std::move(o));
     }
+
+    for (size_t i = 0; i < sidecars.size(); i++) {
+        const plex::Stream& st = sidecars[i];
+        SubOption o;
+        o.sidecar = (int)i;
+        o.lang = st.languageTag.empty() ? st.language : st.languageTag;
+        o.name = st.displayTitle.empty() ? languageName(o.lang) : st.displayTitle;
+        o.detail = st.sourceName;
+        out.push_back(std::move(o));
+    }
+
     if (!out.empty() || src == nullptr || src->parts.empty()) return out;
 
     // Transcode-side streams: no embedded subs in the HLS stream, so choosing
@@ -223,9 +246,10 @@ std::vector<SubOption> collectSubtitles(const plex::Media* src) {
 
 }  // namespace
 
-void showSubtitles(const plex::Media* src) {
+void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& sidecars, int selected,
+    std::function<void(int)> onPick) {
     auto& mpv = MPVCore::instance();
-    std::vector<SubOption> options = collectSubtitles(src);
+    std::vector<SubOption> options = collectSubtitles(src, sidecars);
 
     // Top-anchored, as the reference's SubtitleSelectionOverlay is: its content
     // Column wraps rather than filling the height, so it sits at the top of the
@@ -236,10 +260,22 @@ void showSubtitles(const plex::Media* src) {
     auto* row = railRow();
 
     // ---- rail 1: languages ------------------------------------------------
+    // Which subtitle is on: a sidecar the player attached (it knows which one,
+    // mpv only knows "some external track"), or an in-file track by mpv id.
     int64_t sid = mpv.getInt("sid");
     std::string activeLang;
-    for (auto& o : options)
-        if (!o.transcode && o.id == sid) activeLang = o.lang;
+    bool anyOn = false;
+    if (selected >= 0 && selected < (int)sidecars.size()) {
+        const plex::Stream& st = sidecars[selected];
+        activeLang = st.languageTag.empty() ? st.language : st.languageTag;
+        anyOn = true;
+    } else {
+        for (auto& o : options) {
+            if (o.transcode || o.sidecar >= 0 || o.id != sid) continue;
+            activeLang = o.lang;
+            anyOn = sid > 0;
+        }
+    }
 
     // Keyed on the DISPLAY NAME, not the raw code: a file and an addon will
     // happily label the same language "en", "eng" and "en-US", and keying on
@@ -259,7 +295,7 @@ void showSubtitles(const plex::Media* src) {
     // Which language the middle rail is showing. Held by shared_ptr because
     // the language cards rebuild that rail from their own click handlers,
     // which outlive this function.
-    auto selectedLang = std::make_shared<std::string>(sid > 0 ? languageName(activeLang) : "");
+    auto selectedLang = std::make_shared<std::string>(anyOn ? languageName(activeLang) : "");
 
     auto* langRail = new PlayerRail("main/player/panel/languages"_i18n, kSubLangWidth, 720, false);
     auto* listRail = new PlayerRail("main/player/subtitle"_i18n, kSubListWidth, 720, false);
@@ -267,21 +303,31 @@ void showSubtitles(const plex::Media* src) {
 
     // Filling the middle rail is done repeatedly, so it is a function of the
     // language rather than something built once alongside it.
-    auto fillList = [listRail, options, selectedLang](int64_t currentSid) {
+    auto fillList = [listRail, options, selectedLang, selected, onPick](int64_t currentSid) {
         listRail->clear();
         if (selectedLang->empty()) {
-            listRail->addCard("main/player/none"_i18n, "", "", currentSid == 0, []() {
+            listRail->addCard("main/player/none"_i18n, "", "", selected < 0 && currentSid == 0, [onPick]() {
                 PlayerSetting::selectedSubtitle = 0;
                 MPVCore::instance().setInt("sid", 0);
+                if (onPick) onPick(-1);
             });
             return;
         }
         for (const SubOption& o : options) {
             if (languageName(o.lang) != *selectedLang) continue;
             int64_t id = o.id;
+            int sidecar = o.sidecar;
             bool transcode = o.transcode;
-            bool selected = transcode ? id == PlayerSetting::selectedSubtitle : id == currentSid;
-            listRail->addCard(o.name, o.detail, "", selected, [id, transcode]() {
+            bool isSelected = sidecar >= 0 ? sidecar == selected
+                              : transcode  ? id == PlayerSetting::selectedSubtitle
+                                           : selected < 0 && id == currentSid;
+            listRail->addCard(o.name, o.detail, "", isSelected, [id, sidecar, transcode, onPick]() {
+                if (sidecar >= 0) {
+                    // The file is fetched and sub-add'ed by the player; there is
+                    // nothing to set here, and no mpv id to set it to yet.
+                    if (onPick) onPick(sidecar);
+                    return;
+                }
                 PlayerSetting::selectedSubtitle = id;
                 if (transcode)
                     MPVCore::instance().getCustomEvent()->fire(QUALITY_CHANGE, nullptr);

@@ -28,9 +28,18 @@
 
 namespace player_panels {
 
-/// Subtitle track picker + sync. `src` supplies the transcode-side streams for
-/// backends that burn subtitles in (Plex/Jellyfin); may be null.
-void showSubtitles(const plex::Media* src);
+/// Subtitle track picker + sync.
+///   `src`       supplies the transcode-side streams for backends that burn
+///               subtitles in (Plex/Jellyfin); may be null.
+///   `sidecars`  every subtitle that lives OUTSIDE the file — the addon tracks
+///               and the backend's own sidecar streams. They are listed from
+///               here rather than read back off mpv, because they are only
+///               fetched when one is picked (PlayerView::attachSubtitle) and so
+///               are not mpv tracks yet.
+///   `selected`  index into `sidecars` of the one attached now, or -1.
+///   `onPick`    attaches a sidecar by index; called with -1 for "None".
+void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& sidecars, int selected,
+    std::function<void(int)> onPick);
 
 /// Audio track picker, delay and volume boost.
 void showAudio(const plex::Media* src);
