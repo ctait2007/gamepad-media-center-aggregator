@@ -11,6 +11,11 @@ void BaseCardCell::applyPosterLabels() {
     if (auto* labels = this->getView("video/card/labels")) labels->setVisibility(brls::Visibility::GONE);
 }
 
+void BaseCardCell::setLabelsVisible(bool visible) {
+    if (auto* labels = this->getView("video/card/labels"))
+        labels->setVisibility(visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+}
+
 void VideoCardCell::setWatched(bool played) {
     if (played) {
         this->badgeTopRight->setImageFromSVGRes("icon/ico-checkmark.svg");

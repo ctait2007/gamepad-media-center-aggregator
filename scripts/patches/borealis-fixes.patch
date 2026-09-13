@@ -640,7 +640,7 @@ index c7d67dc..cdba644 100644
  {
      if (!view)
 diff --git a/library/lib/core/box.cpp b/library/lib/core/box.cpp
-index 732b3f8..ec5b57a 100644
+index 732b3f8..052e0c9 100644
 --- a/library/lib/core/box.cpp
 +++ b/library/lib/core/box.cpp
 @@ -21,6 +21,7 @@
@@ -651,7 +651,21 @@ index 732b3f8..ec5b57a 100644
  #include <cmath>
  #include <fstream>
  #include <functional>
-@@ -355,9 +356,42 @@ View* Box::getDefaultFocus()
+@@ -350,14 +351,56 @@ float Box::getPaddingRight()
+ 
+ View* Box::getDefaultFocus()
+ {
++    // A box you cannot see offers no focus, and neither does anything inside
++    // it. isFocusable() already refuses for the box itself, but the recursion
++    // below reaches the CHILDREN of a collapsed box, and a child of a GONE
++    // parent is still Visibility::VISIBLE in its own right — so focus used to
++    // land on cells inside a hidden section (GMCA: the collapsed pages of the
++    // Settings category pane).
++    if (this->getVisibility() != Visibility::VISIBLE)
++        return nullptr;
++
+     // Focus ourself first
+     if (this->isFocusable())
          return this;
  
      if (lastFocusedView) {

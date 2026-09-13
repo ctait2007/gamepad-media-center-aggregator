@@ -68,6 +68,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {SCROLLBAR, {"scrollbar"}},
     {POSTER_LABELS, {"poster_labels"}},
+    {DISCOVER_SELECTION, {"discover_selection"}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
     {KEYMAP, {"keymap", {"xbox", "ps", "keyboard"}}},
     {WINDOW_STATE, {"window_state"}},

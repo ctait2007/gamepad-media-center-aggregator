@@ -412,6 +412,30 @@ std::vector<std::pair<std::string, std::string>> StremioBackend::sectionTabs(con
     return out;
 }
 
+std::vector<media::DiscoverCatalog> StremioBackend::discoverCatalogs() {
+    // Every browsable movie/series catalog, flattened — Discover's three
+    // pickers slice this one list (type -> catalog -> genre), exactly as the
+    // reference's SearchUiState.discoverCatalogs does. Hidden catalogs are
+    // left out for the same reason they are left out of the sidebar: Settings
+    // > Home Rows is a global hide-list.
+    L10n loc = loadL10n();
+    std::vector<media::DiscoverCatalog> out;
+    for (const char* stype : {"movie", "series"}) {
+        for (auto& pc : engine.catalogsForType(stype)) {
+            media::DiscoverCatalog d;
+            d.key = catalogKey(pc.first.base, pc.second.type, pc.second.id);
+            if (AppConfig::instance().isHubHidden(d.key)) continue;
+            d.type = mapType(pc.second.type);
+            d.typeLabel = typeLabel(loc, pc.second.type);
+            d.addonName = pc.first.manifest.name;
+            d.catalogName = bestCatalogLabel(loc, pc.first, pc.second);
+            d.genres = pc.second.genres;
+            out.push_back(std::move(d));
+        }
+    }
+    return out;
+}
+
 void StremioBackend::getHomeHubs(
     int count, bool, media::Then<media::Container<media::Hub>> then, media::OnError error) {
     int cnt = count;

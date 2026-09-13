@@ -1225,7 +1225,14 @@ void AutoSidebarItem::setActive(bool active) {
         }
     } else {
         if (this->tabStyle == AutoTabBarStyle::ACCENT) {
-            if (!this->horizontal) this->accent->setVisibility(brls::Visibility::INVISIBLE);
+            // GONE, not INVISIBLE, when the bar is switched off: an INVISIBLE
+            // rectangle still takes its 4px of layout, which shoved the glyph
+            // off-centre in the icon rail. Only the tab that had BEEN active
+            // ever reached this branch, so exactly one icon (whichever tab you
+            // started on) sat 4px left of the rest.
+            if (!this->horizontal)
+                this->accent->setVisibility(
+                    this->accentBar ? brls::Visibility::INVISIBLE : brls::Visibility::GONE);
         } else if (this->tabStyle == AutoTabBarStyle::PLAIN) {
             this->setBackgroundColor(this->tabItemBackgroundColor);
         }

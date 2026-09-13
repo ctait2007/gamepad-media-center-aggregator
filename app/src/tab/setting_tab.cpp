@@ -555,14 +555,16 @@ void SettingTab::buildCategories() {
         c.subtitle = brls::getStr(std::string("main/setting/category/") + kNames[i] + "/subtitle");
         c.page = page;
         size_t index = this->categories.size();
-        c.item = new SettingsNavItem(kCategoryIcons[i], c.title, [this, index]() { this->selectCategory(index); });
+        c.item = new SettingsNavItem(
+            kCategoryIcons[i], c.title, [this, index]() { this->selectCategory(index, true); });
         this->boxNav->addView(c.item);
         this->categories.push_back(c);
     }
-    if (!this->categories.empty()) this->selectCategory(0);
+    // false: the tab is still being built, nothing should steal focus yet
+    if (!this->categories.empty()) this->selectCategory(0, false);
 }
 
-void SettingTab::selectCategory(size_t index) {
+void SettingTab::selectCategory(size_t index, bool moveFocus) {
     if (index >= this->categories.size()) return;
     this->activeCategory = index;
     for (size_t i = 0; i < this->categories.size(); i++) {
@@ -576,6 +578,16 @@ void SettingTab::selectCategory(size_t index) {
     this->labelPageSubtitle->setText(c.subtitle);
     this->labelPageSubtitle->setVisibility(
         c.subtitle.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+
+    // Picking a category hands focus to its first setting rather than leaving
+    // it on the rail — you chose the category to get at what is in it. Next
+    // frame: the page has only just become visible, so its cells are not
+    // focusable (nor laid out) until this one has been through layout.
+    if (!moveFocus) return;
+    brls::View* page = c.page;
+    brls::sync([page]() {
+        if (brls::View* first = page->getDefaultFocus()) brls::Application::giveFocus(first);
+    });
 }
 
 brls::View* SettingTab::create() { return new SettingTab(); }

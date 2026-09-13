@@ -34,6 +34,12 @@ public:
     /// pull in the config.
     void applyPosterLabels();
 
+    /// Force the title block on (or off) for a cell that is not a catalog
+    /// poster. The Cast row prints the actor's name and character under the
+    /// portrait whatever the poster-labels setting says, exactly as the
+    /// reference's CastSection does.
+    void setLabelsVisible(bool visible);
+
     /// Enables the focus "play" overlay — only for cards that START playback on
     /// select (continue-watching, episodes, clips). Opening a detail page does
     /// not get it. The orange wash colour is applied here (theme accent, low

@@ -38,7 +38,7 @@ private:
     /// content is already in the XML, one collapsed page each; this reveals
     /// one at a time, the way NuvioTV's settings screen does.
     void buildCategories();
-    void selectCategory(size_t index);
+    void selectCategory(size_t index, bool moveFocus);
 
     /// One rail entry and the page it reveals.
     struct Category {

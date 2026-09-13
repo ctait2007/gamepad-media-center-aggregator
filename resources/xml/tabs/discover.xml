@@ -1,0 +1,41 @@
+<!-- NuvioTV's Discover screen (DiscoverScreen.kt / SearchDiscoverSection.kt):
+     one page for every catalog every addon serves, sliced by three dropdowns
+     rather than a sidebar tab per content type. The pickers and the grid are
+     built in C++. -->
+<brls:Box
+    width="auto"
+    height="auto"
+    axis="column"
+    paddingLeft="@style/main/content_padding_sides"
+    paddingRight="@style/main/content_padding_sides"
+    paddingTop="@style/main/content_padding_top_bottom">
+
+    <brls:Label
+        id="discover/title"
+        fontSize="48"
+        fontWeight="semibold"
+        singleLine="true"
+        text="@i18n/main/discover/title" />
+
+    <brls:Box
+        id="discover/filters"
+        axis="row"
+        width="100%"
+        marginTop="24"
+        alignItems="center" />
+
+    <brls:Label
+        id="discover/meta"
+        fontSize="24"
+        marginTop="16"
+        singleLine="true"
+        textColor="@theme/font/grey" />
+
+    <brls:Box
+        id="discover/grid_box"
+        axis="column"
+        width="100%"
+        marginTop="16"
+        grow="1" />
+
+</brls:Box>

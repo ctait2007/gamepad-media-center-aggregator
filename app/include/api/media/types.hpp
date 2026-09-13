@@ -106,6 +106,17 @@ inline std::vector<std::string> jtags(const nlohmann::json& j, const char* key) 
 /// ---- Media models ---------------------------------------------------------------
 
 /// Library / catalog (a browsable container or a genre directory)
+/// One row of NuvioTV's Discover filter: a single browsable catalog, tagged
+/// with everything the three pickers and the meta line under them need.
+struct DiscoverCatalog {
+    std::string key;          ///< routed catalog key, straight into getLibraryGrid
+    std::string type;         ///< media type ("movie" | "show") — the Type picker
+    std::string typeLabel;    ///< localized name of that type
+    std::string addonName;    ///< which addon serves it (shown in the meta line)
+    std::string catalogName;  ///< the Catalog picker's label
+    std::vector<std::string> genres;  ///< the Genre picker's options ("Default" is added by the UI)
+};
+
 struct Section {
     std::string key;   // numeric id of the section (as a string)
     std::string type;  // movie | show | artist | photo

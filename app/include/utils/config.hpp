@@ -120,6 +120,12 @@ public:
         /// Layout setting (poster_labels_enabled) rather than a fixed
         /// behaviour; off here, which is the look its reference screens have.
         POSTER_LABELS,
+
+        /// Discover's last filter, as "<type>\t<catalogKey>\t<genre>". The
+        /// reference keeps its own (DiscoverSelectionDataStore) so the screen
+        /// reopens where you left it. Matched by value, not by index, so an
+        /// addon appearing or disappearing cannot silently move the selection.
+        DISCOVER_SELECTION,
         AUDIO_CHANNELS,
         KEYMAP,
         WINDOW_STATE,

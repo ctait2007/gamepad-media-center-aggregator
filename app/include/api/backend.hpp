@@ -127,6 +127,13 @@ public:
     virtual std::vector<std::pair<std::string, std::string>> sectionTabs(const std::string& sectionId) {
         return {};
     }
+
+    /// Every browsable catalog the backend can offer, flattened across types
+    /// and addons — what NuvioTV's Discover screen filters with. Empty (the
+    /// default) means the backend has real libraries instead, and the UI keeps
+    /// its per-library tabs. Synchronous: reads already-loaded state on the UI
+    /// thread, like sectionTabs above.
+    virtual std::vector<DiscoverCatalog> discoverCatalogs() { return {}; }
     virtual void getHomeHubs(int count, bool excludeContinueWatching, Then<Container<Hub>> then, OnError error) = 0;
     virtual void getSectionHubs(const std::string& sectionId, int count, Then<Container<Hub>> then, OnError error) = 0;
     virtual void getContinueWatching(int count, Then<Container<Hub>> then, OnError error) = 0;

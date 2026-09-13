@@ -3,6 +3,7 @@
 #include "view/music_mini_bar.hpp"
 #include "view/audio_player.hpp"
 #include "view/music_now_playing.hpp"
+#include "tab/discover_tab.hpp"
 #include "tab/media_collection.hpp"
 #include "utils/image.hpp"
 #include "utils/config.hpp"
@@ -151,6 +152,29 @@ void MainTabFrame::addLibraryTabs(const std::vector<plex::Section>& sections) {
     if (this->librariesLoaded) return;
     this->librariesLoaded = true;
     this->libs_.clear();
+
+    // Addon backends have catalogs, not libraries: one Discover tab replaces
+    // the per-type ones (Movies / Series), the way NuvioTV does it. The
+    // section list still drives everything else — Home rows, search — it just
+    // does not become a rail tab each. A synthetic section keeps the reorder /
+    // hide machinery (which is keyed on "lib/<sectionKey>") working unchanged.
+    if (!AppConfig::instance().backend().discoverCatalogs().empty()) {
+        plex::Section discover;
+        discover.key = "discover";
+        discover.type = "discover";
+        discover.title = brls::getStr("main/discover/title");
+        this->libs_.push_back(discover);
+
+        auto* item = new AutoSidebarItem();
+        item->setTabStyle(AutoTabBarStyle::ACCENT);
+        item->setId("lib/discover");
+        item->applyXMLAttribute("icon", "@res/icon/ico-compass.svg");
+        item->applyXMLAttribute("iconActivate", "@res/icon/ico-compass-activate.svg");
+        this->addTab(item, []() -> brls::View* { return new DiscoverTab(); }, 1);
+
+        this->applySidebarLayout();
+        return;
+    }
 
     // server order, right after the home tab
     size_t position = 1;
@@ -350,7 +374,9 @@ std::vector<MainTabFrame::SidebarEntry> MainTabFrame::getReorderableEntries() {
                 }
             e.label = sec ? sec->title : key;
             std::string type = sec ? sec->type : std::string();
-            if (type == plex::mediaTypeMovie)
+            if (type == "discover")
+                e.icon = "@res/icon/ico-compass.svg";
+            else if (type == plex::mediaTypeMovie)
                 e.icon = "@res/icon/ico-movie.svg";
             else if (type == plex::mediaTypeShow)
                 e.icon = "@res/icon/ico-tv.svg";

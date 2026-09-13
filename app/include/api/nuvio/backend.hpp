@@ -39,6 +39,7 @@ public:
     std::vector<std::pair<std::string, std::string>> sectionTabs(const std::string& sectionId) override {
         return delegate.sectionTabs(sectionId);
     }
+    std::vector<media::DiscoverCatalog> discoverCatalogs() override { return delegate.discoverCatalogs(); }
     void getHomeHubs(int count, bool excludeContinueWatching, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
         delegate.getHomeHubs(count, excludeContinueWatching, then, error);

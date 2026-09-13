@@ -232,6 +232,17 @@
     "confirm_remove_all": "Remove all downloads?",
     "empty_sub": "Downloaded movies and episodes end up here, ready to watch offline."
   },
+  "discover": {
+    "title": "Discover",
+    "filter": {
+      "type": "Type",
+      "catalog": "Catalog",
+      "genre": "Genre"
+    },
+    "genre_default": "Default",
+    "no_catalog": "No catalog",
+    "empty": "Nothing in this catalog"
+  },
   "setting": {
     "category": {
      "account": {

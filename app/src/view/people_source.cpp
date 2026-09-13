@@ -12,6 +12,10 @@ RecyclingGridItem* PeopleDataSource::cellForRow(RecyclingView* recycler, size_t 
     MediaCardCell* cell = dynamic_cast<MediaCardCell*>(recycler->dequeueReusableCell("Cell"));
     auto& item = this->list.at(index);
 
+    // A cast portrait is not a catalog poster: the name and character stay
+    // whatever Layout > poster titles says (BaseCardCell::applyPosterLabels
+    // collapses the block for the posters that setting IS about).
+    cell->setLabelsVisible(true);
     cell->labelTitle->setText(item.tag);
     cell->labelExt->setText(item.role);
 
