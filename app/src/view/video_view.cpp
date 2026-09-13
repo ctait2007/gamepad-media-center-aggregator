@@ -13,17 +13,6 @@ const int VIDEO_SEEK_NODELAY = 0;
 
 using namespace brls::literals;
 
-#define CHECK_OSD(shake)                                                              \
-    if (this->isOsdLock) {                                                            \
-        if (this->isOsdShown) {                                                       \
-            brls::Application::giveFocus(this->osdLockBox);                           \
-            if (shake) this->osdLockBox->shakeHighlight(brls::FocusDirection::RIGHT); \
-        } else {                                                                      \
-            this->showOSD(true);                                                      \
-        }                                                                             \
-        return true;                                                                  \
-    }
-
 static int getSeekRange(int current) {
     current = abs(current);
     if (current < 60) return 5;
@@ -52,10 +41,6 @@ VideoView::VideoView() {
     this->registerAction(
         "hints/back"_i18n, brls::BUTTON_B,
         [this](brls::View* view) {
-            if (isOsdLock) {
-                this->toggleOSD();
-                return true;
-            }
             if (MPVCore::OSD_TV_MODE && this->isOsdShown) {
                 this->toggleOSD();
                 return true;
@@ -67,7 +52,6 @@ VideoView::VideoView() {
     this->registerActions(
         "\uE08F", brls::BUTTON_LB, KeyBind::getRewind(),
         [this](brls::View* view) -> bool {
-            CHECK_OSD(true);
             this->seekingRange -= getSeekRange(this->seekingRange);
             this->requestSeeking(seekingRange);
             return true;
@@ -77,7 +61,6 @@ VideoView::VideoView() {
     this->registerActions(
         "\uE08E", brls::BUTTON_RB, KeyBind::getForward(),
         [this](brls::View* view) -> bool {
-            CHECK_OSD(true);
             this->seekingRange += getSeekRange(this->seekingRange);
             this->requestSeeking(seekingRange);
             return true;
@@ -104,9 +87,13 @@ VideoView::VideoView() {
             return true;
         },
         true, true);
+    // The bar sits directly above the control row, so DOWN goes to play/pause
+    // and there is nothing above it to go UP to — the reference wires exactly
+    // this pair (its progress bar's downFocusRequester is the play button).
+    // Both routes used to name views that no longer exist, which is why DOWN
+    // did nothing at all and UP reached the lock button.
     brls::View* sliderPointer = this->osdSlider->getDefaultFocus();
-    sliderPointer->setCustomNavigationRoute(brls::FocusDirection::UP, "video/osd/lock/box");
-    sliderPointer->setCustomNavigationRoute(brls::FocusDirection::DOWN, "video/osd/volume/icon");
+    sliderPointer->setCustomNavigationRoute(brls::FocusDirection::DOWN, (brls::View*)this->btnToggle);
 
     this->registerActions(
         "toggleOSD", brls::BUTTON_Y, KeyBind::getVideoOsd(),
@@ -122,7 +109,6 @@ VideoView::VideoView() {
     this->registerActions(
         "main/player/setting"_i18n, brls::BUTTON_X, KeyBind::getSetting(),
         [this](brls::View* view) {
-            CHECK_OSD(true);
             this->settingEvent.fire();
             return true;
         },
@@ -131,7 +117,6 @@ VideoView::VideoView() {
     this->registerActions(
         "volumeUp", brls::BUTTON_NAV_UP, KeyBind::getVolumeUp(),
         [this](brls::View* view) -> bool {
-            CHECK_OSD(true);
             auto& state = brls::Application::getControllerState();
             if (state.buttons[brls::BUTTON_RT]) {
                 this->requestVolume((int)MPVCore::instance().volume + 5, 400);
@@ -154,7 +139,6 @@ VideoView::VideoView() {
     this->registerActions(
         "volumeDown", brls::BUTTON_NAV_DOWN, KeyBind::getVolumeDown(),
         [this](brls::View* view) -> bool {
-            CHECK_OSD(true);
             auto& state = brls::Application::getControllerState();
             if (state.buttons[brls::BUTTON_RT]) {
                 this->requestVolume((int)MPVCore::instance().volume - 5, 400);
@@ -202,14 +186,9 @@ VideoView::VideoView() {
 
         switch (status.osdGestureType) {
         case OsdGestureType::DOUBLE_TAP_END:
-            if (isOsdLock) {
-                this->toggleOSD();
-                break;
-            }
             mpv.togglePlay();
             break;
         case OsdGestureType::LONG_PRESS_START: {
-            if (isOsdLock) break;
             float cur = MPVCore::VIDEO_SPEED == 100 ? 2.0 : MPVCore::VIDEO_SPEED * 0.01f;
             MPVCore::instance().setSpeed(cur);
             // 绘制临时加速标识
@@ -219,37 +198,25 @@ VideoView::VideoView() {
         }
         case OsdGestureType::LONG_PRESS_CANCEL:
         case OsdGestureType::LONG_PRESS_END:
-            if (isOsdLock) {
-                this->toggleOSD();
-                break;
-            }
             mpv.setSpeed(1.0f);
             this->speedHintBox->setVisibility(brls::Visibility::GONE);
             break;
         case OsdGestureType::HORIZONTAL_PAN_START:
-            if (isOsdLock) break;
             infoIcon->setImageFromSVGRes("icon/ico-seeking.svg");
             osdInfoBox->setVisibility(brls::Visibility::VISIBLE);
             break;
         case OsdGestureType::HORIZONTAL_PAN_UPDATE:
-            if (isOsdLock) break;
             this->requestSeeking(fmin(120.0f, mpv.duration) * status.deltaX);
             break;
         case OsdGestureType::HORIZONTAL_PAN_CANCEL:
-            if (isOsdLock) break;
             // 立即取消
             this->requestSeeking(0, VIDEO_SEEK_NODELAY);
             break;
         case OsdGestureType::HORIZONTAL_PAN_END:
-            if (isOsdLock) {
-                this->toggleOSD();
-                break;
-            }
             // 立即跳转
             this->requestSeeking(fmin(120.0f, mpv.duration) * status.deltaX, VIDEO_SEEK_NODELAY);
             break;
         case OsdGestureType::LEFT_VERTICAL_PAN_START:
-            if (isOsdLock) break;
             if (brls::Application::getPlatform()->canSetBacklightBrightness()) {
                 this->brightnessInit = brls::Application::getPlatform()->getBacklightBrightness();
                 infoIcon->setImageFromSVGRes("icon/ico-sun-fill.svg");
@@ -257,37 +224,26 @@ VideoView::VideoView() {
                 break;
             }
         case OsdGestureType::RIGHT_VERTICAL_PAN_START:
-            if (isOsdLock) break;
             this->volumeInit = mpv.volume;
             infoIcon->setImageFromSVGRes("icon/ico-volume.svg");
             osdInfoBox->setVisibility(brls::Visibility::VISIBLE);
             break;
         case OsdGestureType::LEFT_VERTICAL_PAN_UPDATE:
-            if (isOsdLock) break;
             if (brls::Application::getPlatform()->canSetBacklightBrightness()) {
                 this->requestBrightness(this->brightnessInit + status.deltaY);
                 break;
             }
         case OsdGestureType::RIGHT_VERTICAL_PAN_UPDATE:
-            if (isOsdLock) break;
             this->requestVolume(this->volumeInit + status.deltaY * 100);
             break;
         case OsdGestureType::LEFT_VERTICAL_PAN_CANCEL:
         case OsdGestureType::LEFT_VERTICAL_PAN_END:
-            if (isOsdLock) {
-                this->toggleOSD();
-                break;
-            }
             if (brls::Application::getPlatform()->canSetBacklightBrightness()) {
                 osdInfoBox->setVisibility(brls::Visibility::GONE);
                 break;
             }
         case OsdGestureType::RIGHT_VERTICAL_PAN_CANCEL:
         case OsdGestureType::RIGHT_VERTICAL_PAN_END:
-            if (isOsdLock) {
-                this->toggleOSD();
-                break;
-            }
             osdInfoBox->setVisibility(brls::Visibility::GONE);
             break;
         default:
@@ -299,10 +255,6 @@ VideoView::VideoView() {
     this->btnToggle->setOnClick([]() { MPVCore::instance().togglePlay(); });
     this->btnToggle->setIconPath(player_icon::PLAY);
 
-    /// OSD 锁定按钮
-    this->osdLockBox->registerClickAction([this](...) { return this->toggleOSDLock(); });
-    this->osdLockBox->addGestureRecognizer(new brls::TapGestureRecognizer(this->osdLockBox));
-
     // Skip to the next episode — the reference's second control. Revealed by
     // setList() once there IS one; closing the file is what the old forward
     // arrow did, and it lives here now.
@@ -311,7 +263,6 @@ VideoView::VideoView() {
 
     this->registerActions(
         "main/player/toggle"_i18n, brls::BUTTON_A, KeyBind::getVideoPause(), [this](brls::View* view) {
-            CHECK_OSD(true);
             MPVCore::instance().togglePlay();
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(true);
@@ -530,16 +481,10 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
             this->isOsdShown = true;
         }
 
-        // 当 osd 锁定时，只显示锁定按钮
-        if (!isOsdLock) {
-            osdTopBox->setVisibility(brls::Visibility::VISIBLE);
-            osdBottomBox->setVisibility(brls::Visibility::VISIBLE);
-            osdBottomBox->frame(ctx);
-            osdTopBox->frame(ctx);
-        }
-
-        osdLockBox->setVisibility(brls::Visibility::VISIBLE);
-        osdLockBox->frame(ctx);
+        osdTopBox->setVisibility(brls::Visibility::VISIBLE);
+        osdBottomBox->setVisibility(brls::Visibility::VISIBLE);
+        osdBottomBox->frame(ctx);
+        osdTopBox->frame(ctx);
 
     } else if (this->isOsdShown) {
         this->isOsdShown = false;
@@ -547,7 +492,6 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
         if (isChildFocused()) brls::Application::giveFocus(this);
         osdTopBox->setVisibility(brls::Visibility::INVISIBLE);
         osdBottomBox->setVisibility(brls::Visibility::INVISIBLE);
-        osdLockBox->setVisibility(brls::Visibility::INVISIBLE);
     }
 
     if (current > this->hintLastShowTime) {
@@ -603,10 +547,6 @@ void VideoView::invalidate() { View::invalidate(); }
 
 void VideoView::onChildFocusGained(View* directChild, View* focusedView) {
     Box::onChildFocusGained(directChild, focusedView);
-    if (isOsdLock) {
-        brls::Application::giveFocus(this->osdLockBox);
-        return;
-    }
     // 只有在全屏显示OSD时允许OSD组件获取焦点
     if (this->isOsdShown) {
         // 当弹幕按钮隐藏时不可获取焦点
@@ -751,6 +691,13 @@ void VideoView::toggleOSD() {
 }
 
 void VideoView::showOSD(bool autoHide) {
+    // Marked shown HERE and not only in frame(). onChildFocusGained bounces
+    // focus back to the video whenever the OSD is not shown, so a handler that
+    // revealed the OSD and gave focus to a control in the same tick had that
+    // focus taken straight back off it — the reason a d-pad press woke the bar
+    // but left focus somewhere other than play/pause. frame() still owns the
+    // hide, so this only ever runs ahead of it, never against it.
+    this->isOsdShown = true;
     if (autoHide) {
         this->osdLastShowTime = brls::getCPUTimeUsec() + VideoView::OSD_SHOW_TIME;
         this->osdState = OSDState::SHOWN;
@@ -779,27 +726,8 @@ void VideoView::setTvMode(bool state) {
     // reference wires its controls (upFocusRequester = progressBar on each).
     for (PlayerButton* b : {btnToggle.getView(), btnNext.getView(), btnVideoSubtitle.getView(),
              btnVideoAudio.getView(), btnVideoQuality.getView(), btnEpisode.getView(), btnCast.getView()})
-        b->setCustomNavigationRoute(brls::FocusDirection::UP, state ? (brls::View*)osdSlider : (brls::View*)osdLockBox);
-    osdLockBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, state ? (brls::View*)osdSlider : (brls::View*)btnToggle);
+        if (state) b->setCustomNavigationRoute(brls::FocusDirection::UP, (brls::View*)osdSlider);
     osdSlider->setFocusable(state);
-}
-
-bool VideoView::toggleOSDLock() {
-    this->isOsdLock = !this->isOsdLock;
-    if (this->isOsdLock) {
-        this->osdLockIcon->setImageFromSVGRes("icon/player-lock.svg");
-        osdTopBox->setVisibility(brls::Visibility::GONE);
-        osdBottomBox->setVisibility(brls::Visibility::GONE);
-        // 锁定时上下按键不可用
-        osdLockBox->setCustomNavigationRoute(brls::FocusDirection::UP, "video/osd/lock/box");
-        osdLockBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, "video/osd/lock/box");
-    } else {
-        this->osdLockIcon->setImageFromSVGRes("icon/player-unlock.svg");
-        // 手动设置上下按键的导航路线
-        osdLockBox->setCustomNavigationRoute(brls::FocusDirection::UP, "video/osd/setting");
-        osdLockBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, "video/audio/box");
-    }
-    return true;
 }
 
 bool VideoView::toggleSpeed() {

@@ -100,8 +100,6 @@ private:
     BRLS_BIND(PlayerButton, btnVideoSubtitle, "video/subtitle/box");
     BRLS_BIND(PlayerButton, btnVideoAudio, "video/audio/box");
     BRLS_BIND(PlayerButton, btnEpisode, "show/episode/box");
-    BRLS_BIND(brls::Box, osdLockBox, "video/osd/lock/box");
-    BRLS_BIND(SVGImage, osdLockIcon, "video/osd/lock/icon");
     BRLS_BIND(brls::Box, osdTopBox, "video/osd/top/box");
     BRLS_BIND(brls::Box, osdBottomBox, "video/osd/bottom/box");
     // 用于显示缓冲组件
@@ -128,7 +126,6 @@ private:
     /// OSD
     void toggleOSD();
     void hideOSD();
-    bool toggleOSDLock();
     bool toggleSpeed();
     bool toggleVolume(brls::View* view);
     void showHint(const std::string& value);
@@ -154,7 +151,6 @@ private:
 
     // OSD
     bool isOsdShown = false;
-    bool isOsdLock = false;
     brls::Time osdLastShowTime = 0;
     brls::Time hintLastShowTime = 0;
     brls::Time profileLastShowTime = 0;

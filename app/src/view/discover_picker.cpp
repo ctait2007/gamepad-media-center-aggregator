@@ -4,6 +4,7 @@
 
 #include "view/discover_picker.hpp"
 
+#include "view/dropdown_panel.hpp"
 #include "view/svg_image.hpp"
 
 #include <cstdio>
@@ -95,13 +96,12 @@ void DiscoverPicker::open() {
     if (this->options.empty()) return;
     int cur = this->selected >= 0 && this->selected < (int)this->options.size() ? this->selected : 0;
     auto cb = this->callback;
-    auto* dropdown = new brls::Dropdown(
-        this->caption, this->options,
-        [cb](int picked) {
-            if (cb) cb(picked);
-        },
-        cur);
-    brls::Application::pushActivity(new brls::Activity(dropdown));
+    // Anchored under this picker, as the reference does it — borealis' own
+    // Dropdown is a full-screen bottom sheet, which loses the connection
+    // between the list and the field it is filtering.
+    (new DropdownPanel(this, this->options, cur, [cb](int picked) {
+        if (cb) cb(picked);
+    }))->present();
 }
 
 void DiscoverPicker::onFocusGained() {

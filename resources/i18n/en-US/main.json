@@ -600,6 +600,10 @@
         "type": {
             "all": "All"
         },
+        "watched": {
+            "yes": "Watched",
+            "no": "Unwatched"
+        },
         "sort": {
             "added_desc": "Added ↓",
             "added_asc": "Added ↑",

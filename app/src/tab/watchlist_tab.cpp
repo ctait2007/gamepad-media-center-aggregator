@@ -168,7 +168,8 @@ void WatchlistTab::refreshFilters() {
                                      "main/library/sort/title_az"_i18n, "main/library/sort/title_za"_i18n},
         this->sortIndex);
     this->pickerWatched->setOptions(
-        {"main/library/type/all"_i18n, "main/media/played"_i18n, "main/media/unplayed"_i18n}, this->watchedIndex);
+        {"main/library/type/all"_i18n, "main/library/watched/yes"_i18n, "main/library/watched/no"_i18n},
+        this->watchedIndex);
 
     // Genre and Year list only what is actually there, and only within the
     // current Type — a Genre nothing matches is a dead option.

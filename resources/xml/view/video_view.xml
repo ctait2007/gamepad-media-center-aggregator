@@ -5,34 +5,6 @@
     justifyContent="spaceBetween"
     alignItems="center">
 
-    <brls:Box
-        width="50"
-        height="50"
-        alignItems="center"
-        hideHighlightBorder="true"
-        highlightBackgroundColor="@theme/color/focus/bg"
-        highlightPadding="2"
-        highlightCornerRadius="10"
-        backgroundColor="#303030A0"
-        focusable="true"
-        focusUp="video/osd/setting/icon"
-        focusDown="video/audio/box"
-        focusRight="video/osd/lock/box"
-        focusLeft="video/osd/lock/box"
-        cornerRadius="8"
-        positionTop="45%"
-        positionRight="20"
-        positionType="absolute"
-        id="video/osd/lock/box">
-        <SVGImage
-            id="video/osd/lock/icon"
-            detachedX="13"
-            detachedY="13"
-            height="24"
-            width="24"
-            svg="@res/icon/player-unlock.svg" />
-    </brls:Box>
-
     <!-- NuvioTV's PlayerClockOverlay: the wall clock and when this will
          finish, top-right, over a shallow scrim. There is no top BAR in the
          reference — close, seek, cast and settings live on buttons (O, the
