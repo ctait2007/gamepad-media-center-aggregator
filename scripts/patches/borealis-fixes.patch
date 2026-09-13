@@ -1179,7 +1179,7 @@ index 9b31fcf..00bb8f3 100644
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
 diff --git a/library/lib/platforms/ps4/ps4_ime.cpp b/library/lib/platforms/ps4/ps4_ime.cpp
-index 928fbdf..1cc26a4 100644
+index 928fbdf..00ee24a 100644
 --- a/library/lib/platforms/ps4/ps4_ime.cpp
 +++ b/library/lib/platforms/ps4/ps4_ime.cpp
 @@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
@@ -1191,7 +1191,24 @@ index 928fbdf..1cc26a4 100644
  #include <orbis/UserService.h>
  #include <orbis/_types/ime_dialog.h>
  
-@@ -112,9 +114,34 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+@@ -36,6 +38,10 @@ namespace brls
+ #define SCE_IME_DIALOG_MAX_TEXT_LENGTH	(512)
+ 
+ static uint16_t input_u16[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
++/// What the field held when the dialog opened. A dialog that comes back
++/// CANCELLED with DIFFERENT text in the buffer is one the user typed into and
++/// then left — see ShowImeDialog.
++static std::string input_before;
+ static uint16_t title_u16[SCE_IME_DIALOG_MAX_TITLE_LENGTH];
+ static uint16_t placeholder_u16[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+ static uint8_t input_u8[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+@@ -107,14 +113,40 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+     memset(&placeholder_u16, 0, sizeof(placeholder_u16));
+ 
+     utf8_to_utf16((uint8_t*)init.c_str(), input_u16);
++    input_before = init;
+     utf8_to_utf16((uint8_t*)title.c_str(), title_u16);
+     utf8_to_utf16((uint8_t*)placeholder.c_str(), placeholder_u16);
  
      memset(&imeDialogSetting, 0, sizeof(OrbisImeDialogSetting));
  
@@ -1229,7 +1246,7 @@ index 928fbdf..1cc26a4 100644
      imeDialogSetting.type                = type;
      imeDialogSetting.enterLabel          = OrbisButtonLabel::ORBIS_BUTTON_LABEL_DEFAULT;
      imeDialogSetting.inputMethod         = OrbisInput::ORBIS__DEFAULT;
-@@ -128,43 +155,126 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+@@ -128,52 +160,154 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
      imeDialogSetting.verticalAlignment   = OrbisVAlignment::ORBIS_V_VALIGN_BOTTOM;
  }
  
@@ -1341,10 +1358,6 @@ index 928fbdf..1cc26a4 100644
 -            brls::Logger::info("ORBIS_DIALOG_CANCEL");
 -        }
 -        else if (result.endstatus == ORBIS_DIALOG_ABORD)
--        {
--            brls::Logger::info("ORBIS_DIALOG_ABORD");
--        }
--        else if (result.endstatus == ORBIS_DIALOG_OK)
 +        // The decisive record. endstatus is the FIRMWARE's own account of how
 +        // the dialog ended — OK means the user confirmed, CANCEL means they
 +        // backed out — and the character count says whether anything was typed
@@ -1365,11 +1378,34 @@ index 928fbdf..1cc26a4 100644
 +        Logger::info(
 +            "ime: endstatus={} ({}) getResult={} chars={} raw={}", (int)result.endstatus, how, resRet, chars, resHex);
 +
++        utf16_to_utf8(input_u16, input_u8);
++        std::string text { (char*)input_u8 };
++
 +        if (result.endstatus == ORBIS_DIALOG_OK)
          {
-             utf16_to_utf8(input_u16, input_u8);
-             f(std::string { (char*)input_u8 });
-@@ -173,7 +283,8 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+-            brls::Logger::info("ORBIS_DIALOG_ABORD");
++            f(text);
+         }
+-        else if (result.endstatus == ORBIS_DIALOG_OK)
++        else if (result.endstatus == ORBIS_DIALOG_CANCEL && text != input_before)
+         {
+-            utf16_to_utf8(input_u16, input_u8);
+-            f(std::string { (char*)input_u8 });
++            // KEEP WHAT WAS TYPED. A text field that forgets everything the
++            // moment you leave the keyboard is a worse field than one that
++            // remembers — that is how the same field behaves on every other
++            // platform here, and it is not a submit: the search this feeds runs
++            // on a debounce off the field's value, and the field's own clear
++            // button is still how you throw it away.
++            //
++            // On this console it is also the only way text gets out at all.
++            // The firmware is binding CIRCLE to select and CROSS to cancel in
++            // this dialog, against a system that reports cross (logged above),
++            // so every session ends CANCELLED however much was typed.
++            Logger::info("ime: cancelled with {} character(s) typed — keeping them", text.size());
++            f(text);
+         }
+ 
          break;
      }
  
@@ -1379,7 +1415,7 @@ index 928fbdf..1cc26a4 100644
      return 0;
  }
  
-@@ -181,6 +292,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
+@@ -181,6 +315,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
      std::string subText, int maxStringLength, std::string initialText,
      int kbdDisableBitmask)
  {
