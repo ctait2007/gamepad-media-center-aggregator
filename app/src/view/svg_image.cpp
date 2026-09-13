@@ -47,12 +47,25 @@ bool recolorOne(std::string& svg, const std::string& baked, const std::string& h
 
 /// Two colours are baked into this icon set, and both are the theme's business:
 /// the legacy gold of the brand/-activate icons, and the idle grey of every
-/// other glyph. Length-preserving (#RRGGBB == #RRGGBB), and a no-op for an SVG
-/// that contains neither.
-bool recolorBakedAccent(std::string& svg, const std::string& hex) {
+/// other glyph. `idle` overrides the latter's destination for a view that
+/// repaints one glyph itself (see SVGImage::setGlyphColor); empty = the theme
+/// token. Length-preserving (#RRGGBB == #RRGGBB), and a no-op for an SVG that
+/// contains neither.
+bool recolorBakedAccent(std::string& svg, const std::string& hex, const std::string& idle) {
     bool a = recolorOne(svg, "#E5A00D", hex);
-    bool b = recolorOne(svg, "#61666D", svgIdleHex());
+    bool b = recolorOne(svg, "#61666D", idle.empty() ? svgIdleHex() : idle);
     return a || b;
+}
+
+/// "#RRGGBB" of an NVGcolor, for setGlyphColor.
+std::string colorHex(NVGcolor c) {
+    auto to8 = [](float f) -> int {
+        int v = static_cast<int>(f * 255.0f + 0.5f);
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    };
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", to8(c.r), to8(c.g), to8(c.b));
+    return std::string(buf);
 }
 
 }  // namespace
@@ -80,11 +93,11 @@ void SVGImage::setImageFromSVGRes(const std::string& value) {
     // accent-keyed cache so a brand icon recolored per backend keeps a distinct
     // texture per theme; non-brand icons just gain a harmless accent suffix.
     const std::string accent = svgAccentHex();
-    const std::string cacheKey = filePath + "|" + accent + svgIdleHex();
+    const std::string cacheKey = filePath + "|" + accent + svgIdleHex() + this->glyphHex;
     if (checkCache(cacheKey) > 0) return;
     auto image = romfs::get(value);
     std::string data(reinterpret_cast<const char*>(image.string().data()), image.size());
-    recolorBakedAccent(data, accent);
+    recolorBakedAccent(data, accent, this->glyphHex);
     this->document = lunasvg::Document::loadFromData(data);
     if (this->document) {
         this->updateBitmap();
@@ -111,7 +124,7 @@ void SVGImage::setImageFromSVGFile(const std::string& value) {
     if (value.rfind("@res/", 0) == 0) return this->setImageFromSVGRes(value.substr(5));
 #endif
     const std::string accent = svgAccentHex();
-    const std::string cacheKey = value + "|" + accent + svgIdleHex();
+    const std::string cacheKey = value + "|" + accent + svgIdleHex() + this->glyphHex;
     if (checkCache(cacheKey) > 0) return;
 
     std::ifstream in(value, std::ios::binary);
@@ -120,7 +133,7 @@ void SVGImage::setImageFromSVGFile(const std::string& value) {
         return;
     }
     std::string data((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    recolorBakedAccent(data, accent);
+    recolorBakedAccent(data, accent, this->glyphHex);
     this->document = lunasvg::Document::loadFromData(data);
     if (this->document) {
         this->updateBitmap();
@@ -140,7 +153,7 @@ void SVGImage::setImageFromSVGFile(const std::string& value) {
 
 void SVGImage::setImageFromSVGString(const std::string& value) {
     std::string data = value;
-    recolorBakedAccent(data, svgAccentHex());
+    recolorBakedAccent(data, svgAccentHex(), this->glyphHex);
     this->document = lunasvg::Document::loadFromData(data);
     if (this->document) {
         this->updateBitmap();
@@ -166,6 +179,19 @@ void SVGImage::updateBitmap() {
 }
 
 void SVGImage::rotate(float value) { this->angle = value; }
+
+void SVGImage::setGlyphColor(NVGcolor color) {
+    std::string hex = colorHex(color);
+    if (hex == this->glyphHex) return;
+    this->glyphHex = hex;
+    if (!this->filePath.empty()) this->setImageFromSVGFile(this->filePath);
+}
+
+void SVGImage::clearGlyphColor() {
+    if (this->glyphHex.empty()) return;
+    this->glyphHex.clear();
+    if (!this->filePath.empty()) this->setImageFromSVGFile(this->filePath);
+}
 
 SVGImage::~SVGImage() { brls::Application::getWindowSizeChangedEvent()->unsubscribe(subscription); }
 

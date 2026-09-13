@@ -102,6 +102,15 @@ void IconButton::applyStyle() {
         this->setBorderColor(theme.getColor("color/grey_1"));
         this->setBorderThickness(2);
         this->label->setTextColor(theme.getColor("font/grey"));
+    } else if (this->styleName == "outline") {
+        // The hero's Play button. A solid accent fill made it hard to tell
+        // where the focus was (every accent-coloured thing looked selected)
+        // and put dark-on-accent text next to a light-on-dark page; an accent
+        // OUTLINE marks it as the primary action, and focus tints the inside.
+        this->setBackgroundColor(this->focused ? this->focusTint() : nvgRGBA(0, 0, 0, 0));
+        this->setBorderColor(theme.getColor("color/app"));
+        this->setBorderThickness(3);
+        this->label->setTextColor(theme.getColor("brls/text"));
     } else if (this->styleName == "icon") {
         // NuvioTV's round hero action: a filled card-coloured disc, no outline.
         this->setBackgroundColor(theme.getColor("color/surface"));
@@ -117,6 +126,24 @@ void IconButton::applyStyle() {
         this->setBorderThickness(2);
         this->label->setTextColor(theme.getColor("brls/text"));
     }
+}
+
+NVGcolor IconButton::focusTint() const {
+    NVGcolor c = brls::Application::getTheme().getColor("color/app");
+    c.a = 0.28f;  // tinted, not filled
+    return c;
+}
+
+void IconButton::onFocusGained() {
+    brls::Box::onFocusGained();
+    this->focused = true;
+    if (this->styleName == "outline") this->setBackgroundColor(this->focusTint());
+}
+
+void IconButton::onFocusLost() {
+    brls::Box::onFocusLost();
+    this->focused = false;
+    if (this->styleName == "outline") this->setBackgroundColor(nvgRGBA(0, 0, 0, 0));
 }
 
 brls::View* IconButton::create() { return new IconButton(); }

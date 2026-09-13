@@ -109,9 +109,9 @@
 
                             <IconButton
                                 id="movie/play"
-                                icon="@res/icon/ico-play-dark.svg"
+                                icon="@res/icon/ico-play.svg"
                                 text="@i18n/main/media/play"
-                                buttonStyle="primary"
+                                buttonStyle="outline"
                                 height="96"
                                 cornerRadius="48"
                                 highlightCornerRadius="52"

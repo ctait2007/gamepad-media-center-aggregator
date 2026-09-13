@@ -24,13 +24,19 @@ public:
 
     static brls::View* create();
 
+    void onFocusGained() override;
+    void onFocusLost() override;
+
 private:
     BRLS_BIND(SVGImage, icon, "icon_button/icon");
     BRLS_BIND(brls::Label, label, "icon_button/label");
 
     void applyStyle();
+    /// The accent at low alpha — a focused "outline" button is tinted, not filled.
+    NVGcolor focusTint() const;
 
     std::string styleName = "bordered";
     bool iconOnly = false;
+    bool focused = false;
     bool muted = false;
 };

@@ -8,11 +8,13 @@
     Play is pressed on a movie or an episode is selected, so the cost is paid
     once, deliberately, at the moment the user has actually chosen something.
 
-    Layout follows NuvioTV's stream screen: the item's art behind, its title on
-    the left, and on the right a filter row (refresh / All / one pill per addon)
-    over a list of cards. Each card prints the addon's OWN text with its line
-    breaks intact (media::Media::labelRaw/detailRaw) rather than our flattened
-    one-liner, because addons format those lines deliberately.
+    Layout follows NuvioTV's stream screen (StreamScreen.kt): the item's art
+    behind under a two-sided gradient, its cut-out LOGO centred in the left 40%
+    with the S/E line, episode name and runtime under it, and in the right 60%
+    a filter row (a round refresh chip, All, one chip per addon) over a
+    translucent panel of source cards. Each card prints the addon's OWN text
+    with its line breaks intact (media::Media::labelRaw/detailRaw) rather than
+    our flattened one-liner, because addons format those lines deliberately.
 */
 
 #pragma once
@@ -42,6 +44,9 @@ private:
     /// Rebuild the addon filter pills from whatever the fetch returned.
     void buildFilters();
     void applyFilter(const std::string& addon);
+    /// Logo OR text title, never both — the reference only ever shows one, and
+    /// only reveals the logo once its pixels have actually arrived.
+    void applyLogo(const std::string& url);
     void play(int mediaIndex);
     void showMessage(const std::string& text, bool spinner);
 
@@ -52,8 +57,10 @@ private:
     std::vector<media::Media> sources;
     bool loading = false;
 
+    BRLS_BIND(brls::Image, imageLogo, "source/logo");
     BRLS_BIND(brls::Label, labelTitle, "source/title");
     BRLS_BIND(brls::Label, labelSubtitle, "source/subtitle");
+    BRLS_BIND(brls::Label, labelEpisode, "source/epname");
     BRLS_BIND(brls::Label, labelMeta, "source/meta");
     BRLS_BIND(brls::Image, imageBackdrop, "source/backdrop");
     BRLS_BIND(brls::Box, boxFilters, "source/filters");

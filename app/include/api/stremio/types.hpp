@@ -479,6 +479,19 @@ inline media::Item parseMeta(const nlohmann::json& j) {
                 if (!r.tag.empty()) it.roles.push_back(std::move(r));
             }
         }
+        // Same shape for the crew: the top-level `director` is a list of bare
+        // names, so a director's portrait never arrived and the cast row's
+        // first tile sat empty.
+        auto dirArr = extras->find("directors");
+        if (dirArr != extras->end() && dirArr->is_array()) {
+            for (auto& d : *dirArr) {
+                if (!d.is_object()) continue;
+                media::Role r;
+                r.tag = jstr(d, "name");
+                r.thumb = jstr(d, "photo");
+                if (!r.tag.empty()) it.directors.push_back(std::move(r));
+            }
+        }
         // "R", "TV-MA", ... — the badge the reference prints beside the runtime
         it.contentRating = jstr(*extras, "certification", jstr(*extras, "certificationLocal"));
     }
@@ -492,8 +505,9 @@ inline media::Item parseMeta(const nlohmann::json& j) {
         r.tag = name;
         it.roles.push_back(r);
     }
-    std::vector<std::string> directors = stringArray(j, "director");
-    if (directors.empty()) directors = linksByCategory(j, "Directors");
+    std::vector<std::string> directors =
+        it.directors.empty() ? stringArray(j, "director") : std::vector<std::string>{};
+    if (directors.empty() && it.directors.empty()) directors = linksByCategory(j, "Directors");
     for (auto& name : directors) {
         media::Role r;
         r.tag = name;

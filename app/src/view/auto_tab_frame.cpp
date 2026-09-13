@@ -1260,6 +1260,13 @@ void AutoSidebarItem::applyIconRailStyle() {
     this->icon_box->setAlignItems(brls::AlignItems::CENTER);
     this->icon_box->setJustifyContent(brls::JustifyContent::CENTER);
     this->icon_box->setMargins(0, 0, 0, 0);
+    // An icon-only tab still carries an empty Label under the glyph, and the
+    // column centres [icon + label] — which pushed the glyph a couple of
+    // pixels above the ring's centre. Nothing to show, so nothing to lay out.
+    if (this->label->getFullText().empty()) {
+        this->label->setVisibility(brls::Visibility::GONE);
+        if (auto* sub = this->getView("autoSidebar/subtitle_label")) sub->setVisibility(brls::Visibility::GONE);
+    }
     // put the borealis halo back (the rail used to paint its own full-width
     // rectangle instead) — on a square item it draws the circle we want
     this->setHideHighlight(false);

@@ -3,9 +3,10 @@
     height="auto"
     axis="column">
 
-    <!-- item art behind everything, heavily dimmed: it identifies what you are
-         about to play without competing with the source text (NuvioTV's stream
-         screen does the same). Absolute so it never affects the layout. -->
+    <!-- StreamBackdrop: the item's art fills the screen at ~0.5 alpha with a
+         horizontal gradient over it that is opaque at both edges and nearly
+         clear in the middle (StreamGradientLayer). Absolute so it never
+         affects the layout. -->
     <brls:Box
         positionType="absolute"
         positionTop="0"
@@ -23,94 +24,147 @@
             positionLeft="0"
             width="100%"
             height="100%"
-            color="#0D0D0DE0" />
+            color="#0D0D0D80" />
+        <!-- the two opaque edges of the reference's horizontal gradient -->
+        <brls:Image
+            positionType="absolute"
+            positionTop="0"
+            positionLeft="0"
+            width="35%"
+            height="100%"
+            scalingType="stretch"
+            image="@res/img/fade-left-dark.png" />
+        <brls:Image
+            positionType="absolute"
+            positionTop="0"
+            positionRight="0"
+            width="35%"
+            height="100%"
+            scalingType="stretch"
+            image="@res/img/fade-right-dark.png" />
     </brls:Box>
 
     <brls:Box
         axis="row"
         grow="1"
-        width="100%"
-        paddingLeft="@style/main/content_padding_sides"
-        paddingRight="@style/main/content_padding_sides"
-        paddingTop="@style/main/content_padding_top_bottom"
-        paddingBottom="@style/main/content_padding_top_bottom">
+        width="100%">
 
-        <!-- left: what you picked -->
+        <!-- LeftContentSection: weight 0.4, contents CENTRED inside a column
+             that is 80% of its width (Nuvio centres the logo, the S/E line,
+             the episode name and the runtime — it does not left-align them). -->
         <brls:Box
             axis="column"
-            width="34%"
+            width="40%"
+            height="100%"
             justifyContent="center"
             alignItems="center"
-            paddingRight="32">
-            <brls:Label
-                id="source/title"
-                fontSize="34"
-                horizontalAlign="center"
-                marginBottom="10" />
-            <brls:Label
-                id="source/subtitle"
-                fontSize="21"
-                horizontalAlign="center"
-                textColor="@theme/brls/text"
-                marginBottom="6" />
-            <brls:Label
-                id="source/meta"
-                fontSize="17"
-                horizontalAlign="center"
-                textColor="@theme/font/grey" />
+            paddingLeft="@style/main/content_padding_sides"
+            paddingRight="48">
+            <brls:Box
+                axis="column"
+                width="80%"
+                alignItems="center">
+                <!-- fillMaxWidth x 120dp, Fit, centred -->
+                <brls:Image
+                    id="source/logo"
+                    width="100%"
+                    height="240"
+                    visibility="gone"
+                    scalingType="fit" />
+                <!-- displaySmall (36sp) when there is no logo -->
+                <brls:Label
+                    id="source/title"
+                    fontSize="72"
+                    horizontalAlign="center"
+                    visibility="gone" />
+                <!-- titleLarge "S1 E2" -->
+                <brls:Label
+                    id="source/subtitle"
+                    fontSize="40"
+                    fontWeight="medium"
+                    horizontalAlign="center"
+                    marginTop="16"
+                    visibility="gone" />
+                <!-- bodyLarge episode name -->
+                <brls:Label
+                    id="source/epname"
+                    fontSize="32"
+                    horizontalAlign="center"
+                    marginTop="8"
+                    visibility="gone" />
+                <!-- bodyMedium runtime (episode) / bodyLarge genres • year (movie) -->
+                <brls:Label
+                    id="source/meta"
+                    fontSize="28"
+                    horizontalAlign="center"
+                    marginTop="8"
+                    visibility="gone" />
+            </brls:Box>
         </brls:Box>
 
-        <!-- right: filters over the source cards -->
+        <!-- RightStreamSection: weight 0.6, padded top/end/bottom by 48dp -->
         <brls:Box
             axis="column"
-            grow="1">
+            grow="1"
+            height="100%"
+            paddingTop="96"
+            paddingBottom="96"
+            paddingRight="@style/main/content_padding_sides">
 
+            <!-- fixed 56dp chip row, then a 16dp gap -->
             <brls:Box
                 id="source/filters"
                 axis="row"
-                marginBottom="16"
+                height="112"
+                marginBottom="32"
                 alignItems="center" />
 
+            <!-- the cards live on a rounded translucent panel (radii.xl over
+                 BackgroundCard at half alpha), not straight on the artwork -->
             <brls:Box
-                id="source/message"
-                axis="column"
-                alignItems="center"
-                justifyContent="center"
-                visibility="gone"
-                grow="1">
-                <brls:Label
-                    id="source/message/label"
-                    fontSize="19"
-                    horizontalAlign="center"
-                    textColor="@theme/font/grey" />
-            </brls:Box>
-
-            <brls:ScrollingFrame
-                id="source/scroll"
                 grow="1"
-                scrollingBehavior="centered">
-                <!-- paddingTop: a card's focus ring is drawn ~5px OUTSIDE its
-                     frame, so with the list flush to the top of the scroll the
-                     first card's ring was clipped and it read as cut off.
-                     paddingRight keeps the cards clear of the scroll indicator,
-                     which was drawing over their right edge. -->
+                axis="column"
+                cornerRadius="32"
+                backgroundColor="#24242480"
+                paddingLeft="32"
+                paddingRight="32"
+                paddingTop="32"
+                paddingBottom="32">
+
                 <brls:Box
-                    id="source/list"
+                    id="source/message"
                     axis="column"
-                    width="100%"
-                    height="auto"
-                    paddingTop="8"
-                    paddingBottom="8"
-                    paddingRight="26" />
-            </brls:ScrollingFrame>
+                    alignItems="center"
+                    justifyContent="center"
+                    visibility="gone"
+                    grow="1">
+                    <brls:Label
+                        id="source/message/label"
+                        fontSize="32"
+                        horizontalAlign="center" />
+                </brls:Box>
+
+                <brls:ScrollingFrame
+                    id="source/scroll"
+                    grow="1"
+                    scrollingBehavior="centered">
+                    <!-- contentPadding: 8dp on three sides, 32dp at the bottom.
+                         The side padding also keeps a card's focus ring (drawn
+                         ~5px outside its frame) off the panel edge, and the
+                         right one clears the scroll indicator. -->
+                    <brls:Box
+                        id="source/list"
+                        axis="column"
+                        width="100%"
+                        height="auto"
+                        paddingLeft="16"
+                        paddingRight="26"
+                        paddingTop="16"
+                        paddingBottom="64" />
+                </brls:ScrollingFrame>
+            </brls:Box>
 
         </brls:Box>
     </brls:Box>
-
-    <ButtonClose
-        id="source/close"
-        positionType="absolute"
-        positionTop="10"
-        positionRight="10" />
 
 </brls:Box>

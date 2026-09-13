@@ -3,8 +3,8 @@
 #include "activity/player_view.hpp"
 #include "utils/config.hpp"
 #include "utils/image.hpp"
+#include "utils/misc.hpp"
 #include "view/auto_tab_frame.hpp"
-#include "view/button_close.hpp"
 #include "view/pill_button.hpp"
 #include "view/svg_image.hpp"
 
@@ -15,19 +15,33 @@ using namespace brls::literals;
 
 namespace {
 
-/// One selectable source. A column of labels rather than a single line: the
-/// addon's own text is multi-line on purpose and we print it as sent.
+// The picker draws on a dark scrim over the artwork in BOTH themes, so it uses
+// the reference's own dark-surface values rather than theme tokens that invert
+// in light mode.
+constexpr unsigned char kElevated[3] = { 0x1A, 0x1A, 0x1A };  // BackgroundElevated
+constexpr unsigned char kBorder[3]   = { 0x33, 0x33, 0x33 };  // Border
+const NVGcolor kTextPrimary   = nvgRGB(0xF5, 0xF5, 0xF5);
+const NVGcolor kTextSecondary = nvgRGB(0xB3, 0xB3, 0xB3);  // neutral400
+const NVGcolor kTextTertiary  = nvgRGB(0x80, 0x80, 0x80);  // neutral600
+
+/// One selectable source, laid out like NuvioTV's StreamCard: a 12dp-radius
+/// card on BackgroundElevated, padded 16dp, with the stream name (titleMedium)
+/// over its description (bodySmall) on the left and the addon that produced it
+/// (labelSmall) right-aligned on the other side. A column of labels rather
+/// than a single line: the addon's own text is multi-line on purpose and we
+/// print it as sent.
 class SourceCard : public brls::Box {
 public:
     SourceCard(const media::Media& m, bool playable) {
-        auto theme = brls::Application::getTheme();
         this->setAxis(brls::Axis::ROW);
         this->setAlignItems(brls::AlignItems::CENTER);
-        this->setPadding(18, 22, 18, 22);
-        this->setMarginBottom(12);
-        this->setCornerRadius(16);  // Nuvio backdropCard / dialog radius
-        this->setHighlightCornerRadius(20);
-        this->setBackgroundColor(theme.getColor("color/surface"));
+        this->setPadding(32, 32, 32, 32);
+        // spacing.md between cards plus the reference's spacing.xs of padding
+        // on each item.
+        this->setMarginBottom(40);
+        this->setCornerRadius(24);  // radii.md
+        this->setHighlightCornerRadius(28);
+        this->setBackgroundColor(nvgRGB(kElevated[0], kElevated[1], kElevated[2]));
         this->setFocusable(playable);
         // A non-playable row (torrent / external link) stays visible so the
         // list explains itself, but must not look selectable.
@@ -39,17 +53,18 @@ public:
 
         auto* head = new brls::Label();
         head->setText(m.labelRaw.empty() ? m.label : m.labelRaw);
-        head->setFontSize(22);
-        head->setTextColor(theme.getColor("brls/text"));
+        head->setFontSize(32);  // titleMedium
+        head->setFontWeight("medium");
+        head->setTextColor(kTextPrimary);
         text->addView(head);
 
         const std::string& body = m.detailRaw.empty() ? m.detail : m.detailRaw;
         if (!body.empty()) {
             auto* sub = new brls::Label();
             sub->setText(body);
-            sub->setFontSize(17);
-            sub->setTextColor(theme.getColor("font/grey"));
-            sub->setMarginTop(6);
+            sub->setFontSize(24);  // bodySmall
+            sub->setTextColor(kTextSecondary);
+            sub->setMarginTop(8);
             text->addView(sub);
         }
         this->addView(text);
@@ -58,13 +73,80 @@ public:
         if (!m.addonName.empty()) {
             auto* addon = new brls::Label();
             addon->setText(m.addonName);
-            addon->setFontSize(15);
-            addon->setTextColor(theme.getColor("font/grey"));
+            addon->setFontSize(20);  // labelSmall
+            addon->setFontWeight("medium");
+            addon->setTextColor(kTextTertiary);
             addon->setHorizontalAlign(brls::HorizontalAlign::RIGHT);
-            addon->setMarginLeft(18);
+            addon->setSingleLine(true);
+            // the stream text takes the slack; the badge keeps its natural width
+            addon->setShrink(0);
+            addon->setMarginLeft(32);
             this->addView(addon);
         }
     }
+};
+
+/// NuvioTV's RefreshFilterChip: the first item of the filter row is not a
+/// "Refresh" word but a round chip carrying only the refresh glyph, styled
+/// exactly like the filter chips beside it (BackgroundCard + hairline border,
+/// accent fill once focused).
+class RefreshChip : public brls::Box {
+public:
+    explicit RefreshChip(std::function<void()> onPress) {
+        this->setAxis(brls::Axis::ROW);
+        this->setAlignItems(brls::AlignItems::CENTER);
+        this->setJustifyContent(brls::JustifyContent::CENTER);
+        this->setWidth(72);
+        this->setHeight(72);
+        this->setMarginRight(32);
+        this->setCornerRadius(36);
+        this->setHighlightCornerRadius(40);
+        this->setBorderThickness(2);
+        this->setFocusable(true);
+        this->setHideHighlightBackground(true);
+
+        this->icon = new SVGImage();
+        this->icon->setWidth(40);   // 20dp
+        this->icon->setHeight(40);
+        this->addView(this->icon);
+        this->icon->setImageFromSVGRes("icon/ico-refresh.svg");
+
+        this->restyle();
+        this->registerClickAction([onPress](brls::View*) {
+            onPress();
+            return true;
+        });
+        this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
+    }
+
+    void onFocusGained() override {
+        brls::Box::onFocusGained();
+        this->focused = true;
+        this->restyle();
+    }
+
+    void onFocusLost() override {
+        brls::Box::onFocusLost();
+        this->focused = false;
+        this->restyle();
+    }
+
+private:
+    void restyle() {
+        auto theme = brls::Application::getTheme();
+        if (this->focused) {
+            this->setBackgroundColor(theme.getColor("color/app"));
+            this->setBorderColor(theme.getColor("color/app"));
+            this->icon->setGlyphColor(theme.getColor("brls/button/primary_enabled_text"));
+        } else {
+            this->setBackgroundColor(nvgRGB(0x24, 0x24, 0x24));
+            this->setBorderColor(nvgRGB(kBorder[0], kBorder[1], kBorder[2]));
+            this->icon->setGlyphColor(kTextSecondary);
+        }
+    }
+
+    SVGImage* icon = nullptr;
+    bool focused = false;
 };
 
 }  // namespace
@@ -74,34 +156,55 @@ SourceList::SourceList(const media::Item& item, std::string title, int64_t resum
     this->inflateFromXMLRes("xml/tabs/source_list.xml");
     brls::Logger::debug("View SourceList: create");
 
-    this->labelTitle->setText(this->item.grandparentTitle.empty() ? this->item.title : this->item.grandparentTitle);
-
-    // Episodes identify themselves as "S1 E2" + the episode name; a movie just
-    // repeats nothing here and shows its year in the meta line instead.
-    if (this->item.parentIndex > 0 || this->item.index > 0) {
-        this->labelSubtitle->setText(fmt::format("S{} E{}", this->item.parentIndex, this->item.index));
-        this->labelMeta->setText(this->item.title);
-    } else {
-        this->labelSubtitle->setText(this->item.year ? std::to_string(this->item.year) : "");
-        this->labelMeta->setText("");
-    }
+    const std::string& name =
+        this->item.grandparentTitle.empty() ? this->item.title : this->item.grandparentTitle;
+    this->labelTitle->setText(name);
 
     // The left column sits directly on the dark scrim over the artwork, so its
     // text is light in BOTH themes — theme text colours are dark in light mode
-    // and would be unreadable there. The cards below carry their own themed
-    // surface, so they follow the theme normally.
-    const NVGcolor onScrim = nvgRGB(0xF5, 0xF5, 0xF5);
-    const NVGcolor onScrimDim = nvgRGB(0xB3, 0xB3, 0xB3);  // Nuvio textSecondary
-    this->labelTitle->setTextColor(onScrim);
-    this->labelSubtitle->setTextColor(onScrim);
-    this->labelMeta->setTextColor(onScrimDim);
-    this->labelMessage->setTextColor(onScrimDim);
+    // and would be unreadable there. The cards below carry their own dark
+    // surface for the same reason.
+    this->labelTitle->setTextColor(kTextPrimary);
+    this->labelSubtitle->setTextColor(kTextSecondary);
+    this->labelEpisode->setTextColor(kTextPrimary);
+    this->labelMeta->setTextColor(kTextSecondary);
+    this->labelMessage->setTextColor(kTextSecondary);
+
+    auto show = [](brls::Label* l, const std::string& text) {
+        l->setText(text);
+        l->setVisibility(text.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    };
+
+    // The reference prints "S1 E2" / the episode name / its runtime for an
+    // episode, and a single "genres • year" line for a movie (bodyLarge there,
+    // one step up from the episode runtime's bodyMedium).
+    if (this->item.parentIndex > 0 || this->item.index > 0) {
+        show(this->labelSubtitle, fmt::format("S{} E{}", this->item.parentIndex, this->item.index));
+        show(this->labelEpisode, this->item.title);
+        show(this->labelMeta, misc::formatRuntime(this->item.duration));
+    } else {
+        std::string genres;
+        for (const auto& g : this->item.genres) {
+            if (!genres.empty()) genres += ", ";
+            genres += g;
+        }
+        std::vector<std::string> bits;
+        if (!genres.empty()) bits.push_back(genres);
+        if (this->item.year) bits.push_back(std::to_string(this->item.year));
+        std::string info;
+        for (const auto& b : bits) {
+            if (!info.empty()) info += "  •  ";
+            info += b;
+        }
+        this->labelMeta->setFontSize(32);  // bodyLarge
+        show(this->labelMeta, info);
+    }
 
     std::string art = this->item.art.empty() ? this->item.thumb : this->item.art;
     if (!art.empty()) Image::load(this->imageBackdrop, art, 1280, 720);
-
-    auto* close = dynamic_cast<ButtonClose*>(this->getView("source/close"));
-    if (close) close->registerClickAction([this](brls::View*) { return ui::popDetail(this); });
+    // Same cut-out logo the detail page showed, so the picker is visibly for
+    // the thing you just pressed Play on. Episodes inherit the show's.
+    this->applyLogo(this->item.clearLogo);
 
     this->registerAction(
         "hints/back"_i18n, brls::BUTTON_B, [this](brls::View*) { return ui::popDetail(this); }, true);
@@ -112,6 +215,29 @@ SourceList::SourceList(const media::Item& item, std::string title, int64_t resum
     });
 
     this->fetchSources();
+}
+
+void SourceList::applyLogo(const std::string& url) {
+    auto showTitle = [this]() {
+        this->imageLogo->setVisibility(brls::Visibility::GONE);
+        this->labelTitle->setVisibility(brls::Visibility::VISIBLE);
+    };
+    if (url.empty()) {
+        showTitle();
+        return;
+    }
+    Image::cancel(this->imageLogo);
+    this->imageLogo->setVisibility(brls::Visibility::GONE);
+    this->labelTitle->setVisibility(brls::Visibility::GONE);
+    ASYNC_RETAIN
+    Image::load(this->imageLogo, url, 500, 0, [ASYNC_TOKEN, showTitle](bool ok, bool retryable) {
+        ASYNC_RELEASE
+        (void)retryable;
+        if (ok)
+            this->imageLogo->setVisibility(brls::Visibility::VISIBLE);
+        else
+            showTitle();
+    });
 }
 
 SourceList::~SourceList() { brls::Logger::debug("View SourceList: delete"); }
@@ -169,16 +295,14 @@ void SourceList::buildFilters() {
         std::find(addons.begin(), addons.end(), this->activeAddon) == addons.end())
         this->activeAddon.clear();
 
-    this->boxFilters->addView(new PillButton("main/stremio/source/refresh"_i18n, false, [this]() {
-        this->fetchSources();
-    }));
-    this->boxFilters->addView(new PillButton("main/stremio/source/all"_i18n, this->activeAddon.empty(), [this]() {
-        this->applyFilter("");
-    }));
-    // Only worth pilling per-addon when more than one contributed.
+    this->boxFilters->addView(new RefreshChip([this]() { this->fetchSources(); }));
+    this->boxFilters->addView(new PillButton("main/stremio/source/all"_i18n, this->activeAddon.empty(),
+        [this]() { this->applyFilter(""); }, PillButton::Style::Filter));
+    // Only worth chipping per-addon when more than one contributed.
     if (addons.size() > 1) {
         for (const auto& a : addons)
-            this->boxFilters->addView(new PillButton(a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }));
+            this->boxFilters->addView(new PillButton(
+                a, this->activeAddon == a, [this, a]() { this->applyFilter(a); }, PillButton::Style::Filter));
     }
 }
 
