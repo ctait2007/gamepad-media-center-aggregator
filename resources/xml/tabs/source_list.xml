@@ -134,13 +134,22 @@
                 paddingTop="32"
                 paddingBottom="32">
 
+                <!-- focusable: while this is up (loading, failed, nothing
+                     found) it is the ONLY thing in the view, and a view with
+                     nothing focusable loses focus to the sidebar — where B is
+                     "quit the app", not "go back", and the picker is left on
+                     screen with no way out. It draws no highlight; it is a
+                     focus HOLDER, so the B action registered on SourceList
+                     stays in the focused view's parent chain. -->
                 <brls:Box
                     id="source/message"
                     axis="column"
                     alignItems="center"
                     justifyContent="center"
                     visibility="gone"
-                    grow="1">
+                    grow="1"
+                    focusable="true"
+                    hideHighlight="true">
                     <brls:Label
                         id="source/message/label"
                         fontSize="32"

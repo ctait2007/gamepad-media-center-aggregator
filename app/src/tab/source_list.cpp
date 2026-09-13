@@ -281,10 +281,36 @@ SourceList::~SourceList() { brls::Logger::debug("View SourceList: delete"); }
 
 brls::View* SourceList::create() { return new SourceList(media::Item{}, "", 0); }
 
+brls::View* SourceList::getDefaultFocus() {
+    // The message box holds focus whenever it is what is on screen — the view
+    // is presented before the fetch returns, so at that moment the card list
+    // is empty and this is all there is.
+    if (this->boxMessage->getVisibility() == brls::Visibility::VISIBLE) return this->boxMessage;
+    return brls::Box::getDefaultFocus();
+}
+
 void SourceList::showMessage(const std::string& text, bool spinner) {
+    (void)spinner;
     this->labelMessage->setText(text);
     this->boxMessage->setVisibility(brls::Visibility::VISIBLE);
-    this->scroll->setVisibility(spinner ? brls::Visibility::GONE : brls::Visibility::GONE);
+    this->scroll->setVisibility(brls::Visibility::GONE);
+
+    // A fetch that fails (or finds nothing) lands here LONG after the view was
+    // presented, by which point focus may already have escaped: the picker is
+    // presented while still loading, and until this box existed to hold it
+    // there was nothing here to focus at all. Take it back, or B belongs to
+    // the sidebar — where it quits the app instead of closing the picker.
+    brls::View* focus = brls::Application::getCurrentFocus();
+    bool inside = false;
+    for (brls::View* v = focus; v != nullptr; v = v->getParent())
+        if (v == this) {
+            inside = true;
+            break;
+        }
+    if (!inside) {
+        brls::Box* box = this->boxMessage;
+        brls::sync([box]() { brls::Application::giveFocus(box); });
+    }
 }
 
 void SourceList::fetchSources() {

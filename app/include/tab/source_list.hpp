@@ -38,6 +38,12 @@ public:
 
     static brls::View* create();
 
+    /// While the message state is up it is the only focusable thing here, and
+    /// focus MUST stay inside this view: the B action that pops the picker is
+    /// registered on it, and a focus that escapes to the sidebar turns B into
+    /// "quit the app" with the picker still on screen.
+    brls::View* getDefaultFocus() override;
+
 private:
     void fetchSources();
     void renderSources();
