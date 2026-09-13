@@ -607,10 +607,12 @@ void showSourcesFor(const plex::Item& item, const std::string& subtitle,
             fillSourcesPanel(
                 panel, sources, -1,
                 [chosen, sources, onPick](int picked) {
-                    brls::Application::popActivity(brls::TransitionAnimation::NONE,
-                        [chosen, sources, onPick, picked]() {
-                            if (onPick) onPick(chosen, sources, picked);
-                        });
+                    // NO pop here. PlayerRail::addCard already closed this
+                    // sheet before calling us, and popping a second time took
+                    // the PLAYER down with it — which is why picking a source
+                    // for another episode looked like it just closed the one
+                    // that was playing.
+                    if (onPick) onPick(chosen, sources, picked);
                 },
                 nullptr);
         },

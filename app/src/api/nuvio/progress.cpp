@@ -240,6 +240,22 @@ void ProgressStore::pushProgress(const WatchProgressRow& row) {
         {{"p_profile_id", profileId}, {"p_entries", nlohmann::json::array({entry})},
             {"p_origin_client_id", nuvio::syncClientId()}});
 
+    // A REWATCH takes the watched flag off. Being partway through something
+    // already marked watched means exactly one thing — it is being watched
+    // again — and leaving the flag on made Continue Watching answer with the
+    // episode after it forever: start series 1 episode 1 again and the row
+    // still offered episode 4, because episode 1 counted as finished and the
+    // row walked past it. Not applied in the auto-watched zone at the end,
+    // which is where the flag legitimately goes ON.
+    bool nearEnd = row.durationMs >= 60000 && row.positionMs >= (row.durationMs * 9 / 10);
+    if (!nearEnd && row.positionMs > 0 && isWatched(row.contentId, row.season, row.episode)) {
+        try {
+            clearWatched(row.contentId, row.season, row.episode);
+        } catch (const std::exception& ex) {
+            brls::Logger::warning("nuvio: could not clear watched on rewatch: {}", ex.what());
+        }
+    }
+
     std::lock_guard<std::mutex> lock(mtx);
     lastPushed[cacheKey(row.contentId, row.season, row.episode)] = std::chrono::steady_clock::now();
     bool replaced = false;

@@ -329,6 +329,7 @@ void PlayerView::playMedia(const int64_t seekMs) {
     this->stopTranscode();
     // deliberate (re)start: allow the direct-play fallback to trigger again
     this->directPlayFallback = false;
+    this->reloadRetried = false;
 
     // Fast path: the caller already resolved the exact source (Stremio source
     // picker passes the fully-resolved item + chosen index). Re-fetching would
@@ -439,6 +440,16 @@ void PlayerView::startPlayback(const int64_t seekMs, bool forceDirect) {
                 // transcode session, leaving stopTranscode a safe no-op.
                 this->transcodeSession = src.transcodeSession;
                 MPVCore::instance().setUrl(src.url, src.mpvExtra);
+                // A deliberate (re)start PLAYS. mpv's `pause` is a global
+                // property that survives loadfile, so a file loaded while the
+                // player happened to be paused comes up paused: it shows a
+                // first frame and sits there until someone presses play. There
+                // are two ordinary ways to be paused at this moment — the user
+                // paused before opening a panel, and MPVCore pausing on window
+                // focus loss (which restores only if it was playing when focus
+                // went) — and both made switching episode from the sheet look
+                // like the pick did nothing at all.
+                MPVCore::instance().command("set", "pause", "no");
             });
         } catch (const std::exception& ex) {
             std::string msg = ex.what();
@@ -514,8 +525,26 @@ void PlayerView::addExternalSubtitles() {
 
 bool PlayerView::tryDirectPlayFallback() {
     auto& mpv = MPVCore::instance();
+
+    // A DIRECT stream that came back with nothing to play: try it once more
+    // before giving up. Debrid links (TorBox's requestdl, and the resolvers in
+    // front of it) hand back an error body or an empty redirect often enough
+    // that the SAME url fails and then works seconds later — the logs show
+    // exactly that, twice, on a link that played fine on the next attempt.
+    // One silent retry turns most of those into a slightly slow start instead
+    // of an error dialog. Only once per deliberate (re)load.
+    if (this->playMethod != "transcode") {
+        if (this->reloadRetried) return false;
+        this->reloadRetried = true;
+        int64_t pos = int64_t(mpv.playback_time) * 1000;
+        brls::Logger::warning("PlayerView: stream returned nothing to play ({}) — retrying once", mpv.getError());
+        mpv.reset();
+        this->startPlayback(pos);
+        return true;  // handled: no error dialog
+    }
+
     // only recover a failed transcode, and only once per (re)load
-    if (this->playMethod != "transcode" || this->directPlayFallback) return false;
+    if (this->directPlayFallback) return false;
     this->directPlayFallback = true;
 
     int64_t pos = int64_t(mpv.playback_time) * 1000;  // read before reset() zeroes it
