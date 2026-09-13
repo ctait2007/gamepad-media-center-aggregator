@@ -510,6 +510,18 @@ void SettingTab::onCreate() {
             Dialog::quitApp();
         });
 
+    // Confirm/back button assignment. The platform reads the console's own
+    // Enter Button Assignment at startup (ps4_platform.cpp) so the app agrees
+    // with the system keyboard and message dialogs, which obey it too. This
+    // inverts whatever was detected, for a console that reports it wrongly —
+    // the symptom being cross confirming in the app while circle confirms in
+    // the keyboard. Applied at window creation, so it needs a relaunch.
+    btnSwapAB->init("main/setting/others/swap_ab"_i18n, conf.getItem(AppConfig::APP_SWAP_ABXY, false),
+        [](bool value) {
+            AppConfig::instance().setItem(AppConfig::APP_SWAP_ABXY, value);
+            Dialog::quitApp();
+        });
+
     this->buildCategories();
 }
 

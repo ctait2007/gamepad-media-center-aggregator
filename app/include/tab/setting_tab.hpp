@@ -67,6 +67,7 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorVSync, "setting/ui/vsync");
     BRLS_BIND(brls::BooleanCell, btnShowFPS, "setting/ui/show_fps");
     BRLS_BIND(brls::BooleanCell, btnPosterLabels, "setting/ui/poster_labels");
+    BRLS_BIND(brls::BooleanCell, btnSwapAB, "setting/swap_ab");
     BRLS_BIND(brls::BooleanCell, btnOSDOnToggle, "setting/player/osd_on_toggle");
     BRLS_BIND(brls::BooleanCell, btnTouchGesture, "setting/player/touch_gesture");
     BRLS_BIND(brls::BooleanCell, btnTvOsdMode, "setting/player/tv_model");

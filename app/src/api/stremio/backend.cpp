@@ -972,6 +972,58 @@ void StremioBackend::search(const std::string& query, media::MediaKind kind, int
     });
 }
 
+void StremioBackend::searchHubs(
+    const std::string& query, media::Then<media::Container<media::Hub>> then, media::OnError error) {
+    std::string q = query;
+    L10n loc = loadL10n();
+    brls::async([this, q, loc, then, error]() {
+        try {
+            engine.ensureLoaded();
+            // Only the catalogs that advertise the `search` extra can answer,
+            // and every one of them is its own HTTP round trip — the same
+            // reason resolveAllStreams fans out rather than looping, and the
+            // difference between "search is slow" and "search is instant" once
+            // more than a couple of addons are installed.
+            std::vector<std::pair<Addon, Catalog>> searchable;
+            for (auto& pc : engine.allCatalogs())
+                if (pc.second.hasSearch()) searchable.push_back(pc);
+
+            auto rows = parallelMap<std::pair<Addon, Catalog>, media::Hub>(
+                searchable, [this, &q, &loc](const std::pair<Addon, Catalog>& pc) -> media::Hub {
+                    media::Hub h;
+                    std::string url =
+                        engine.resourceUrl(pc.first, "catalog", pc.second.type, pc.second.id, {{"search", q}});
+                    try {
+                        h.items = parseCatalog(getSync(url)).items;
+                    } catch (const std::exception& ex) {
+                        brls::Logger::warning("stremio searchHubs {}: {}", url, ex.what());
+                        return h;
+                    }
+                    if (h.items.empty()) return h;
+                    // "Addon · Catalog", as the reference titles its rows —
+                    // the addon first, because that is what distinguishes two
+                    // rows that both came back as "Popular".
+                    std::string cat = bestCatalogLabel(loc, pc.first, pc.second);
+                    h.title = pc.first.manifest.name.empty() || pc.first.manifest.name == cat
+                                  ? cat
+                                  : pc.first.manifest.name + "  ·  " + cat;
+                    h.key = catalogKey(pc.first.base, pc.second.type, pc.second.id);
+                    h.hubIdentifier = h.key;
+                    h.type = mapType(pc.second.type);
+                    return h;
+                });
+
+            media::Container<media::Hub> c;
+            for (auto& h : rows)
+                if (!h.items.empty()) c.Items.push_back(std::move(h));
+            c.TotalRecordCount = (long)c.Items.size();
+            brls::sync(std::bind(then, std::move(c)));
+        } catch (const std::exception& ex) {
+            if (error) brls::sync(std::bind(error, std::string(ex.what())));
+        }
+    });
+}
+
 void StremioBackend::getRecentlyAdded(
     size_t, size_t, media::Then<media::Container<media::Item>> then, media::OnError) {
     emptyContainer<media::Item>(then);

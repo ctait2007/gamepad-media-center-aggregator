@@ -12,6 +12,12 @@
     to search on (MIN_QUERY, 2 as in the reference) the recent list gives way
     to the results.
 
+    The results are GROUPED BY CATALOG, one row each, titled "Addon - Catalog"
+    (SearchUiState.catalogRows). With a dozen addons installed, which addon
+    found a title is most of the information, and a single merged grid throws
+    it away. Backends with one search endpoint and nothing to group by (Plex,
+    Jellyfin, Emby) return no hubs and fall back to that flat grid.
+
     NOTE on "results as you type": the PS4's IME is a MODAL system dialog —
     borealis' Ps4ImeManager blocks on sceImeDialogGetStatus until the user
     confirms, and the dialog owns the screen while it is up. There is no
@@ -23,6 +29,7 @@
 
 #pragma once
 
+#include <api/media/types.hpp>
 #include <view/auto_tab_frame.hpp>
 
 #include <memory>
@@ -54,6 +61,8 @@ private:
     BRLS_BIND(brls::Box, recentList, "search/recent_list");
     BRLS_BIND(brls::Box, recentEmpty, "search/recent_empty");
     BRLS_BIND(brls::Box, clearHistory, "search/clear_history");
+    BRLS_BIND(brls::ScrollingFrame, rowsScroll, "search/rows_scroll");
+    BRLS_BIND(brls::Box, rowsBox, "search/rows");
     BRLS_BIND(RecyclingGrid, results, "search/results");
 
     /// Open the platform keyboard on the current query.
@@ -63,6 +72,12 @@ private:
     void setQuery(const std::string& query, bool remember);
     void buildRecent();
     void doSearch(const std::string& searchTerm);
+    /// Per-catalog rows; falls back to the flat grid when the backend has no
+    /// grouping to offer.
+    void showHubs(const std::vector<media::Hub>& hubs);
+    void doFlatSearch(const std::string& searchTerm);
+    /// Only one of {recent, rows, grid} is ever visible.
+    void showPane(brls::View* visible);
     void styleField();
 
     std::string currentSearch;

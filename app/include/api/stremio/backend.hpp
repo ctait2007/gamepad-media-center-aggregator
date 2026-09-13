@@ -38,6 +38,8 @@ public:
     void listSections(media::Then<media::Container<media::Section>> then, media::OnError error) override;
     std::vector<std::pair<std::string, std::string>> sectionTabs(const std::string& sectionId) override;
     std::vector<media::DiscoverCatalog> discoverCatalogs() override;
+    void searchHubs(const std::string& query, media::Then<media::Container<media::Hub>> then,
+        media::OnError error) override;
     void getHomeHubs(int count, bool excludeContinueWatching, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override;
     void getSectionHubs(const std::string& sectionId, int count, media::Then<media::Container<media::Hub>> then,

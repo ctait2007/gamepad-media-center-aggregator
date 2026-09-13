@@ -142,6 +142,24 @@
         </brls:Box>
     </brls:ScrollingFrame>
 
+    <!-- results, grouped the way the reference groups them: one row per
+         catalog that matched. Backends with a single search endpoint have no
+         grouping to show, so they get the flat grid below instead; exactly one
+         of the two is ever visible. -->
+    <brls:ScrollingFrame
+        id="search/rows_scroll"
+        grow="1"
+        marginTop="40"
+        visibility="gone"
+        scrollingBehavior="centered">
+        <brls:Box
+            id="search/rows"
+            axis="column"
+            width="100%"
+            height="auto"
+            paddingBottom="@style/main/content_padding_top_bottom" />
+    </brls:ScrollingFrame>
+
     <RecyclingGrid
         id="search/results"
         grow="1"

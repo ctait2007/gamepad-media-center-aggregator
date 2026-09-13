@@ -40,6 +40,10 @@ public:
         return delegate.sectionTabs(sectionId);
     }
     std::vector<media::DiscoverCatalog> discoverCatalogs() override { return delegate.discoverCatalogs(); }
+    void searchHubs(const std::string& query, media::Then<media::Container<media::Hub>> then,
+        media::OnError error) override {
+        delegate.searchHubs(query, then, error);
+    }
     void getHomeHubs(int count, bool excludeContinueWatching, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
         delegate.getHomeHubs(count, excludeContinueWatching, then, error);

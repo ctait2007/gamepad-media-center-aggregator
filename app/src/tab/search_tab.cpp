@@ -7,6 +7,7 @@
 #include "view/svg_image.hpp"
 #include "view/video_source.hpp"
 #include "view/video_card.hpp"
+#include "view/recyling_video.hpp"
 #include "utils/dialog.hpp"
 #include "utils/keybind.hpp"
 #include "utils/network_state.hpp"
@@ -153,6 +154,17 @@ void SearchTab::openKeyboard() {
         this->currentSearch, 0);
 }
 
+/// Exactly one of the three panes is up at any moment; the field's DOWN route
+/// follows whichever it is, otherwise it would point into a hidden subtree.
+void SearchTab::showPane(brls::View* visible) {
+    for (brls::View* v : {(brls::View*)this->recentScroll.getView(), (brls::View*)this->rowsScroll.getView(),
+             (brls::View*)this->results.getView()}) {
+        v->setVisibility(v == visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    }
+    if (visible != this->recentScroll.getView())
+        this->fieldBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, visible);
+}
+
 void SearchTab::styleField() {
     auto theme = brls::Application::getTheme();
     for (brls::Box* b : {this->fieldBox.getView(), this->clearButton.getView()}) {
@@ -183,8 +195,7 @@ void SearchTab::setQuery(const std::string& query, bool remember) {
     uint64_t gen = ++this->generation;
 
     if (trimmed.size() < kMinQuery) {
-        this->results->setVisibility(brls::Visibility::GONE);
-        this->recentScroll->setVisibility(brls::Visibility::VISIBLE);
+        this->showPane(this->recentScroll.getView());
         this->buildRecent();
         return;
     }
@@ -193,10 +204,10 @@ void SearchTab::setQuery(const std::string& query, bool remember) {
         this->history->append(trimmed);
         this->buildRecent();
     }
-    this->recentScroll->setVisibility(brls::Visibility::GONE);
-    this->results->setVisibility(brls::Visibility::VISIBLE);
+    // the grid shows the skeleton while the fan-out runs; if the backend comes
+    // back with per-catalog rows it takes over from there
+    this->showPane(this->results.getView());
     this->results->showSkeleton();
-    this->fieldBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, this->results.getView());
 
     // Debounced so a query that changes again before it fires costs nothing.
     ASYNC_RETAIN
@@ -316,9 +327,68 @@ void SearchTab::buildRecent() {
 }
 
 void SearchTab::doSearch(const std::string& searchTerm) {
+    // offline: the local catalog has no addons to group by
+    if (NetworkState::isOffline()) {
+        this->doFlatSearch(searchTerm);
+        return;
+    }
+
+    uint64_t gen = this->generation;
+    std::string term = searchTerm;
+    ASYNC_RETAIN
+    AppConfig::instance().backend().searchHubs(
+        searchTerm,
+        [ASYNC_TOKEN, gen, term](const media::Container<media::Hub>& r) {
+            ASYNC_RELEASE
+            if (gen != this->generation) return;
+            // No grouping on offer (Plex/Jellyfin/Emby, or no addon catalog
+            // advertises `search`): the flat grid is the right answer.
+            if (r.Items.empty()) {
+                this->doFlatSearch(term);
+                return;
+            }
+            this->showHubs(r.Items);
+        },
+        [ASYNC_TOKEN, gen, term](const std::string& ex) {
+            ASYNC_RELEASE
+            if (gen != this->generation) return;
+            brls::Logger::warning("searchHubs: {}", ex);
+            this->doFlatSearch(term);
+        });
+}
+
+void SearchTab::showHubs(const std::vector<media::Hub>& hubs) {
+    // never leave focus on a row we are about to destroy
+    brls::View* focus = brls::Application::getCurrentFocus();
+    for (brls::View* v = focus; v != nullptr; v = v->getParent()) {
+        if (v == this->rowsBox.getView()) {
+            brls::Application::giveFocus(this->fieldBox);
+            break;
+        }
+    }
+    this->rowsBox->clearViews();
+
+    float frameHeight = brls::getStyle()["app/card/poster/row"];
+    for (const media::Hub& h : hubs) {
+        if (h.items.empty()) continue;
+        auto* row = new RecylingVideo();
+        row->setTitle(h.title);
+        row->setFrameHeight(frameHeight);
+        // The tab already carries the page's side padding, so the row adds
+        // only enough for a card's focus ring (drawn ~5px outside its frame)
+        // — anything more and the titles sit indented twice over.
+        row->setSidePadding(8);
+        row->setItems(h.items);
+        this->rowsBox->addView(row);
+    }
+    this->showPane(this->rowsScroll.getView());
+}
+
+void SearchTab::doFlatSearch(const std::string& searchTerm) {
     // offline: search the local catalog (title contains, case-insensitive)
     // instead of the server (SPEC §4.4)
     if (NetworkState::isOffline()) {
+        this->showPane(this->results.getView());
         auto items = OfflineLibrary::instance().search(searchTerm);
         if (items.empty()) {
             this->results->setEmpty(
@@ -338,6 +408,7 @@ void SearchTab::doSearch(const std::string& searchTerm) {
         [ASYNC_TOKEN, gen](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
             if (gen != this->generation) return;
+            this->showPane(this->results.getView());
             if (r.Items.empty()) {
                 this->results->setEmpty(
                     "main/search/no_results"_i18n, "main/search/no_results_sub"_i18n, "icon/ico-search.svg");
@@ -348,6 +419,7 @@ void SearchTab::doSearch(const std::string& searchTerm) {
         [ASYNC_TOKEN, gen](const std::string& ex) {
             ASYNC_RELEASE
             if (gen != this->generation) return;
+            this->showPane(this->results.getView());
             this->results->setError(ex);
         });
 }

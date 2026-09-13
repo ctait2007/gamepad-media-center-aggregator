@@ -134,6 +134,20 @@ public:
     /// its per-library tabs. Synchronous: reads already-loaded state on the UI
     /// thread, like sectionTabs above.
     virtual std::vector<DiscoverCatalog> discoverCatalogs() { return {}; }
+
+    /// Search, grouped the way the results were produced: one Hub per catalog
+    /// that matched, titled with its addon and catalog name. NuvioTV's search
+    /// screen renders exactly this (SearchUiState.catalogRows) rather than one
+    /// undifferentiated grid — with a dozen addons installed, WHICH addon
+    /// found a title is most of the information.
+    ///
+    /// Backends with a single search endpoint (Plex, Jellyfin, Emby) leave
+    /// this at its default and the UI falls back to the flat search() grid.
+    virtual void searchHubs(const std::string& query, Then<Container<Hub>> then, OnError error) {
+        (void)query;
+        (void)error;
+        if (then) then(Container<Hub>{});
+    }
     virtual void getHomeHubs(int count, bool excludeContinueWatching, Then<Container<Hub>> then, OnError error) = 0;
     virtual void getSectionHubs(const std::string& sectionId, int count, Then<Container<Hub>> then, OnError error) = 0;
     virtual void getContinueWatching(int count, Then<Container<Hub>> then, OnError error) = 0;

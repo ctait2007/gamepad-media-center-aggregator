@@ -1178,6 +1178,41 @@ index 9b31fcf..00bb8f3 100644
  
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
+diff --git a/library/lib/platforms/ps4/ps4_platform.cpp b/library/lib/platforms/ps4/ps4_platform.cpp
+index 084f200..dd0bf4d 100644
+--- a/library/lib/platforms/ps4/ps4_platform.cpp
++++ b/library/lib/platforms/ps4/ps4_platform.cpp
+@@ -124,9 +124,27 @@ Ps4Platform::Ps4Platform()
+     brls::Logger::info("System timezone: {}", sceTimezone);
+ 
+     // swap a/b/x/y
+-    sceSystemServiceParamGetInt(ORBIS_SYSTEM_SERVICE_PARAM_ID_ENTER_BUTTON_ASSIGN, &ret);
+-    if (ret == ORBIS_SYSTEM_PARAM_ENTER_BUTTON_ASSIGN_CIRCLE)
+-        brls::Application::setSwapInputKeys(true);
++    //
++    // This has to agree with the SYSTEM, because the IME and message dialogs
++    // are drawn by the system and obey its own Enter Button Assignment — if we
++    // read it wrong, cross confirms in the app and circle confirms in the
++    // keyboard (or the other way round). Two things were making that possible:
++    // `ret` was left holding the LANGUAGE read above, so a failed call here
++    // silently inherited it (LANG_JAPANESE is 0, and so is ASSIGN_CIRCLE), and
++    // nothing was logged, so a mismatch could not be diagnosed from a log.
++    int enterAssign  = -1;
++    int32_t enterRet = sceSystemServiceParamGetInt(ORBIS_SYSTEM_SERVICE_PARAM_ID_ENTER_BUTTON_ASSIGN, &enterAssign);
++    if (enterRet < 0)
++    {
++        brls::Logger::warning("Enter button assignment unreadable ({}), leaving cross as confirm", enterRet);
++    }
++    else
++    {
++        bool circle = enterAssign == ORBIS_SYSTEM_PARAM_ENTER_BUTTON_ASSIGN_CIRCLE;
++        brls::Logger::info("Enter button assignment: {} ({})", enterAssign, circle ? "circle" : "cross");
++        if (circle)
++            brls::Application::setSwapInputKeys(true);
++    }
+ 
+     atexit([]()
+         {
 diff --git a/library/lib/platforms/switch/switch_font.cpp b/library/lib/platforms/switch/switch_font.cpp
 index 3bba889..b2c03d6 100644
 --- a/library/lib/platforms/switch/switch_font.cpp
