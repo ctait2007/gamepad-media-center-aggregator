@@ -117,7 +117,12 @@
     "keyboard": "Keyboard",
     "space": "Space",
     "no_results_sub": "Try another title, actor or genre.",
-    "no_history_sub": "Your recent searches will show up here."
+    "no_history_sub": "Your recent searches will show up here.",
+      "recent": "Recent searches",
+      "clear_history_action": "Clear history",
+      "remove": "Remove",
+      "start_title": "Start searching",
+      "start_sub": "Find movies and shows across every addon."
   },
   "person": {
     "movies": "Movies",

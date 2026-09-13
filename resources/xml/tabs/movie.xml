@@ -41,10 +41,16 @@
                     scalingType="stretch"
                     image="@res/img/fade-left-dark.png" />
 
+                <!-- -2, not 0: the fade is a PERCENTAGE of a 1080-tall banner,
+                     so its height lands on a fraction of a pixel and the last
+                     device row of the banner went unpainted — one line of bare
+                     backdrop under the gradient. Two pixels of overshoot cost
+                     nothing (the asset's last fifth is the exact page
+                     background) and there is no seam to round off. -->
                 <brls:Image
                     id="movie/banner/fade"
                     positionType="absolute"
-                    positionBottom="0"
+                    positionBottom="-2"
                     positionLeft="0"
                     width="100%"
                     height="62%"

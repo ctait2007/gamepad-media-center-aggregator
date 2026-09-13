@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 dragonflylee
+    GMCA — Search (see search_tab.hpp).
 */
 
 #include "tab/search_tab.hpp"
@@ -7,19 +7,31 @@
 #include "view/svg_image.hpp"
 #include "view/video_source.hpp"
 #include "view/video_card.hpp"
-#include "tab/search_result.hpp"
 #include "utils/dialog.hpp"
 #include "utils/keybind.hpp"
 #include "utils/network_state.hpp"
 #include "utils/offline_library.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
+#include <algorithm>
+#include <vector>
 #include <fstream>
 
 using namespace brls::literals;  // for _i18n
 
-/// Persistent history (search.json): unchanged storage (JSON array,
-/// dedupe, insert at head) — only the display moves to chips.
+namespace {
+
+/// Shortest query worth firing a search for — MIN_SEARCH_QUERY_LENGTH in the
+/// reference's SearchUiState.
+constexpr size_t kMinQuery = 2;
+/// The reference keeps eight (MAX_RECENT_SEARCHES).
+constexpr size_t kMaxRecent = 8;
+/// LIVE_SEARCH_DEBOUNCE_MS. Each run fans out across every addon catalog.
+constexpr int kDebounceMs = 350;
+
+}  // namespace
+
+/// Persistent history (search.json): a JSON array, newest first, deduped.
 class SearchHistory {
 public:
     SearchHistory() {
@@ -32,15 +44,29 @@ public:
                 brls::Logger::error("load search history: {}", e.what());
             }
         }
+        if (this->list.size() > kMaxRecent) this->list.resize(kMaxRecent);
     }
 
     const std::vector<std::string>& items() const { return this->list; }
 
+    /// Newest first, and searching something already in the list MOVES it to
+    /// the top rather than leaving it where it was (saveRecentSearch does the
+    /// same) — the list is a most-recently-used list, not a set.
     void append(const std::string& searchTerm) {
-        for (auto& item : this->list) {
-            if (item == searchTerm) return;
+        auto it = std::find(this->list.begin(), this->list.end(), searchTerm);
+        if (it != this->list.end()) {
+            if (it == this->list.begin()) return;
+            this->list.erase(it);
         }
         this->list.insert(this->list.begin(), searchTerm);
+        if (this->list.size() > kMaxRecent) this->list.resize(kMaxRecent);
+        this->save();
+    }
+
+    void remove(const std::string& searchTerm) {
+        auto it = std::find(this->list.begin(), this->list.end(), searchTerm);
+        if (it == this->list.end()) return;
+        this->list.erase(it);
         this->save();
     }
 
@@ -63,300 +89,230 @@ private:
     std::vector<std::string> list;
 };
 
-/// Removes the last UTF-8 code point: the IME can input multi-byte
-/// characters, a bare pop_back would cut a sequence in the middle.
-static void utf8PopBack(std::string& text) {
-    if (text.empty()) return;
-    size_t i = text.size() - 1;
-    while (i > 0 && (static_cast<unsigned char>(text[i]) & 0xC0) == 0x80) i--;
-    text.erase(i);
-}
-
 SearchTab::SearchTab() {
-    // Inflate the tab from the XML file
     this->inflateFromXMLRes("xml/tabs/search_tv.xml");
     brls::Logger::debug("SearchTab: create");
 
     this->history = std::make_unique<SearchHistory>();
 
-    if (brls::Application::getThemeVariant() == brls::ThemeVariant::LIGHT) {
-        this->searchSVG->setImageFromSVGRes("img/header-search-dark.svg");
-    } else {
-        this->searchSVG->setImageFromSVGRes("img/header-search.svg");
+    // the field and the two chrome buttons carry their own fill/border, drawn
+    // under the focus halo rather than replaced by it
+    for (brls::Box* b : {this->fieldBox.getView(), this->clearButton.getView()}) {
+        b->setHideHighlightBackground(true);
     }
+    this->styleField();
+    this->clearHistory->setBackgroundColor(brls::Application::getTheme().getColor("color/pill"));
 
-    // field: click = full input through the system IME
-    this->searchBox->registerClickAction([this](brls::View* view) {
-        brls::Application::getImeManager()->openForText(
-            [this](const std::string& text) {
-                this->currentSearch = text;
-                this->updateInput();
-            },
-            "main/search/hint"_i18n, "", 32, this->currentSearch, 0);
+    this->fieldBox->registerClickAction([this](brls::View*) {
+        this->openKeyboard();
         return true;
     });
-    this->searchBox->addGestureRecognizer(new brls::TapGestureRecognizer(this->searchBox));
+    this->fieldBox->addGestureRecognizer(new brls::TapGestureRecognizer(this->fieldBox));
 
-    // icon action row: the label lives in the A button hint
-    this->actionClear->registerAction(
-        "main/search/clear"_i18n, brls::BUTTON_A,
-        [this](brls::View* view) {
-            this->currentSearch.clear();
-            this->updateInput();
-            return true;
-        },
-        false, false, brls::SOUND_CLICK);
-    this->actionClear->addGestureRecognizer(new brls::TapGestureRecognizer(this->actionClear));
+    this->clearButton->registerClickAction([this](brls::View*) {
+        // clearing drops this button from the row, so hand focus back first
+        brls::Application::giveFocus(this->fieldBox);
+        this->setQuery("", false);
+        return true;
+    });
+    this->clearButton->addGestureRecognizer(new brls::TapGestureRecognizer(this->clearButton));
 
-    this->actionDelete->registerAction(
-        "main/search/delete"_i18n, brls::BUTTON_A,
-        [this](brls::View* view) {
-            if (this->currentSearch.empty()) return true;
-            utf8PopBack(this->currentSearch);
-            this->updateInput();
-            return true;
-        },
-        false, true, brls::SOUND_CLICK);
-    this->actionDelete->addGestureRecognizer(new brls::TapGestureRecognizer(this->actionDelete));
-
-    this->actionSpace->registerAction(
-        "main/search/space"_i18n, brls::BUTTON_A,
-        [this](brls::View* view) {
-            if (this->currentSearch.empty()) return true;
-            this->currentSearch += ' ';
-            this->updateInput();
-            return true;
-        },
-        false, false, brls::SOUND_CLICK);
-    this->actionSpace->addGestureRecognizer(new brls::TapGestureRecognizer(this->actionSpace));
-
-    this->actionSearch->registerAction(
-        "main/tabs/search"_i18n, brls::BUTTON_A,
-        [this](brls::View* view) {
-            this->launchSearch();
-            return true;
-        },
-        false, false, brls::SOUND_CLICK);
-    this->actionSearch->addGestureRecognizer(new brls::TapGestureRecognizer(this->actionSearch));
-
-    // gamepad shortcut: X = backspace from the whole keyboard column
-    this->leftBox->registerAction(
-        "main/search/delete"_i18n, brls::BUTTON_X,
-        [this](brls::View* view) {
-            if (this->currentSearch.empty()) return false;
-            utf8PopBack(this->currentSearch);
-            this->updateInput();
-            return true;
-        },
-        false, true);
-
-    this->buildKeyboard();
-
-    // B from the right area: back to the keyboard (otherwise B climbs to
-    // the sidebar via the action set by AutoSidebarItem on the tab)
-    this->rightBox->registerAction(
-        "main/search/keyboard"_i18n, brls::BUTTON_B,
-        [this](brls::View* view) {
-            brls::Application::giveFocus(this->keyboardBox);
-            return true;
-        },
-        false, false, brls::SOUND_FOCUS_CHANGE);
-
-    // X on the chips: clear the history (with confirmation)
-    this->historyChips->registerAction("main/search/clear"_i18n, brls::BUTTON_X, [this](brls::View* view) {
+    this->clearHistory->registerClickAction([this](brls::View*) {
         Dialog::cancelable("main/search/clear_history"_i18n, [this]() {
             this->history->clear();
-            this->buildHistoryChips();
-            brls::sync([this]() { brls::Application::giveFocus(this->searchBox); });
+            brls::Application::giveFocus(this->fieldBox);
+            this->buildRecent();
         });
         return true;
     });
+    this->clearHistory->addGestureRecognizer(new brls::TapGestureRecognizer(this->clearHistory));
 
-    this->searchSuggest->registerCell("Cell", VideoCardCell::create);
-}
-
-void SearchTab::onCreate() {
-    this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, [this](...) {
-        this->updateInput();
-        return true;
-    });
-    this->registerAction(KeyBind::getRefresh(), [this](...) {
-        this->updateInput();
-        return true;
-    });
-    // + / START: launch the search from anywhere in the tab
-    this->registerAction("main/tabs/search"_i18n, brls::BUTTON_START, [this](...) {
-        this->launchSearch();
-        return true;
-    });
-    this->updateInput();
+    this->results->registerCell("Cell", VideoCardCell::create);
+    // the row budgets for the title block only when Layout > poster titles is on
+    this->results->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
 }
 
 SearchTab::~SearchTab() { brls::Logger::debug("SearchTab: deleted"); }
 
 brls::View* SearchTab::create() { return new SearchTab(); }
 
-/// Static 6x6 keyboard (A-Z then 1-9 and 0): focusable brls::Box in fixed
-/// rows — everything is visible, nothing scrolls. Row width:
-/// 6x50 + 5x8 = 340 (the column width), total height 6x46 + 5x8 = 316.
-void SearchTab::buildKeyboard() {
-    static const std::string layout = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-    auto theme = brls::Application::getTheme();
+brls::View* SearchTab::getDefaultFocus() { return this->fieldBox; }
 
-    brls::Box* grid[6][6];
-    for (int row = 0; row < 6; row++) {
-        auto* line = new brls::Box();
-        line->setHeight(46);
-        if (row > 0) line->setMarginTop(8);
-        for (int col = 0; col < 6; col++) {
-            const char key = layout[row * 6 + col];
-            auto* cell = new brls::Box();
-            cell->setFocusable(true);
-            cell->setDimensions(50, 46);
-            if (col > 0) cell->setMarginLeft(8);
-            cell->setCornerRadius(8);
-            cell->setHighlightCornerRadius(8);
-            cell->setBackgroundColor(theme.getColor("color/grey_2"));
-            cell->setAlignItems(brls::AlignItems::CENTER);
-            cell->setJustifyContent(brls::JustifyContent::CENTER);
-
-            auto* label = new brls::Label();
-            label->setText(std::string(1, key));
-            label->setFontSize(18);
-            cell->addView(label);
-
-            cell->registerClickAction([this, key](brls::View* view) {
-                this->currentSearch += key;
-                this->updateInput();
-                return true;
-            });
-            cell->addGestureRecognizer(new brls::TapGestureRecognizer(cell));
-
-            grid[row][col] = cell;
-            line->addView(cell);
-        }
-        this->keyboardBox->addView(line);
-    }
-
-    // vertical navigation column by column: borealis navigates by child
-    // order (not by geometry), without routes DOWN would always land on
-    // the first key of the next row
-    for (int row = 0; row < 6; row++) {
-        for (int col = 0; col < 6; col++) {
-            if (row > 0) grid[row][col]->setCustomNavigationRoute(brls::FocusDirection::UP, grid[row - 1][col]);
-            if (row < 5) grid[row][col]->setCustomNavigationRoute(brls::FocusDirection::DOWN, grid[row + 1][col]);
-        }
-    }
-
-    // keyboard <-> action row junction: button closest to the column
-    brls::Box* actions[4] = {this->actionClear, this->actionDelete, this->actionSpace, this->actionSearch};
-    const int actionForCol[6] = {0, 0, 1, 2, 2, 3};
-    const int colForAction[4] = {0, 2, 3, 5};
-    for (int col = 0; col < 6; col++)
-        grid[0][col]->setCustomNavigationRoute(brls::FocusDirection::UP, actions[actionForCol[col]]);
-    for (int btn = 0; btn < 4; btn++)
-        actions[btn]->setCustomNavigationRoute(brls::FocusDirection::DOWN, grid[0][colForAction[btn]]);
+void SearchTab::onCreate() {
+    // + / START opens the keyboard from anywhere in the tab
+    this->registerAction("main/tabs/search"_i18n, brls::BUTTON_START, [this](...) {
+        this->openKeyboard();
+        return true;
+    });
+    this->setQuery(this->currentSearch, false);
 }
 
-/// (Re)builds the history chips; hides the whole section when there is
-/// nothing to show (the suggestions grid then occupies the area).
-void SearchTab::buildHistoryChips() {
+void SearchTab::openKeyboard() {
+    brls::Application::getImeManager()->openForText(
+        [this](const std::string& text) { this->setQuery(text, true); }, "main/search/hint"_i18n, "", 64,
+        this->currentSearch, 0);
+}
+
+void SearchTab::styleField() {
+    auto theme = brls::Application::getTheme();
+    for (brls::Box* b : {this->fieldBox.getView(), this->clearButton.getView()}) {
+        b->setBackgroundColor(theme.getColor("color/pill"));
+        b->setBorderColor(theme.getColor("color/grey_2"));
+    }
+    if (this->currentSearch.empty()) {
+        this->inputLabel->setText("main/search/placeholder"_i18n);
+        this->inputLabel->setTextColor(theme.getColor("font/grey"));
+    } else {
+        this->inputLabel->setText(this->currentSearch);
+        this->inputLabel->setTextColor(theme.getColor("brls/text"));
+    }
+    this->clearButton->setVisibility(
+        this->currentSearch.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+}
+
+void SearchTab::setQuery(const std::string& query, bool remember) {
+    this->currentSearch = query;
+    this->styleField();
+
+    // trim for the length test, exactly as the reference does
+    std::string trimmed = query;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+    size_t end = trimmed.find_last_not_of(" \t");
+    trimmed.erase(end == std::string::npos ? 0 : end + 1);
+
+    uint64_t gen = ++this->generation;
+
+    if (trimmed.size() < kMinQuery) {
+        this->results->setVisibility(brls::Visibility::GONE);
+        this->recentScroll->setVisibility(brls::Visibility::VISIBLE);
+        this->buildRecent();
+        return;
+    }
+
+    if (remember) {
+        this->history->append(trimmed);
+        this->buildRecent();
+    }
+    this->recentScroll->setVisibility(brls::Visibility::GONE);
+    this->results->setVisibility(brls::Visibility::VISIBLE);
+    this->results->showSkeleton();
+    this->fieldBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, this->results.getView());
+
+    // Debounced so a query that changes again before it fires costs nothing.
+    ASYNC_RETAIN
+    brls::delay(kDebounceMs, [ASYNC_TOKEN, trimmed, gen]() {
+        ASYNC_RELEASE
+        if (gen != this->generation) return;
+        this->doSearch(trimmed);
+    });
+}
+
+/// One recent-search row: the query as a wide button, its remove button beside
+/// it. The reference lays them out exactly so, remove on the trailing edge.
+void SearchTab::buildRecent() {
     auto theme = brls::Application::getTheme();
 
-    // if the focus is in the chips, move it out before destroying the views
-    // (otherwise ghost halo on a freed view — cf. borealis pitfalls)
+    // never leave focus on a view we are about to destroy
     brls::View* focus = brls::Application::getCurrentFocus();
-    bool focusInside = false;
     for (brls::View* v = focus; v != nullptr; v = v->getParent()) {
-        if (v == this->historyChips.getView()) {
-            focusInside = true;
+        if (v == this->recentList.getView()) {
+            brls::Application::giveFocus(this->fieldBox);
             break;
         }
     }
-    if (focusInside) brls::Application::giveFocus(this->searchBox);
+    this->recentList->clearViews();
 
-    this->historyChips->clearViews();
-
-    const auto& items = this->history->items();
-    if (items.empty()) {
-        this->historyBox->setVisibility(brls::Visibility::GONE);
+    const auto items = this->history->items();  // copy: the row callbacks mutate it
+    bool any = !items.empty();
+    this->recentHeader->setVisibility(any ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    this->recentEmpty->setVisibility(any ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    if (!any) {
+        // nothing below the field to reach; a self-route is a silent no-op
+        // where a stale one would point at a destroyed row
+        this->fieldBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, this->fieldBox.getView());
         return;
     }
-    this->historyBox->setVisibility(brls::Visibility::VISIBLE);
+
+    std::vector<brls::Box*> queries, removes;
 
     for (const std::string& term : items) {
-        auto* chip = new brls::Box();
-        chip->setFocusable(true);
-        chip->setHeight(36);
-        chip->setCornerRadius(18);
-        chip->setHighlightCornerRadius(18);
-        chip->setBackgroundColor(theme.getColor("color/pill"));
-        chip->setAlignItems(brls::AlignItems::CENTER);
-        chip->setPaddingLeft(16);
-        chip->setPaddingRight(16);
-        chip->setMarginRight(10);
+        auto* row = new brls::Box();
+        row->setAxis(brls::Axis::ROW);
+        row->setAlignItems(brls::AlignItems::CENTER);
+        row->setWidthPercentage(100);
+        row->setMarginBottom(20);
 
+        auto* query = new brls::Box();
+        query->setGrow(1);
+        query->setHeight(96);
+        query->setAlignItems(brls::AlignItems::CENTER);
+        query->setPaddingLeft(32);
+        query->setPaddingRight(32);
+        query->setCornerRadius(24);
+        query->setHighlightCornerRadius(28);
+        query->setBackgroundColor(theme.getColor("color/pill"));
+        query->setFocusable(true);
+        query->setHideHighlightBackground(true);
         auto* label = new brls::Label();
         label->setText(term);
-        label->setFontSize(15);
-        chip->addView(label);
-
-        // click = rerun the search in the right area
-        chip->registerClickAction([this, term](brls::View* view) {
-            this->currentSearch = term;
-            this->updateInput();
-            // the history section was just hidden: move the focus out of
-            // the hidden chip (the field reflects the rerun query)
-            brls::sync([this]() { brls::Application::giveFocus(this->searchBox); });
+        label->setFontSize(32);
+        label->setSingleLine(true);
+        query->addView(label);
+        query->registerClickAction([this, term](brls::View*) {
+            // re-running bumps it back to the top of the list
+            this->setQuery(term, true);
             return true;
         });
-        chip->addGestureRecognizer(new brls::TapGestureRecognizer(chip));
+        query->addGestureRecognizer(new brls::TapGestureRecognizer(query));
+        row->addView(query);
+        queries.push_back(query);
 
-        this->historyChips->addView(chip);
+        auto* remove = new brls::Box();
+        remove->setDimensions(96, 96);
+        remove->setMarginLeft(24);
+        remove->setAlignItems(brls::AlignItems::CENTER);
+        remove->setJustifyContent(brls::JustifyContent::CENTER);
+        remove->setCornerRadius(24);
+        remove->setHighlightCornerRadius(28);
+        remove->setBackgroundColor(theme.getColor("color/pill"));
+        remove->setFocusable(true);
+        remove->setHideHighlightBackground(true);
+        auto* glyph = new SVGImage();
+        glyph->setDimensions(32, 32);
+        glyph->setImageFromSVGRes("icon/ico-close.svg");
+        remove->addView(glyph);
+        remove->registerAction(
+            "main/search/remove"_i18n, brls::BUTTON_A,
+            [this, term](brls::View*) {
+                this->history->remove(term);
+                // the row is about to be destroyed: rebuild on the next frame
+                // so the click is not still unwinding through the dead view
+                brls::sync([this]() { this->buildRecent(); });
+                return true;
+            },
+            false, false, brls::SOUND_CLICK);
+        remove->addGestureRecognizer(new brls::TapGestureRecognizer(remove));
+        row->addView(remove);
+        removes.push_back(remove);
+
+        this->recentList->addView(row);
     }
-}
 
-/// Explicit validation: remembers the term then opens the detailed results
-/// page (paginated movies / shows).
-void SearchTab::launchSearch() {
-    if (this->currentSearch.empty()) return;
-    this->history->append(this->currentSearch);
-    // offline: the paginated results page (SearchResult) is server-backed —
-    // the in-tab grid already shows the local matches, so just refresh it
-    if (NetworkState::isOffline()) {
-        this->updateInput();
-        return;
+    // Two columns that navigate independently, as the reference wires them:
+    // down the queries on the left, down the remove buttons on the right, and
+    // left/right to cross between the two (that part falls out of the row's
+    // own child order). Without this, Down from the field landed on "Clear
+    // history" — the first focusable in reading order — and Up from a remove
+    // button jumped back into the query column.
+    this->fieldBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, queries.front());
+    this->clearHistory->setCustomNavigationRoute(brls::FocusDirection::DOWN, queries.front());
+    queries.front()->setCustomNavigationRoute(brls::FocusDirection::UP, this->fieldBox.getView());
+    for (size_t i = 0; i < removes.size(); i++) {
+        removes[i]->setCustomNavigationRoute(
+            brls::FocusDirection::UP, i == 0 ? this->clearHistory.getView() : removes[i - 1]);
+        removes[i]->setCustomNavigationRoute(
+            brls::FocusDirection::DOWN, i + 1 < removes.size() ? removes[i + 1] : removes[i]);
     }
-    this->present(new SearchResult(this->currentSearch));
-}
-
-void SearchTab::doSuggest() {
-    // offline: the server suggestions (recentlyAdded) are unavailable — seed
-    // the grid with the whole downloaded catalog instead (SPEC §4.4)
-    if (NetworkState::isOffline()) {
-        auto items = OfflineLibrary::instance().search("");
-        if (items.empty()) {
-            this->searchSuggest->setEmpty(
-                "main/download/offline_title"_i18n, "main/download/offline_sub"_i18n, "icon/ico-cloud.svg");
-            return;
-        }
-        auto* ds = new VideoDataSource(items);
-        ds->setLocalContext(true);
-        this->searchSuggest->setDataSource(ds);
-        return;
-    }
-
-    ASYNC_RETAIN
-    AppConfig::instance().backend().getRecentlyAdded(0, 24,
-        [ASYNC_TOKEN](const media::Container<media::Item>& r) {
-            ASYNC_RELEASE
-            // poster grid: the suggestions are complete items
-            this->searchSuggest->setDataSource(new VideoDataSource(r.Items));
-        },
-        [ASYNC_TOKEN](const std::string& ex) {
-            ASYNC_RELEASE
-            this->searchSuggest->setError(ex);
-        });
 }
 
 void SearchTab::doSearch(const std::string& searchTerm) {
@@ -365,51 +321,33 @@ void SearchTab::doSearch(const std::string& searchTerm) {
     if (NetworkState::isOffline()) {
         auto items = OfflineLibrary::instance().search(searchTerm);
         if (items.empty()) {
-            this->searchSuggest->setEmpty(
+            this->results->setEmpty(
                 "main/search/no_results"_i18n, "main/search/no_results_sub"_i18n, "icon/ico-search.svg");
         } else {
             auto* ds = new VideoDataSource(items);
             ds->setLocalContext(true);
-            this->searchSuggest->setDataSource(ds);
+            this->results->setDataSource(ds);
         }
         return;
     }
 
+    uint64_t gen = this->generation;
     ASYNC_RETAIN
     // a single page: search does not paginate reliably
     AppConfig::instance().backend().search(searchTerm, media::MediaKind::Any, 40,
-        [ASYNC_TOKEN](const media::Container<media::Item>& r) {
+        [ASYNC_TOKEN, gen](const media::Container<media::Item>& r) {
             ASYNC_RELEASE
+            if (gen != this->generation) return;
             if (r.Items.empty()) {
-                this->searchSuggest->setEmpty(
+                this->results->setEmpty(
                     "main/search/no_results"_i18n, "main/search/no_results_sub"_i18n, "icon/ico-search.svg");
             } else {
-                this->searchSuggest->setDataSource(new VideoDataSource(r.Items));
+                this->results->setDataSource(new VideoDataSource(r.Items));
             }
         },
-        [ASYNC_TOKEN](const std::string& ex) {
+        [ASYNC_TOKEN, gen](const std::string& ex) {
             ASYNC_RELEASE
-            brls::Application::notify(ex);
+            if (gen != this->generation) return;
+            this->results->setError(ex);
         });
-}
-
-void SearchTab::updateInput() {
-    auto theme = brls::Application::getTheme();
-    if (this->currentSearch.empty()) {
-        this->inputLabel->setText("main/search/placeholder"_i18n);
-        this->inputLabel->setTextColor(theme.getColor("font/grey"));
-        this->buildHistoryChips();
-        this->suggestHeader->setTitle("main/search/suggest"_i18n);
-        this->searchSuggest->showSkeleton();
-        this->doSuggest();
-    } else {
-        this->inputLabel->setText(this->currentSearch);
-        this->inputLabel->setTextColor(theme.getColor("brls/text"));
-        if (this->historyBox->getVisibility() == brls::Visibility::VISIBLE) {
-            this->historyBox->setVisibility(brls::Visibility::GONE);
-        }
-        this->suggestHeader->setTitle("main/search/results"_i18n);
-        this->searchSuggest->showSkeleton();
-        this->doSearch(this->currentSearch);
-    }
 }

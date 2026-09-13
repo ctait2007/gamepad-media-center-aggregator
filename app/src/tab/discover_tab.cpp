@@ -73,10 +73,15 @@ DiscoverTab::DiscoverTab() {
     this->grid = new RecyclingGrid();
     this->grid->setGrow(1.f);
     this->grid->registerCell("Cell", VideoCardCell::create);
-    this->grid->spanCount = brls::getStyle().getMetric("app/grid/6");
+    // Six across, as the reference fits — not the app/grid/* metric, which is
+    // tuned for a library grid that has no filter row above it.
+    this->grid->spanCount = 6;
     this->grid->itemImageRatio = 1.5f;
     this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
-    this->grid->setPadding(0, 0, brls::getStyle()["main/content_padding_top_bottom"], 0);
+    // paddingTop: the top row's focus ring is drawn ~5px OUTSIDE its frame, so
+    // flush against the meta line above it the ring came out clipped and the
+    // row read as cut off.
+    this->grid->setPadding(16, 0, brls::getStyle()["main/content_padding_top_bottom"], 0);
     this->grid->onNextPage([this] { this->doRequest(); });
     this->boxGrid->addView(this->grid);
 

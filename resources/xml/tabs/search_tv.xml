@@ -1,156 +1,155 @@
 <!--
-    Search (UI_REDESIGN.md §4.6): fixed left column (field + icon actions
-    + static 6x6 keyboard generated in search_tab.cpp — no scroll),
-    right area = history as chips + suggestions/results as a poster grid.
-    720p height budget: 48 + 12 + 44 + 14 + (6x46 + 5x8) = 434
-    for 617 usable (720 - footer 73 - paddingTop 30).
+    Search, following NuvioTV's SearchScreen.kt: a field across the top (which
+    is where focus lands), and under it EITHER the recent searches — one
+    focusable row per query with its own remove button — or the results. There
+    is no on-screen keyboard: the field opens the platform's own (the PS4
+    dialog), and the search runs the moment it returns, with no separate
+    submit step.
 -->
 <brls:Box
     width="auto"
     height="auto"
+    axis="column"
     paddingLeft="@style/main/content_padding_sides"
     paddingRight="@style/main/content_padding_sides"
     paddingTop="@style/main/content_padding_top_bottom">
 
-    <!-- Fixed left column (~370 pt with the gutter) -->
     <brls:Box
-        id="tv/search/left"
-        axis="column"
-        width="340"
-        marginRight="30">
+        axis="row"
+        width="100%"
+        alignItems="center">
 
-        <!-- Field: magnifier + typed text / placeholder; click = IME -->
         <brls:Box
-            id="tv/search/box"
+            id="search/field"
             focusable="true"
-            height="48"
+            grow="1"
+            height="96"
             alignItems="center"
-            paddingLeft="14"
-            paddingRight="14"
-            cornerRadius="12"
-            highlightCornerRadius="10"
-            backgroundColor="@theme/color/grey_1">
+            paddingLeft="32"
+            paddingRight="32"
+            cornerRadius="24"
+            highlightCornerRadius="28"
+            borderThickness="3">
             <SVGImage
-                id="tv/search/svg"
-                width="18"
-                height="18"
-                marginRight="10" />
+                id="search/icon"
+                width="36"
+                height="36"
+                marginRight="20"
+                svg="@res/icon/ico-search.svg" />
             <brls:Label
-                id="tv/search/input"
+                id="search/input"
                 grow="1"
                 singleLine="true"
-                fontSize="16" />
+                fontSize="32" />
         </brls:Box>
 
-        <!-- Icon actions: clear all / backspace / space / search -->
+        <!-- beside the field rather than inside it, so the D-pad can reach it -->
         <brls:Box
-            id="tv/search/actions"
-            height="44"
-            marginTop="12">
-            <brls:Box
-                id="tv/search/action/clear"
-                focusable="true"
-                grow="1"
-                alignItems="center"
-                justifyContent="center"
-                cornerRadius="12"
-                highlightCornerRadius="8"
-                backgroundColor="@theme/color/grey_2">
-                <SVGImage
-                    width="20"
-                    height="20"
-                    svg="@res/icon/ico-trash.svg" />
-            </brls:Box>
-            <brls:Box
-                id="tv/search/action/delete"
-                focusable="true"
-                grow="1"
-                marginLeft="8"
-                alignItems="center"
-                justifyContent="center"
-                cornerRadius="12"
-                highlightCornerRadius="8"
-                backgroundColor="@theme/color/grey_2">
-                <SVGImage
-                    width="20"
-                    height="20"
-                    svg="@res/icon/ico-backspace.svg" />
-            </brls:Box>
-            <brls:Box
-                id="tv/search/action/space"
-                focusable="true"
-                grow="1"
-                marginLeft="8"
-                alignItems="center"
-                justifyContent="center"
-                cornerRadius="12"
-                highlightCornerRadius="8"
-                backgroundColor="@theme/color/grey_2">
-                <SVGImage
-                    width="20"
-                    height="20"
-                    svg="@res/icon/ico-space.svg" />
-            </brls:Box>
-            <brls:Box
-                id="tv/search/action/search"
-                focusable="true"
-                grow="1"
-                marginLeft="8"
-                alignItems="center"
-                justifyContent="center"
-                cornerRadius="12"
-                highlightCornerRadius="8"
-                backgroundColor="@theme/color/grey_2">
-                <SVGImage
-                    width="20"
-                    height="20"
-                    svg="@res/icon/ico-search.svg" />
-            </brls:Box>
+            id="search/clear"
+            focusable="true"
+            visibility="gone"
+            width="96"
+            height="96"
+            marginLeft="24"
+            alignItems="center"
+            justifyContent="center"
+            cornerRadius="24"
+            highlightCornerRadius="28"
+            borderThickness="3">
+            <SVGImage
+                width="36"
+                height="36"
+                svg="@res/icon/ico-close.svg" />
         </brls:Box>
+    </brls:Box>
 
-        <!-- Static 6x6 keyboard (keys generated in code, no RecyclingGrid) -->
+    <!-- recent searches: shown until the query is long enough to search on -->
+    <brls:ScrollingFrame
+        id="search/recent_scroll"
+        grow="1"
+        marginTop="40"
+        scrollingBehavior="centered">
         <brls:Box
-            id="tv/search/keyboard"
             axis="column"
-            marginTop="14" />
+            width="100%"
+            height="auto"
+            paddingLeft="8"
+            paddingRight="26"
+            paddingTop="8"
+            paddingBottom="40">
 
-    </brls:Box>
-
-    <!-- Right area: history (chips) then suggestions / results -->
-    <brls:Box
-        id="tv/search/right"
-        axis="column"
-        grow="1">
-
-        <brls:Box
-            id="tv/history/box"
-            axis="column">
-            <brls:Header
-                title="@i18n/main/search/history" />
-            <brls:HScrollingFrame
-                height="52"
-                marginTop="2">
+            <brls:Box
+                id="search/recent_header"
+                axis="row"
+                width="100%"
+                alignItems="center"
+                marginBottom="20">
+                <brls:Label
+                    grow="1"
+                    singleLine="true"
+                    fontSize="32"
+                    fontWeight="medium"
+                    text="@i18n/main/search/recent" />
                 <brls:Box
-                    id="tv/search/history"
-                    alignItems="center" />
-            </brls:HScrollingFrame>
+                    id="search/clear_history"
+                    focusable="true"
+                    height="72"
+                    alignItems="center"
+                    justifyContent="center"
+                    paddingLeft="32"
+                    paddingRight="32"
+                    cornerRadius="24"
+                    highlightCornerRadius="28">
+                    <brls:Label
+                        singleLine="true"
+                        fontSize="28"
+                        fontWeight="medium"
+                        text="@i18n/main/search/clear_history_action" />
+                </brls:Box>
+            </brls:Box>
+
+            <brls:Box
+                id="search/recent_list"
+                axis="column"
+                width="100%"
+                height="auto" />
+
+            <brls:Box
+                id="search/recent_empty"
+                axis="column"
+                width="100%"
+                alignItems="center"
+                justifyContent="center"
+                marginTop="120"
+                visibility="gone">
+                <SVGImage
+                    width="72"
+                    height="72"
+                    marginBottom="24"
+                    svg="@res/icon/ico-search.svg" />
+                <brls:Label
+                    horizontalAlign="center"
+                    fontSize="32"
+                    fontWeight="medium"
+                    text="@i18n/main/search/start_title" />
+                <brls:Label
+                    marginTop="8"
+                    horizontalAlign="center"
+                    fontSize="28"
+                    textColor="@theme/font/grey"
+                    text="@i18n/main/search/start_sub" />
+            </brls:Box>
         </brls:Box>
+    </brls:ScrollingFrame>
 
-        <brls:Header
-            id="tv/search/section"
-            marginTop="10"
-            title="@i18n/main/search/suggest" />
-
-        <RecyclingGrid
-            id="tv/search/suggest"
-            grow="1"
-            marginTop="2"
-            paddingBottom="@style/main/content_padding_top_bottom"
-            itemHeight="@style/app/video/height"
-            itemImageRatio="1.5"
-            itemExtraHeight="55"
-            spanCount="@style/app/grid/6" />
-
-    </brls:Box>
+    <RecyclingGrid
+        id="search/results"
+        grow="1"
+        marginTop="40"
+        visibility="gone"
+        paddingBottom="@style/main/content_padding_top_bottom"
+        itemHeight="@style/app/video/height"
+        itemImageRatio="1.5"
+        spanCount="6" />
 
 </brls:Box>
