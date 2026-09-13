@@ -41,6 +41,13 @@ void showAudio(const plex::Media* src);
 void showSources(const std::string& subtitle, const std::vector<plex::Media>& sources, int current,
     std::function<void(int)> onPick, std::function<void()> onReload = nullptr);
 
+/// The same sheet for an item whose sources are not resolved yet — it goes up
+/// immediately, says it is loading, and fills itself when the addons answer.
+/// This is what the episode sheet hands off to, rather than the full-screen
+/// picker: switching episode mid-playback should stay inside the player.
+void showSourcesFor(const plex::Item& item, const std::string& subtitle,
+    std::function<void(plex::Item, std::vector<plex::Media>, int)> onPick);
+
 /// The episode sheet: season tabs over the reference's own episode rows — a
 /// still with the S/E code on it and a tick or eye badge, the title, the air
 /// date and two lines of synopsis beside it. `episodes` is the player's own

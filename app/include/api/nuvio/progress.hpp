@@ -35,6 +35,11 @@ struct WatchProgressRow {
     int64_t positionMs = 0;
     int64_t durationMs = 0;
     int64_t lastWatched = 0;  // epoch ms
+    /// Transient, set only by continueWatching(): this row is the title's most
+    /// recent AND it is already watched, so what the user wants offered is the
+    /// episode AFTER it, not this one. Never read from or written to the
+    /// server — the `watched_items` table is what it is derived from.
+    bool finished = false;
 };
 
 struct WatchedRow {

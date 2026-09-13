@@ -179,9 +179,13 @@ std::vector<WatchProgressRow> ProgressStore::continueWatching(size_t limit) {
                 break;
             }
         }
-        // The furthest episode is finished: the show has nothing to resume, so
-        // it leaves the row rather than falling back to an earlier episode.
-        if (!watchedFlag) out.push_back(*row);
+        // A finished episode does NOT retire the show: the row carries on to
+        // whatever comes after it, at zero progress. Marked here and resolved
+        // by the caller, which is the side that can ask an addon what the next
+        // episode actually is.
+        WatchProgressRow copy = *row;
+        copy.finished = watchedFlag;
+        out.push_back(std::move(copy));
     }
     std::sort(out.begin(), out.end(),
         [](const WatchProgressRow& a, const WatchProgressRow& b) { return a.lastWatched > b.lastWatched; });

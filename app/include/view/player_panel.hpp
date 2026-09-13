@@ -210,6 +210,17 @@ public:
     /// replaces the rows, and the routes go with them.
     void linkTabs(brls::View* firstRow);
 
+    /// Empty the tab row and the body, for a panel whose contents arrive after
+    /// it is already on screen (an episode's sources, once the addons answer).
+    void clearContents();
+
+    /// Run when the panel is destroyed. An async fill has to know the panel it
+    /// was going to write into is gone — backing out of a sheet while its
+    /// fetch is in flight is entirely ordinary.
+    void setOnDestroy(std::function<void()> cb) { this->onDestroy = std::move(cb); }
+
+    ~PlayerSidePanel() override;
+
     brls::Box* body() const { return this->bodyBox; }
 
     void setFocusTarget(brls::View* v) { this->focusTargetView = v; }
@@ -223,5 +234,6 @@ public:
 private:
     brls::Box* bodyBox = nullptr;
     brls::Box* tabsBox = nullptr;
+    std::function<void()> onDestroy;
     brls::View* focusTargetView = nullptr;
 };

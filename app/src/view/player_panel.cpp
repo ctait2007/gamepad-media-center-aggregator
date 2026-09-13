@@ -23,6 +23,7 @@ constexpr float kRailGap      = 16;  // spacing.sm between cards
 constexpr float kPanelWidth   = 1040;  // 520dp
 constexpr float kPanelPadding = 48;    // spacing.xl
 constexpr float kPanelRadius  = 32;    // spacing.lg on the left corners
+constexpr float kPillRing     = 4;     // the accent focus ring on a tab pill
 
 /// Material "check" — the tick the reference puts on the current track.
 const char* kCheck = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
@@ -194,9 +195,11 @@ PlayerPill::PlayerPill(const std::string& text, bool selected) : selected(select
     this->setAxis(brls::Axis::ROW);
     this->setAlignItems(brls::AlignItems::CENTER);
     this->setJustifyContent(brls::JustifyContent::CENTER);
-    this->setPadding(20, 40, 20, 40);  // 10dp / 20dp
-    this->setCornerRadius(48);         // RoundedCornerShape(spacing.xl)
-    this->setBorderThickness(2);       // spacing.hairline
+    // Snugger than the reference's 20dp: at our text size that left a lot of
+    // empty pill either side of a short word like "All", which reads stretched.
+    this->setPadding(18, 28, 18, 28);
+    this->setCornerRadius(40);
+    this->setBorderThickness(kPillRing);
     this->setShrink(0);
     this->setFocusable(true);
     this->setHideHighlightBackground(true);
@@ -216,7 +219,7 @@ PlayerPill::PlayerPill(const std::string& text, bool selected) : selected(select
 PlayerPill* PlayerPill::icon(const char* path) {
     auto* pill = new PlayerPill("", false);
     pill->label->setVisibility(brls::Visibility::GONE);
-    pill->setPadding(20, 20, 20, 20);  // square, so the circle stays round
+    pill->setPadding(18, 18, 18, 18);  // square, so the circle stays round
     pill->glyphPath = path;
     pill->glyph = new SVGImage();
     pill->glyph->setDimensions(40, 40);
@@ -237,7 +240,7 @@ void PlayerPill::applyColors() {
     bool focused = this->isFocused();
 
     if (this->glyph && this->glyphPath) {
-        NVGcolor fg = this->selected ? nvgRGB(0, 0, 0) : (focused ? onAccent(accent) : nvgRGB(255, 255, 255));
+        NVGcolor fg = this->selected ? nvgRGB(0, 0, 0) : nvgRGB(255, 255, 255);
         char svg[400];
         std::snprintf(svg, sizeof(svg),
             R"(<svg width="24" height="24" viewBox="0 0 24 24"><path d="%s" fill="%s"/></svg>)", this->glyphPath,
@@ -245,23 +248,20 @@ void PlayerPill::applyColors() {
         this->glyph->setImageFromSVGString(svg);
     }
 
+    // Focus is a RING in the accent, never a fill: a filled pill is how this
+    // row says "selected", and using the same language for "focused" made the
+    // two impossible to tell apart while moving along the row.
+    if (focused) this->setBorderColor(accent);
+
     if (this->selected) {
-        // The reference fills the active tab near-white and darkens it further
-        // on focus, so the selection never reads as merely "focused".
-        this->setBackgroundColor(focused ? nvgRGB(255, 255, 255) : nvgRGB(245, 245, 245));
-        this->setBorderColor(nvgRGBA(0, 0, 0, 0));
+        this->setBackgroundColor(nvgRGB(245, 245, 245));
+        if (!focused) this->setBorderColor(nvgRGBA(0, 0, 0, 0));
         this->label->setTextColor(nvgRGB(0, 0, 0));
         return;
     }
-    if (focused) {
-        this->setBackgroundColor(accent);
-        this->setBorderColor(nvgRGBA(0, 0, 0, 0));
-        this->label->setTextColor(onAccent(accent));
-        return;
-    }
     this->setBackgroundColor(theme.getColor("color/surface"));
-    this->setBorderColor(theme.getColor("color/grey_2"));
-    this->label->setTextColor(theme.getColor("font/grey"));
+    if (!focused) this->setBorderColor(theme.getColor("color/grey_2"));
+    this->label->setTextColor(focused ? nvgRGB(255, 255, 255) : theme.getColor("font/grey"));
 }
 
 void PlayerPill::onFocusGained() {
@@ -617,6 +617,15 @@ PlayerSidePanel::PlayerSidePanel(const std::string& title, const std::string& su
         brls::Application::popActivity();
         return true;
     });
+}
+
+PlayerSidePanel::~PlayerSidePanel() {
+    if (this->onDestroy) this->onDestroy();
+}
+
+void PlayerSidePanel::clearContents() {
+    if (this->tabsBox) this->tabsBox->clearViews();
+    if (this->bodyBox) this->bodyBox->clearViews();
 }
 
 void PlayerSidePanel::linkTabs(brls::View* firstRow) {

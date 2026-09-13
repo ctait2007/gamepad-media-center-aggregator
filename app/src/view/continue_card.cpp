@@ -75,6 +75,21 @@ RecyclingGridItem* ContinueDataSource::cellForRow(RecyclingView* recycler, size_
     return cell;
 }
 
+void ContinueDataSource::onItemSelected(brls::Box* recycler, size_t index) {
+    // the trailing "+" card, and anything not a movie, keep the inherited
+    // behaviour — episodes already resume there, and that path also knows
+    // about downloaded local files.
+    if (index >= this->list.size() || this->list.at(index).type != plex::mediaTypeMovie) {
+        VideoDataSource::onItemSelected(recycler, index);
+        return;
+    }
+    plex::Item item = this->list.at(index);
+    // Resume where the row says, and let the backend pick the source: the tile
+    // is the "carry on" control, not a way into the picker.
+    PlayerView* view = new PlayerView(item, item.viewOffset);
+    view->setTitie(item.year ? fmt::format("{} ({})", item.title, item.year) : item.title);
+}
+
 /// NuvioTV's ContinueWatchingOptionsDialog: Go to details, then Play manually,
 /// Start from beginning (only when there IS something to start over) and
 /// Remove. The wording and the order are the reference's.

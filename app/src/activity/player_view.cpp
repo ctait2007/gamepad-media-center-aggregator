@@ -258,11 +258,10 @@ void PlayerView::chooseEpisodeSource(int index) {
                             ? fmt::format("S{}E{} — {}", ep.parentIndex, ep.index, ep.title)
                             : fmt::format("{} · S{}E{} — {}", ep.grandparentTitle, ep.parentIndex, ep.index, ep.title);
 
-    auto* picker = new SourceList(ep, title, 0);
-    picker->setOnChosen([this](plex::Item chosen, std::vector<plex::Media> sources, int mediaIndex) {
-        this->switchTo(chosen, sources, mediaIndex);
-    });
-    brls::Application::pushActivity(new brls::Activity(picker));
+    player_panels::showSourcesFor(
+        ep, title, [this](plex::Item chosen, std::vector<plex::Media> sources, int mediaIndex) {
+            this->switchTo(chosen, sources, mediaIndex);
+        });
 }
 
 void PlayerView::switchTo(const plex::Item& ep, const std::vector<plex::Media>& sources, int mediaIndex) {
@@ -562,9 +561,15 @@ void PlayerView::reportStop() {
 }
 
 void PlayerView::maybeScrobble(int64_t timeMs) {
-    // state=stopped is NOT enough to mark as watched: explicit scrobble required
-    if (this->scrobbled || this->item.duration <= 0) return;
-    if (double(timeMs) / double(this->item.duration) < SCROBBLE_THRESHOLD) return;
+    // state=stopped is NOT enough to mark as watched: explicit scrobble required.
+    // mpv's duration when the item has none of its own — a Stremio episode never
+    // does, so this test divided by zero-duration and nothing was EVER marked
+    // watched automatically. That is what "finished items are not marked
+    // watched" was.
+    int64_t durMs = this->item.duration;
+    if (durMs <= 0) durMs = int64_t(MPVCore::instance().duration * 1000);
+    if (this->scrobbled || durMs <= 0) return;
+    if (double(timeMs) / double(durMs) < SCROBBLE_THRESHOLD) return;
     this->scrobbled = true;
     AppConfig::instance().backend().markWatched(this->itemId);
 }

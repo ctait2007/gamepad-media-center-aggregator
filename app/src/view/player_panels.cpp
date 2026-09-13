@@ -478,9 +478,14 @@ void showAudio(const plex::Media* src) {
     overlay->present();
 }
 
-void showSources(const std::string& subtitle, const std::vector<plex::Media>& sources, int current,
+namespace {
+
+/// Builds (or rebuilds) a sources sheet's tab row and list. Separate from
+/// showSources because an episode's sources arrive AFTER its sheet is on
+/// screen, and the sheet then fills itself with exactly this.
+void fillSourcesPanel(PlayerSidePanel* panel, const std::vector<plex::Media>& sources, int current,
     std::function<void(int)> onPick, std::function<void()> onReload) {
-    auto* panel = new PlayerSidePanel("main/player/sources"_i18n, subtitle);
+    panel->clearContents();
 
     if (sources.empty()) {
         auto* empty = new brls::Label();
@@ -488,15 +493,11 @@ void showSources(const std::string& subtitle, const std::vector<plex::Media>& so
         empty->setFontSize(32);
         empty->setTextColor(nvgRGBA(255, 255, 255, 179));
         panel->body()->addView(empty);
-        panel->present();
         return;
     }
 
     auto* rail = new PlayerRail("", kSheetInnerWidth, brls::Application::contentHeight - 420, false);
 
-    // The addon filter, as the pre-playback picker has it: a refresh chip, All,
-    // then one chip per addon that returned something. Selecting one refills
-    // the list below without closing the sheet.
     std::vector<std::string> addons;
     for (const plex::Media& m : sources)
         if (!m.addonName.empty() && std::find(addons.begin(), addons.end(), m.addonName) == addons.end())
@@ -560,7 +561,63 @@ void showSources(const std::string& subtitle, const std::vector<plex::Media>& so
     fill();
     panel->body()->addView(rail);
     panel->setFocusTarget(rail->focusTarget());
+    if (brls::View* t = rail->focusTarget()) brls::Application::giveFocus(t);
+}
+
+/// A single line in the body — "Loading…", or why nothing came back.
+void sheetMessage(PlayerSidePanel* panel, const std::string& text) {
+    panel->clearContents();
+    auto* label = new brls::Label();
+    label->setText(text);
+    label->setFontSize(32);
+    label->setTextColor(nvgRGBA(255, 255, 255, 179));
+    panel->body()->addView(label);
+}
+
+}  // namespace
+
+void showSources(const std::string& subtitle, const std::vector<plex::Media>& sources, int current,
+    std::function<void(int)> onPick, std::function<void()> onReload) {
+    auto* panel = new PlayerSidePanel("main/player/sources"_i18n, subtitle);
+    fillSourcesPanel(panel, sources, current, std::move(onPick), std::move(onReload));
     panel->present();
+}
+
+void showSourcesFor(const plex::Item& item, const std::string& subtitle,
+    std::function<void(plex::Item, std::vector<plex::Media>, int)> onPick) {
+    auto* panel = new PlayerSidePanel("main/player/sources"_i18n, subtitle);
+    // The sheet goes up at once and fills itself when the addons answer, so
+    // picking an episode feels like the rest of the player rather than
+    // handing the screen over to the full-screen picker.
+    sheetMessage(panel, "main/stremio/source/loading"_i18n);
+    panel->present();
+
+    // Backing out while the fan-out is still running is entirely ordinary, and
+    // the panel is gone by the time it lands.
+    auto alive = std::make_shared<bool>(true);
+    panel->setOnDestroy([alive]() { *alive = false; });
+
+    std::string id = item.ratingKey;
+    AppConfig::instance().backend().getItemDetail(
+        id, true,
+        [alive, panel, item, onPick](const media::Item& full) {
+            if (!*alive) return;
+            plex::Item chosen = full.title.empty() ? item : full;
+            auto sources = full.media;
+            fillSourcesPanel(
+                panel, sources, -1,
+                [chosen, sources, onPick](int picked) {
+                    brls::Application::popActivity(brls::TransitionAnimation::NONE,
+                        [chosen, sources, onPick, picked]() {
+                            if (onPick) onPick(chosen, sources, picked);
+                        });
+                },
+                nullptr);
+        },
+        [alive, panel](const std::string& ex) {
+            brls::Logger::warning("player sources: {}", ex);
+            if (*alive) sheetMessage(panel, "main/stremio/source/failed"_i18n);
+        });
 }
 
 namespace {

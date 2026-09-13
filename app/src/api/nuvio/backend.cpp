@@ -8,6 +8,7 @@
 #include <borealis/core/i18n.hpp>
 #include <borealis/core/logger.hpp>
 #include <borealis/core/thread.hpp>
+#include <algorithm>
 #include <chrono>
 
 using namespace brls::literals;
@@ -59,6 +60,32 @@ NuvioBackend::NuvioBackend() {
 
 std::string NuvioBackend::subtitleMenuHint() const { return "main/nuvio/subtitle/none"_i18n; }
 
+/// The episode after the one this row points at, in (season, episode) order,
+/// skipping anything already watched — finishing three in a row should offer
+/// the fourth, not the second. Empty when the show has nothing left.
+media::Item NuvioBackend::nextEpisodeAfter(const WatchProgressRow& row) {
+    std::string showKey = "series:" + row.contentId;
+    std::vector<media::Item> eps = resolveEpisodes(delegate.addonEngine(), showKey);
+    std::sort(eps.begin(), eps.end(), [](const media::Item& a, const media::Item& b) {
+        if (a.parentIndex != b.parentIndex) return a.parentIndex < b.parentIndex;
+        return a.index < b.index;
+    });
+    for (const media::Item& e : eps) {
+        bool after = e.parentIndex > row.season || (e.parentIndex == row.season && e.index > row.episode);
+        if (!after) continue;
+        if (progressStore.isWatched(row.contentId, e.parentIndex, e.index)) continue;
+        media::Item out = e;
+        // Whatever progress that episode already has, if it was started and
+        // abandoned earlier in the run.
+        if (auto p = progressStore.progressFor(row.contentId, e.parentIndex, e.index)) {
+            out.viewOffset = p->positionMs;
+            if (p->durationMs > 0) out.duration = p->durationMs;
+        }
+        return out;
+    }
+    return media::Item{};
+}
+
 void NuvioBackend::getContinueWatching(
     int count, media::Then<media::Container<media::Hub>> then, media::OnError error) {
     int cnt = count;
@@ -78,6 +105,17 @@ void NuvioBackend::getContinueWatching(
             // included — for the sum of every lookup.
             auto resolved = stremio::parallelMap<WatchProgressRow, media::Item>(
                 rows, [this](const WatchProgressRow& row) -> media::Item {
+                    // Finished: offer what comes NEXT, at zero progress, so a
+                    // show you are working through stays on the row instead of
+                    // vanishing the moment you finish an episode. A finished
+                    // MOVIE, and a series with nothing after it, do leave.
+                    if (row.finished) {
+                        if (row.contentType != "series") return media::Item{};
+                        media::Item next = nextEpisodeAfter(row);
+                        if (next.ratingKey.empty()) return media::Item{};
+                        next.viewOffset = 0;
+                        return next;
+                    }
                     std::string ratingKey =
                         ratingKeyFor(row.contentId, row.contentType, row.season, row.episode);
                     media::Item item = resolveMeta(delegate.addonEngine(), ratingKey);

@@ -42,6 +42,13 @@ public:
 
     RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override;
 
+    /// A resume tile RESUMES, whatever it points at. The inherited handler
+    /// sends a movie to its detail page — which is right everywhere else and
+    /// wrong here, where the tile's whole promise (and its own "Play" hint and
+    /// progress bar) is that pressing it carries on from where you stopped.
+    /// Episodes already went straight to the player; movies now do too.
+    void onItemSelected(brls::Box* recycler, size_t index) override;
+
     /// NuvioTV's ContinueWatchingOptionsDialog rather than the poster one:
     /// a resume tile's useful actions are about the resume, not the title.
     void onContextMenu(brls::Box* recycler, size_t index) override;

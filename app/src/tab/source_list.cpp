@@ -425,17 +425,6 @@ void SourceList::play(int mediaIndex) {
     media::Item toPlay = this->item;
     toPlay.media = this->sources;
 
-    // Presented BY a player (its episode sheet): hand the choice back and get
-    // out of the way rather than starting a second player over the first.
-    if (this->onChosen) {
-        auto cb = this->onChosen;
-        auto sources = this->sources;
-        int index = mediaIndex;
-        brls::Application::popActivity(
-            brls::TransitionAnimation::NONE, [cb, toPlay, sources, index]() { cb(toPlay, sources, index); });
-        return;
-    }
-
     PlayerView* view = new PlayerView(toPlay, this->resumeMs, mediaIndex);
     view->setTitie(this->title);
     if (!this->item.grandparentRatingKey.empty()) view->setSeries(this->item.grandparentRatingKey);

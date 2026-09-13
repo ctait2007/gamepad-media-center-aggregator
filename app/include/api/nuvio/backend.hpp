@@ -160,6 +160,9 @@ public:
 private:
     /// Stamps viewCount/viewOffset from the ProgressStore onto items an addon
     /// returned, so watched badges and resume bars reflect this account.
+    /// The episode after a finished Continue Watching row — see backend.cpp.
+    media::Item nextEpisodeAfter(const WatchProgressRow& row);
+
     void applyWatchState(media::Container<media::Item>& c);
     void applyWatchState(media::Container<media::Hub>& c);
     void applyWatchState(media::Item& it);
