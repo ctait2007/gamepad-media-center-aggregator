@@ -430,7 +430,6 @@
         "keyboard": "Keyboard"
       },
       "config_dir": "Config directory",
-      "swap_ab": "Swap confirm and back buttons (restart required)",
       "logout": "Logout of the current account \n(the application will quit)",
       "up2date": "App is up to date",
       "upgrade": "{} is available now! Ready to update?",

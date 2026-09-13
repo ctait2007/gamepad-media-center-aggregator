@@ -437,6 +437,14 @@ bool AppConfig::init() {
 
     // 初始化一些在创建窗口之后才能初始化的内容
     brls::Application::getWindowCreationDoneEvent()->subscribe([this]() {
+#if defined(PS4)
+        // The console tells us its own Enter Button Assignment and the app
+        // follows it (ps4_platform.cpp); inverting that only ever made the app
+        // disagree with the console, so the toggle that did is gone. Clear a
+        // value left behind by the build that briefly offered it, otherwise
+        // the swap would persist with nothing left to switch it back.
+        if (this->getItem(APP_SWAP_ABXY, false)) this->setItem(APP_SWAP_ABXY, false);
+#endif
 #if defined(TRIMUI)
         if (this->getItem(APP_SWAP_ABXY, true))
 #else

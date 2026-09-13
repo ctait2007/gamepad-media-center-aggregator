@@ -119,12 +119,6 @@
                             <SelectorCell
                                 id="setting/keymap"
                                 quitApp="true" />
-                            <!-- The app mirrors the console's own Enter Button
-                                 Assignment at startup so it agrees with the
-                                 system keyboard. This inverts that, for a
-                                 console that reports it wrongly. -->
-                            <brls:BooleanCell
-                                id="setting/swap_ab" />
                         </brls:Box>
 
                         <!-- Layout -->

@@ -1178,6 +1178,69 @@ index 9b31fcf..00bb8f3 100644
  
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
+diff --git a/library/lib/platforms/ps4/ps4_ime.cpp b/library/lib/platforms/ps4/ps4_ime.cpp
+index 928fbdf..ee0d3f6 100644
+--- a/library/lib/platforms/ps4/ps4_ime.cpp
++++ b/library/lib/platforms/ps4/ps4_ime.cpp
+@@ -112,9 +112,34 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+ 
+     memset(&imeDialogSetting, 0, sizeof(OrbisImeDialogSetting));
+ 
+-    int UserID = 0;
+-    sceUserServiceGetInitialUser(&UserID);
+-    imeDialogSetting.userId              = UserID;
++    // WHICH USER the dialog belongs to decides which button confirms in it.
++    // Enter Button Assignment is a PER-USER system setting, and the IME dialog
++    // obeys the assignment of the user it is created for — while the app obeys
++    // the one sceSystemServiceParamGetInt reports for the process (see
++    // ps4_platform.cpp). getInitialUser is the FIRST USER EVER REGISTERED on
++    // the console, which on any console with more than one profile is not the
++    // person holding the pad: the app then confirms with cross while their
++    // keyboard confirms with circle, which is exactly the report this fixes.
++    // The foreground user is the one actually signed in and playing.
++    int32_t UserID = -1;
++    int32_t fgRet  = sceUserServiceGetForegroundUser(&UserID);
++    if (fgRet < 0 || UserID < 0)
++    {
++        int32_t initialUser = -1;
++        int32_t initRet     = sceUserServiceGetInitialUser(&initialUser);
++        Logger::warning("ime: foreground user unavailable ({}), falling back to initial user {} ({})", fgRet,
++            initialUser, initRet);
++        UserID = initialUser;
++    }
++    else
++    {
++        // Logged so a console where the two differ says so out loud — the
++        // difference IS the bug, and it cannot be reproduced off-hardware.
++        int32_t initialUser = -1;
++        sceUserServiceGetInitialUser(&initialUser);
++        Logger::info("ime: user {} (initial user {})", UserID, initialUser);
++    }
++    imeDialogSetting.userId              = (uint32_t)UserID;
+     imeDialogSetting.type                = type;
+     imeDialogSetting.enterLabel          = OrbisButtonLabel::ORBIS_BUTTON_LABEL_DEFAULT;
+     imeDialogSetting.inputMethod         = OrbisInput::ORBIS__DEFAULT;
+@@ -142,7 +167,10 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+         auto status = (int)sceImeDialogGetStatus();
+         if (status == ORBIS_DIALOG_STATUS_RUNNING)
+         {
+-            retro_sleep(500);
++            // One frame, not half a second: this loop blocks the whole app, so
++            // the old 500ms poll left it frozen for up to that long after the
++            // keyboard had already closed.
++            retro_sleep(16);
+             continue;
+         }
+ 
+@@ -158,7 +186,7 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+ 
+         if (result.endstatus == ORBIS_DIALOG_CANCEL)
+         {
+-            brls::Logger::info("ORBIS_DIALOG_CANCEL");
++            brls::Logger::info("ime: dialog cancelled");
+         }
+         else if (result.endstatus == ORBIS_DIALOG_ABORD)
+         {
 diff --git a/library/lib/platforms/ps4/ps4_platform.cpp b/library/lib/platforms/ps4/ps4_platform.cpp
 index 084f200..dd0bf4d 100644
 --- a/library/lib/platforms/ps4/ps4_platform.cpp
