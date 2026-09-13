@@ -1179,10 +1179,19 @@ index 9b31fcf..00bb8f3 100644
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
 diff --git a/library/lib/platforms/ps4/ps4_ime.cpp b/library/lib/platforms/ps4/ps4_ime.cpp
-index 928fbdf..ee0d3f6 100644
+index 928fbdf..1e4eefc 100644
 --- a/library/lib/platforms/ps4/ps4_ime.cpp
 +++ b/library/lib/platforms/ps4/ps4_ime.cpp
-@@ -112,9 +112,34 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+ #include <borealis/extern/libretro-common/retro_timers.h>
++#include <orbis/CommonDialog.h>
++#include <orbis/SystemService.h>
+ #include <orbis/UserService.h>
+ #include <orbis/_types/ime_dialog.h>
+ 
+@@ -112,9 +114,34 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
  
      memset(&imeDialogSetting, 0, sizeof(OrbisImeDialogSetting));
  
@@ -1220,8 +1229,60 @@ index 928fbdf..ee0d3f6 100644
      imeDialogSetting.type                = type;
      imeDialogSetting.enterLabel          = OrbisButtonLabel::ORBIS_BUTTON_LABEL_DEFAULT;
      imeDialogSetting.inputMethod         = OrbisInput::ORBIS__DEFAULT;
-@@ -142,7 +167,10 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+@@ -128,43 +155,95 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+     imeDialogSetting.verticalAlignment   = OrbisVAlignment::ORBIS_V_VALIGN_BOTTOM;
+ }
+ 
++/// Hex dump of the parameter block we hand the firmware. The ONE class of bug
++/// that could put the confirm button somewhere unexpected without being visible
++/// in the source is a struct whose fields do not land where libSceImeDialog
++/// expects them (the layout here is reverse-engineered, not Sony's own header),
++/// so the bytes are logged rather than trusted. 96 is the expected size.
++static void logImeParamBlock()
++{
++    const uint8_t* raw = reinterpret_cast<const uint8_t*>(&imeDialogSetting);
++    std::string hex;
++    for (size_t i = 0; i < sizeof(OrbisImeDialogSetting); i++)
++        hex += fmt::format("{:02x}{}", raw[i], (i % 16 == 15) ? " | " : " ");
++    Logger::info("ime: param sizeof={} userId={} type={} enterLabel={} inputMethod={} option={} maxLen={}",
++        sizeof(OrbisImeDialogSetting), imeDialogSetting.userId, (int)imeDialogSetting.type,
++        (int)imeDialogSetting.enterLabel, (int)imeDialogSetting.inputMethod, imeDialogSetting.option,
++        imeDialogSetting.maxTextLength);
++    Logger::info("ime: param bytes {}", hex);
++}
++
+ int32_t ShowImeDialog(std::function<void(std::string)> f)
+ {
++    // Everything that could decide which button confirms, in one place, read at
++    // the moment the dialog is created rather than once at startup:
++    //   - what the SYSTEM tells this process the enter button is,
++    //   - whether the app swapped its own A/B to match,
++    //   - whether a common dialog is somehow already up.
++    int32_t enterAssign = -1;
++    int32_t enterRet    = sceSystemServiceParamGetInt(ORBIS_SYSTEM_SERVICE_PARAM_ID_ENTER_BUTTON_ASSIGN, &enterAssign);
++    Logger::info("ime: enter-button param={} ({}) ret={} appSwapped={} commonDialogInUse={}", enterAssign,
++        enterAssign == ORBIS_SYSTEM_PARAM_ENTER_BUTTON_ASSIGN_CIRCLE ? "circle" : "cross", enterRet,
++        Application::isSwapInputKeys(), sceCommonDialogIsUsed());
++    logImeParamBlock();
++
+     int ret = 0;
+     if ((ret = sceImeDialogInit(&imeDialogSetting, nullptr)) != 0)
+     {
+-        Logger::error("sceImeDialogInit() failed with {}", ret);
++        Logger::error("sceImeDialogInit() failed with {:#x}", ret);
+         return ret;
+     }
++    Logger::info("ime: dialog opened");
+ 
++    int lastStatus = -1;
+     while (true)
+     {
          auto status = (int)sceImeDialogGetStatus();
++        if (status != lastStatus)
++        {
++            Logger::info("ime: status {} -> {}", lastStatus, status);
++            lastStatus = status;
++        }
          if (status == ORBIS_DIALOG_STATUS_RUNNING)
          {
 -            retro_sleep(500);
@@ -1232,20 +1293,103 @@ index 928fbdf..ee0d3f6 100644
              continue;
          }
  
-@@ -158,7 +186,7 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
- 
-         if (result.endstatus == ORBIS_DIALOG_CANCEL)
+         if (status == ORBIS_DIALOG_STATUS_NONE)
          {
--            brls::Logger::info("ORBIS_DIALOG_CANCEL");
-+            brls::Logger::info("ime: dialog cancelled");
+-            brls::Logger::info("ORBIS_DIALOG_STATUS_NONE");
++            brls::Logger::info("ime: dialog never ran (status NONE)");
+             break;
          }
-         else if (result.endstatus == ORBIS_DIALOG_ABORD)
+ 
+         OrbisDialogResult result;
+         memset(&result, 0, sizeof(OrbisDialogResult));
+-        sceImeDialogGetResult(&result);
++        int32_t resRet = sceImeDialogGetResult(&result);
+ 
+-        if (result.endstatus == ORBIS_DIALOG_CANCEL)
+-        {
+-            brls::Logger::info("ORBIS_DIALOG_CANCEL");
+-        }
+-        else if (result.endstatus == ORBIS_DIALOG_ABORD)
+-        {
+-            brls::Logger::info("ORBIS_DIALOG_ABORD");
+-        }
+-        else if (result.endstatus == ORBIS_DIALOG_OK)
++        // The decisive record. endstatus is the FIRMWARE's own account of how
++        // the dialog ended — OK means the user confirmed, CANCEL means they
++        // backed out — and the character count says whether anything was typed
++        // before that. A session of "press cross five times, then circle" and
++        // one of "press circle five times, then cross" print different lines
++        // here, and that difference says which button the firmware is treating
++        // as confirm without anyone having to interpret what they saw.
++        size_t chars = 0;
++        while (chars < SCE_IME_DIALOG_MAX_TEXT_LENGTH && input_u16[chars]) chars++;
++        const uint8_t* rr = reinterpret_cast<const uint8_t*>(&result);
++        std::string resHex;
++        for (size_t i = 0; i < sizeof(OrbisDialogResult); i++) resHex += fmt::format("{:02x} ", rr[i]);
++        const char* how = "ABORT";
++        if (result.endstatus == ORBIS_DIALOG_OK)
++            how = "OK";
++        else if (result.endstatus == ORBIS_DIALOG_CANCEL)
++            how = "CANCEL";
++        Logger::info(
++            "ime: endstatus={} ({}) getResult={} chars={} raw={}", (int)result.endstatus, how, resRet, chars, resHex);
++
++        if (result.endstatus == ORBIS_DIALOG_OK)
          {
+             utf16_to_utf8(input_u16, input_u8);
+             f(std::string { (char*)input_u8 });
+@@ -173,7 +252,8 @@ int32_t ShowImeDialog(std::function<void(std::string)> f)
+         break;
+     }
+ 
+-    sceImeDialogTerm();
++    int32_t termRet = sceImeDialogTerm();
++    if (termRet != 0) Logger::warning("ime: sceImeDialogTerm() returned {:#x}", termRet);
+     return 0;
+ }
+ 
+@@ -181,6 +261,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
+     std::string subText, int maxStringLength, std::string initialText,
+     int kbdDisableBitmask)
+ {
++    // Logged so a report of "the keyboard did X" can be tied to the call that
++    // produced it — and so it is on the record that THIS manager is the one in
++    // use, rather than a software keyboard borealis might have drawn itself.
++    Logger::info("ime: openForText title='{}' maxLen={} initialLen={}", headerText, maxStringLength,
++        initialText.size());
+     InitializeImeDialog(headerText, initialText, subText, ORBIS_TYPE_DEFAULT, maxStringLength);
+     ShowImeDialog(f);
+     return true;
 diff --git a/library/lib/platforms/ps4/ps4_platform.cpp b/library/lib/platforms/ps4/ps4_platform.cpp
-index 084f200..dd0bf4d 100644
+index 084f200..277dec3 100644
 --- a/library/lib/platforms/ps4/ps4_platform.cpp
 +++ b/library/lib/platforms/ps4/ps4_platform.cpp
-@@ -124,9 +124,27 @@ Ps4Platform::Ps4Platform()
+@@ -69,11 +69,19 @@ Ps4Platform::Ps4Platform()
+     if (sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_NETCTL) < 0 || sceNetCtlInit() < 0)
+         brls::Logger::error("sceNetCtlInit() failed");
+ 
+-    // Dialogs
+-    if (sceSysmoduleLoadModule(ORBIS_SYSMODULE_MESSAGE_DIALOG) < 0 || sceSysmoduleLoadModule(ORBIS_SYSMODULE_IME_DIALOG) < 0)
+-        Logger::error("Load ime dialog module failed");
+-    if (sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_COMMON_DIALOG) < 0 || sceCommonDialogInitialize() < 0)
+-        brls::Logger::error("sceCommonDialogInitialize() failed");
++    // Dialogs. Each return code is logged on its own: these were folded into
++    // one `||` chain, so a failure told you nothing about WHICH call failed —
++    // and this is the subsystem that decides what the on-screen keyboard does.
++    //
++    // sceCommonDialogInitialize() itself is NOT called here. It used to be, and
++    // that is earlier than any other PS4 homebrew calls it: this constructor
++    // runs before createWindow(), so the common-dialog library was being
++    // initialised before the process had a graphics context at all. It is done
++    // at the end of createWindow() now, which is where everything else does it.
++    int32_t msgRet  = sceSysmoduleLoadModule(ORBIS_SYSMODULE_MESSAGE_DIALOG);
++    int32_t imeRet  = sceSysmoduleLoadModule(ORBIS_SYSMODULE_IME_DIALOG);
++    int32_t commRet = sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_COMMON_DIALOG);
++    Logger::info("dialog modules: message={:#x} ime={:#x} common={:#x}", msgRet, imeRet, commRet);
+ 
+     // SceRtc
+     int handle = LOAD_SYS_MODULE("libSceRtc.sprx");
+@@ -124,9 +132,27 @@ Ps4Platform::Ps4Platform()
      brls::Logger::info("System timezone: {}", sceTimezone);
  
      // swap a/b/x/y
@@ -1276,6 +1420,21 @@ index 084f200..dd0bf4d 100644
  
      atexit([]()
          {
+@@ -158,6 +184,14 @@ void Ps4Platform::createWindow(std::string windowTitle, uint32_t windowWidth, ui
+ 
+     this->videoContext = new SDLVideoContext(windowTitle, windowWidth, windowHeight, NAN, NAN);
+     this->inputManager = new SDLInputManager(this->videoContext->getSDLWindow());
++
++    // Common dialog is initialised HERE, with a graphics context already up,
++    // rather than in the constructor. The system draws the IME and message
++    // dialogs itself and decides for itself which button confirms in them; the
++    // library snapshots process state when it is initialised, and we were the
++    // only homebrew doing that before the process had finished coming up.
++    int32_t dialogRet = sceCommonDialogInitialize();
++    Logger::info("sceCommonDialogInitialize() -> {:#x}", dialogRet);
+     this->imeManager   = new Ps4ImeManager();
+ }
+ 
 diff --git a/library/lib/platforms/switch/switch_font.cpp b/library/lib/platforms/switch/switch_font.cpp
 index 3bba889..b2c03d6 100644
 --- a/library/lib/platforms/switch/switch_font.cpp
