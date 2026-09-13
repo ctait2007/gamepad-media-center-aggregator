@@ -39,6 +39,15 @@ class PlayerCard : public brls::Box {
 public:
     PlayerCard(const std::string& name, const std::string& detail, const std::string& meta, bool selected);
 
+    /// Re-marks the card as the current selection (or not) after it has been
+    /// built — what a rail whose selection is driven from another rail needs.
+    void setSelected(bool selected);
+
+    /// Prints a value hard against the card's right edge, the way the
+    /// reference's Delay card and every StepperRow show their current setting.
+    void setTrailingText(const std::string& text);
+    void setTrailingValue(const std::string& text) { this->setTrailingText(text); }
+
     void onFocusGained() override;
     void onFocusLost() override;
 
@@ -50,6 +59,27 @@ private:
     brls::Label* detailLabel = nullptr;
     brls::Label* metaLabel = nullptr;
     SVGImage* tick = nullptr;
+    brls::Label* trailing = nullptr;
+    bool selected = false;
+};
+
+/// One pill in a tab row — the reference's season tabs and its addon filter
+/// chips are the same shape. Selected reads as a light fill with dark text;
+/// unselected as BackgroundCard inside a hairline border; focusing an
+/// unselected one fills it with the accent.
+class PlayerPill : public brls::Box {
+public:
+    PlayerPill(const std::string& text, bool selected);
+
+    void setSelected(bool selected);
+
+    void onFocusGained() override;
+    void onFocusLost() override;
+
+private:
+    void applyColors();
+
+    brls::Label* label = nullptr;
     bool selected = false;
 };
 
@@ -67,6 +97,22 @@ public:
     ///        top of the sheet.
     PlayerRail(const std::string& title, float width, float maxHeight = 640, bool anchorBottom = true);
 
+    /// Empties the list. The Subtitles panel rebuilds its middle rail whenever
+    /// the language on its left changes, which is the whole point of having
+    /// the language rail separate.
+    void clear();
+
+    /// A label with a value opposite it, the shape of every control in the
+    /// reference's style rail (its Delay card and StepperRow). Never ticked.
+    PlayerCard* addSetting(const std::string& label, const std::string& value, std::function<void()> onClick);
+
+    /// The reference's OverlaySectionCard + StepperRow: a caption over a
+    /// [−] value [+] row, where the two buttons are what take focus. Returns a
+    /// setter for the value, so the caller's handlers can repaint it.
+    std::function<void(const std::string&)> addStepper(
+        const std::string& label, const std::string& value, std::function<void()> onDecrease,
+        std::function<void()> onIncrease);
+
     /// Appends a card. The first card added with `selected` true is what the
     /// rail hands focus to when the panel opens; failing that, the first card.
     PlayerCard* addCard(const std::string& name, const std::string& detail, const std::string& meta, bool selected,
@@ -77,6 +123,13 @@ public:
     PlayerCard* addControl(const std::string& name, const std::string& value, std::function<void()> onClick);
 
     brls::View* focusTarget() const { return this->preferred ? this->preferred : this->first; }
+
+    /// The cards in the order they were added — for a rail whose entries drive
+    /// another rail and therefore have to be re-marked as a group.
+    const std::vector<PlayerCard*>& cards() const { return this->cardList; }
+
+    /// Override which card the rail hands focus to when the panel opens.
+    void setFocusTarget(brls::View* v) { this->preferred = v; }
 
     /// Relabels a control in place, for a stepper whose value has just changed.
     static void relabel(PlayerCard* card, const std::string& name, const std::string& value);
@@ -89,6 +142,7 @@ private:
     brls::Box* list = nullptr;
     brls::View* first = nullptr;
     brls::View* preferred = nullptr;
+    std::vector<PlayerCard*> cardList;
     float maxHeight = 640;
     float contentHeight = 0;
 };
@@ -99,7 +153,11 @@ class PlayerOverlay : public brls::Box {
 public:
     /// @param padLeft/padBottom the reference gives each of its three overlays
     ///        slightly different content padding; pass that panel's own.
-    PlayerOverlay(float padLeft, float padTop, float padBottom);
+    /// @param anchorBottom whether the content sits at the bottom of the
+    ///        screen or at the top. The reference's Subtitles overlay is
+    ///        top-anchored and its Audio overlay bottom-anchored; both are
+    ///        top-anchored here, which is what this app was asked for.
+    PlayerOverlay(float padLeft, float padTop, float padBottom, bool anchorBottom = false);
 
     /// The bottom-anchored column every overlay fills.
     brls::Box* content() const { return this->column; }
@@ -123,6 +181,10 @@ class PlayerSidePanel : public brls::Box {
 public:
     explicit PlayerSidePanel(const std::string& title, const std::string& subtitle);
 
+    /// Row between the subtitle and the body, for the addon/season pills the
+    /// reference puts there. Empty and zero-height until something is added.
+    brls::Box* tabs() const { return this->tabsBox; }
+
     brls::Box* body() const { return this->bodyBox; }
 
     void setFocusTarget(brls::View* v) { this->focusTargetView = v; }
@@ -135,6 +197,7 @@ public:
 
 private:
     brls::Box* bodyBox = nullptr;
+    brls::Box* tabsBox = nullptr;
     brls::View* closeButton = nullptr;
     brls::View* focusTargetView = nullptr;
 };

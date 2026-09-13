@@ -107,6 +107,13 @@ PlayerCard::PlayerCard(const std::string& name, const std::string& detail, const
     }
     this->addView(text);
 
+    this->trailing = new brls::Label();
+    this->trailing->setFontSize(28);  // bodyMedium
+    this->trailing->setSingleLine(true);
+    this->trailing->setMarginLeft(16);
+    this->trailing->setVisibility(brls::Visibility::GONE);
+    this->addView(this->trailing);
+
     this->tick = new SVGImage();
     this->tick->setDimensions(40, 40);
     this->tick->setShrink(0);
@@ -116,6 +123,18 @@ PlayerCard::PlayerCard(const std::string& name, const std::string& detail, const
 
     this->applyColors();
     this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
+}
+
+void PlayerCard::setSelected(bool selected) {
+    this->selected = selected;
+    this->tick->setVisibility(selected ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    this->applyColors();
+}
+
+void PlayerCard::setTrailingText(const std::string& text) {
+    this->trailing->setText(text);
+    this->trailing->setVisibility(text.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    this->applyColors();
 }
 
 void PlayerCard::applyColors() {
@@ -132,6 +151,7 @@ void PlayerCard::applyColors() {
         this->paintTick(fg);
         NVGcolor dim = fg;
         dim.a = 0.82f;
+        if (this->trailing) this->trailing->setTextColor(dim);
         if (this->detailLabel) this->detailLabel->setTextColor(dim);
         dim.a = 0.72f;
         if (this->metaLabel) this->metaLabel->setTextColor(dim);
@@ -141,6 +161,7 @@ void PlayerCard::applyColors() {
     // them separates the list from the video.
     this->setBackgroundColor(nvgRGBA(255, 255, 255, focused ? 20 : 0));
     this->nameLabel->setTextColor(nvgRGB(255, 255, 255));
+    if (this->trailing) this->trailing->setTextColor(nvgRGBA(255, 255, 255, 179));
     if (this->detailLabel) this->detailLabel->setTextColor(nvgRGBA(255, 255, 255, 184));
     if (this->metaLabel) this->metaLabel->setTextColor(theme.getColor("font/tertiary"));
 }
@@ -159,6 +180,68 @@ void PlayerCard::onFocusGained() {
 }
 
 void PlayerCard::onFocusLost() {
+    brls::Box::onFocusLost();
+    this->applyColors();
+}
+
+PlayerPill::PlayerPill(const std::string& text, bool selected) : selected(selected) {
+    this->setAxis(brls::Axis::ROW);
+    this->setAlignItems(brls::AlignItems::CENTER);
+    this->setJustifyContent(brls::JustifyContent::CENTER);
+    this->setPadding(20, 40, 20, 40);  // 10dp / 20dp
+    this->setCornerRadius(48);         // RoundedCornerShape(spacing.xl)
+    this->setBorderThickness(2);       // spacing.hairline
+    this->setShrink(0);
+    this->setFocusable(true);
+    this->setHideHighlightBackground(true);
+    this->setHideHighlightBorder(true);
+
+    this->label = new brls::Label();
+    this->label->setText(text);
+    this->label->setFontSize(28);  // labelLarge
+    this->label->setFontWeight("medium");
+    this->label->setSingleLine(true);
+    this->addView(this->label);
+
+    this->applyColors();
+    this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
+}
+
+void PlayerPill::setSelected(bool selected) {
+    this->selected = selected;
+    this->applyColors();
+}
+
+void PlayerPill::applyColors() {
+    auto theme = brls::Application::getTheme();
+    NVGcolor accent = theme.getColor("color/app");
+    bool focused = this->isFocused();
+
+    if (this->selected) {
+        // The reference fills the active tab near-white and darkens it further
+        // on focus, so the selection never reads as merely "focused".
+        this->setBackgroundColor(focused ? nvgRGB(255, 255, 255) : nvgRGB(245, 245, 245));
+        this->setBorderColor(nvgRGBA(0, 0, 0, 0));
+        this->label->setTextColor(nvgRGB(0, 0, 0));
+        return;
+    }
+    if (focused) {
+        this->setBackgroundColor(accent);
+        this->setBorderColor(nvgRGBA(0, 0, 0, 0));
+        this->label->setTextColor(onAccent(accent));
+        return;
+    }
+    this->setBackgroundColor(theme.getColor("color/surface"));
+    this->setBorderColor(theme.getColor("color/grey_2"));
+    this->label->setTextColor(theme.getColor("font/grey"));
+}
+
+void PlayerPill::onFocusGained() {
+    brls::Box::onFocusGained();
+    this->applyColors();
+}
+
+void PlayerPill::onFocusLost() {
     brls::Box::onFocusLost();
     this->applyColors();
 }
@@ -183,6 +266,9 @@ PlayerRail::PlayerRail(const std::string& title, float width, float maxHeight, b
     this->scroll = new brls::ScrollingFrame();
     this->scroll->setWidth(width);
     this->scroll->setHeight(0);
+    // No indicator: these panels are short, focus already shows where you are,
+    // and a bar down the edge of a floating list reads as clutter.
+    this->scroll->setScrollingIndicatorVisible(false);
 
     this->list = new brls::Box();
     this->list->setAxis(brls::Axis::COLUMN);
@@ -209,6 +295,7 @@ PlayerCard* PlayerRail::addCard(
     });
     this->contentHeight += cardHeight(detail, meta) + (this->first ? kRailGap : 0);
     this->list->addView(card);
+    this->cardList.push_back(card);
     if (!this->first) this->first = card;
     if (selected && !this->preferred) this->preferred = card;
     this->resize();
@@ -224,9 +311,145 @@ PlayerCard* PlayerRail::addControl(const std::string& name, const std::string& v
     });
     this->contentHeight += cardHeight(value, "") + (this->first ? kRailGap : 0);
     this->list->addView(card);
+    this->cardList.push_back(card);
     if (!this->first) this->first = card;
     this->resize();
     return card;
+}
+
+void PlayerRail::clear() {
+    this->list->clearViews();
+    this->cardList.clear();
+    this->first = nullptr;
+    this->preferred = nullptr;
+    this->contentHeight = 0;
+    this->resize();
+}
+
+PlayerCard* PlayerRail::addSetting(const std::string& label, const std::string& value, std::function<void()> onClick) {
+    auto* card = new PlayerCard(label, "", "", false);
+    card->setTrailingText(value);
+    if (this->first) card->setMarginTop(kRailGap);
+    card->registerClickAction([onClick](brls::View*) {
+        if (onClick) onClick();  // stays open: these are adjusted repeatedly
+        return true;
+    });
+    this->contentHeight += cardHeight("", "") + (this->first ? kRailGap : 0);
+    this->list->addView(card);
+    this->cardList.push_back(card);
+    if (!this->first) this->first = card;
+    this->resize();
+    return card;
+}
+
+namespace {
+
+/// One end of a stepper: a small round button that fills with the accent when
+/// focused, as the reference's StepperButton does.
+class StepperButton : public brls::Box {
+public:
+    StepperButton(const char* glyphPath, std::function<void()> onClick) {
+        this->setDimensions(64, 64);
+        this->setShrink(0);
+        this->setAlignItems(brls::AlignItems::CENTER);
+        this->setJustifyContent(brls::JustifyContent::CENTER);
+        this->setCornerRadius(32);
+        this->setFocusable(true);
+        this->setHideHighlight(true);
+        this->path = glyphPath;
+
+        this->glyph = new SVGImage();
+        this->glyph->setDimensions(32, 32);
+        this->addView(this->glyph);
+
+        this->registerClickAction([onClick](brls::View*) {
+            if (onClick) onClick();  // stays open: a stepper is pressed repeatedly
+            return true;
+        });
+        this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
+        this->render();
+    }
+
+    void onFocusGained() override {
+        brls::Box::onFocusGained();
+        this->render();
+    }
+    void onFocusLost() override {
+        brls::Box::onFocusLost();
+        this->render();
+    }
+
+private:
+    void render() {
+        NVGcolor accent = brls::Application::getTheme().getColor("color/app");
+        bool focused = this->isFocused();
+        this->setBackgroundColor(focused ? accent : nvgRGBA(255, 255, 255, 15));
+        char svg[300];
+        std::snprintf(svg, sizeof(svg),
+            R"(<svg width="24" height="24" viewBox="0 0 24 24"><path d="%s" fill="%s"/></svg>)", this->path,
+            hex(focused ? onAccent(accent) : nvgRGB(255, 255, 255)).c_str());
+        this->glyph->setImageFromSVGString(svg);
+    }
+
+    SVGImage* glyph = nullptr;
+    const char* path = nullptr;
+};
+
+const char* kMinus = "M19 13H5v-2h14v2z";
+const char* kPlus  = "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z";
+
+}  // namespace
+
+std::function<void(const std::string&)> PlayerRail::addStepper(const std::string& label, const std::string& value,
+    std::function<void()> onDecrease, std::function<void()> onIncrease) {
+    auto theme = brls::Application::getTheme();
+
+    auto* section = new brls::Box();
+    section->setAxis(brls::Axis::COLUMN);
+    if (this->first) section->setMarginTop(kRailGap);
+
+    auto* cap = new brls::Label();
+    cap->setText(label);
+    cap->setFontSize(28);  // bodyMedium
+    cap->setTextColor(nvgRGB(255, 255, 255));
+    cap->setMarginLeft(kCardPadH);
+    section->addView(cap);
+
+    auto* row = new brls::Box();
+    row->setAxis(brls::Axis::ROW);
+    row->setAlignItems(brls::AlignItems::CENTER);
+    row->setMarginTop(20);  // 10dp
+    row->setMarginLeft(kCardPadH);
+
+    auto* minus = new StepperButton(kMinus, std::move(onDecrease));
+    row->addView(minus);
+
+    auto* valueBox = new brls::Box();
+    valueBox->setWidth(168);  // valueWidth 84dp
+    valueBox->setAlignItems(brls::AlignItems::CENTER);
+    valueBox->setJustifyContent(brls::JustifyContent::CENTER);
+    valueBox->setCornerRadius(kCardRadius);
+    valueBox->setBackgroundColor(nvgRGBA(255, 255, 255, 15));
+    valueBox->setPadding(kCardPadV, kCardPadH, kCardPadV, kCardPadH);
+    valueBox->setMarginLeft(16);   // spacing.sm
+    valueBox->setMarginRight(16);
+    auto* valueLabel = new brls::Label();
+    valueLabel->setText(value);
+    valueLabel->setFontSize(28);
+    valueLabel->setSingleLine(true);
+    valueLabel->setTextColor(nvgRGB(255, 255, 255));
+    valueBox->addView(valueLabel);
+    row->addView(valueBox);
+
+    row->addView(new StepperButton(kPlus, std::move(onIncrease)));
+    section->addView(row);
+
+    this->contentHeight += 40 + 20 + 64 + (this->first ? kRailGap : 0);
+    this->list->addView(section);
+    if (!this->first) this->first = minus;
+    this->resize();
+
+    return [valueLabel](const std::string& v) { valueLabel->setText(v); };
 }
 
 void PlayerRail::relabel(PlayerCard* card, const std::string& name, const std::string& value) {
@@ -240,7 +463,7 @@ void PlayerRail::relabel(PlayerCard* card, const std::string& name, const std::s
     }
 }
 
-PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom) {
+PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom, bool anchorBottom) {
     this->setAxis(brls::Axis::COLUMN);
     this->setWidth(brls::Application::contentWidth);
     this->setHeight(brls::Application::contentHeight);
@@ -265,7 +488,8 @@ PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom) {
 
     this->column = new brls::Box();
     this->column->setAxis(brls::Axis::COLUMN);
-    this->column->setJustifyContent(brls::JustifyContent::FLEX_END);
+    this->column->setJustifyContent(
+        anchorBottom ? brls::JustifyContent::FLEX_END : brls::JustifyContent::FLEX_START);
     this->column->setPositionType(brls::PositionType::ABSOLUTE);
     this->column->setPositionLeft(padLeft);
     this->column->setPositionTop(padTop);
@@ -355,6 +579,13 @@ PlayerSidePanel::PlayerSidePanel(const std::string& title, const std::string& su
         sub->setMarginBottom(32);
         sheet->addView(sub);
     }
+
+    // Where the reference puts its filter chips and season tabs. Built empty
+    // and with no height of its own, so a panel that has none loses nothing.
+    this->tabsBox = new brls::Box();
+    this->tabsBox->setAxis(brls::Axis::ROW);
+    this->tabsBox->setAlignItems(brls::AlignItems::CENTER);
+    sheet->addView(this->tabsBox);
 
     this->bodyBox = new brls::Box();
     this->bodyBox->setAxis(brls::Axis::COLUMN);

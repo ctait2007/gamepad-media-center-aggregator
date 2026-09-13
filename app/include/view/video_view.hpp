@@ -72,6 +72,11 @@ public:
     /// The source re-selector. Like the three above, the button is GONE until
     /// someone registers it, so it only appears for a backend that actually
     /// has more than one stream to offer.
+    /// The episode sheet. Registered by the owner rather than built here: the
+    /// reference's panel draws each episode's still, title, air date and
+    /// synopsis, and the player view is what actually holds those items — this
+    /// view only ever had their formatted one-line titles.
+    void registerEpisodes(brls::ActionListener action);
     void registerSources(brls::ActionListener action);
     /// Dismiss the transport controls — what opening a panel does first, so a
     /// bottom-anchored overlay lands on the video and not on the control row.

@@ -91,6 +91,16 @@ void PlayerButton::render() {
     this->glyph->setImageFromSVGString(svg);
 }
 
+void PlayerButton::draw(
+    NVGcontext* vg, float x, float y, float w, float h, brls::Style style, brls::FrameContext* ctx) {
+    bool now = brls::Application::getCurrentFocus() == this;
+    if (now != this->focused) {
+        this->focused = now;
+        this->render();
+    }
+    brls::Box::draw(vg, x, y, w, h, style, ctx);
+}
+
 void PlayerButton::onFocusGained() {
     brls::Box::onFocusGained();
     this->focused = true;

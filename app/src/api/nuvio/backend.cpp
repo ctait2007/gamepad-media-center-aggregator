@@ -255,6 +255,59 @@ void NuvioBackend::applyWatchState(media::Container<media::Item>& c) {
     }
 }
 
+void NuvioBackend::applyWatchState(media::Item& it) {
+    media::Container<media::Item> one;
+    one.Items.push_back(std::move(it));
+    this->applyWatchState(one);
+    it = std::move(one.Items.front());
+}
+
+void NuvioBackend::applyWatchState(media::Container<media::Hub>& c) {
+    progressStore.ensureLoaded();
+    for (media::Hub& h : c.Items) {
+        media::Container<media::Item> items;
+        items.Items = std::move(h.items);
+        this->applyWatchState(items);
+        h.items = std::move(items.Items);
+    }
+}
+
+namespace {
+
+/// The common shape of the three wrappers below: do the stamping on a worker
+/// (ensureLoaded may pull), then hand the result to the caller on the UI
+/// thread, and never let a sync failure swallow the payload — an unstamped
+/// list is worth far more than none.
+template <typename T, typename Apply>
+media::Then<T> stampThen(media::Then<T> then, Apply apply) {
+    return [then, apply](T payload) {
+        brls::async([then, apply, payload]() mutable {
+            try {
+                apply(payload);
+            } catch (const std::exception& ex) {
+                brls::Logger::warning("nuvio watch state: {}", ex.what());
+            }
+            brls::sync(std::bind(then, std::move(payload)));
+        });
+    };
+}
+
+}  // namespace
+
+media::Then<media::Container<media::Hub>> NuvioBackend::stamped(media::Then<media::Container<media::Hub>> then) {
+    return stampThen<media::Container<media::Hub>>(
+        then, [this](media::Container<media::Hub>& c) { this->applyWatchState(c); });
+}
+
+media::Then<media::Container<media::Item>> NuvioBackend::stamped(media::Then<media::Container<media::Item>> then) {
+    return stampThen<media::Container<media::Item>>(
+        then, [this](media::Container<media::Item>& c) { this->applyWatchState(c); });
+}
+
+media::Then<media::Item> NuvioBackend::stampedItem(media::Then<media::Item> then) {
+    return stampThen<media::Item>(then, [this](media::Item& it) { this->applyWatchState(it); });
+}
+
 void NuvioBackend::getAllEpisodes(
     const std::string& showId, bool includeStreams, media::Then<media::Container<media::Item>> then, media::OnError error) {
     delegate.getAllEpisodes(showId, includeStreams,

@@ -37,12 +37,15 @@ void showAudio(const plex::Media* src);
 
 /// The sources sheet. `sources` is the item's media[] — one entry per addon
 /// stream — `current` the index playing now, and `onPick` switches to another.
+/// `onReload` re-resolves the streams; null hides the refresh chip.
 void showSources(const std::string& subtitle, const std::vector<plex::Media>& sources, int current,
-    std::function<void(int)> onPick);
+    std::function<void(int)> onPick, std::function<void()> onReload = nullptr);
 
-/// The episode sheet. `titles` are the rows exactly as the player's own
-/// episode list has them, `current` the one playing.
-void showEpisodeTitles(const std::string& subtitle, const std::vector<std::string>& titles, int current,
+/// The episode sheet: season tabs over the reference's own episode rows — a
+/// still with the S/E code on it and a tick or eye badge, the title, the air
+/// date and two lines of synopsis beside it. `episodes` is the player's own
+/// list, in its own order, so `onPick` takes an index into it.
+void showEpisodes(const std::string& subtitle, const std::vector<plex::Item>& episodes, int current,
     std::function<void(int)> onPick);
 
 /// Everything the player knows about what is on screen right now.

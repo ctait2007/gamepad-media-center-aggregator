@@ -71,6 +71,11 @@ class ProgressStore {
 public:
     /// Pulls sync_pull_watch_progress + sync_pull_watched_items exactly once.
     /// Thread-safe; called from inside a backend verb's brls::async body.
+    /// Pulls watch_progress + watched_items once, then again whenever the
+    /// cached copy is older than kStaleSec. The TTL is what lets something
+    /// marked watched in NuvioTV (or on another device) turn up here without
+    /// a restart — before it, this process pulled exactly once and every
+    /// screen showed that first snapshot for the rest of the session.
     void ensureLoaded();
     /// Forces a reload on the next ensureLoaded().
     void invalidate();
@@ -99,6 +104,8 @@ public:
 private:
     std::mutex mtx;
     bool loaded = false;
+    /// when the cached copy was pulled; drives the staleness check above
+    std::chrono::steady_clock::time_point loadedAt {};
     std::vector<WatchProgressRow> progress;
     std::vector<WatchedRow> watched;
     std::unordered_map<std::string, std::chrono::steady_clock::time_point> lastPushed;

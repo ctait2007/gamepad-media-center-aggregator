@@ -90,9 +90,14 @@ int64_t jintOrDefault(const nlohmann::json& j, const char* key, int64_t def) {
 }
 }  // namespace
 
+/// How long a pulled snapshot is trusted before it is re-pulled. Short enough
+/// that a title marked watched on another device shows up on the next screen
+/// the user opens, long enough that browsing does not re-pull on every hop.
+constexpr int64_t kStaleSec = 90;
+
 void ProgressStore::ensureLoaded() {
     std::lock_guard<std::mutex> lock(mtx);
-    if (loaded) return;
+    if (loaded && std::chrono::steady_clock::now() - loadedAt < std::chrono::seconds(kStaleSec)) return;
 
     int profileId = AppConfig::instance().getNuvioProfileIndex();
 
@@ -139,6 +144,7 @@ void ProgressStore::ensureLoaded() {
     }
 
     loaded = true;
+    loadedAt = std::chrono::steady_clock::now();
 }
 
 void ProgressStore::invalidate() {

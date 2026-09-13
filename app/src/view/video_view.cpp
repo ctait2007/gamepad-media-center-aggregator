@@ -5,7 +5,6 @@
 #include "utils/keybind.hpp"
 #include "utils/misc.hpp"
 #include "view/mpv_core.hpp"
-#include "view/player_panels.hpp"
 #include "view/svg_image.hpp"
 #include "view/video_profile.hpp"
 #include "view/video_progress_slider.hpp"
@@ -372,18 +371,6 @@ void VideoView::updateTime(double positionSec, double durationSec) {
 
 void VideoView::setList(const std::vector<std::string>& values, int index) {
     // 选集
-    this->btnEpisode->registerClickAction([this, values](...) {
-        this->hideOSD();
-        // The reference's EpisodesSidePanel, not a bottom sheet: the rows are
-        // built from the same list the Next button walks.
-        player_panels::showEpisodeTitles(this->mainTitle, values, this->playIndex, [this](int selected) {
-            this->showLoading();
-            this->playIndexEvent.fire(selected);
-        });
-        return true;
-    });
-    this->btnEpisode->setVisibility(brls::Visibility::VISIBLE);
-
     // "Skip to next episode" appears only when there IS a next one, exactly as
     // the reference gates it on nextEpisode?.hasAired.
     auto event = [this, values](int index) {
@@ -861,6 +848,12 @@ void VideoView::registerVideoAudio(brls::ActionListener action) {
     action = dismissing(this, action);
     this->btnVideoAudio->registerClickAction(action);
     this->btnVideoAudio->setVisibility(brls::Visibility::VISIBLE);
+}
+
+void VideoView::registerEpisodes(brls::ActionListener action) {
+    action = dismissing(this, action);
+    this->btnEpisode->registerClickAction(action);
+    this->btnEpisode->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::registerSources(brls::ActionListener action) {

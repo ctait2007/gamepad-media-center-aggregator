@@ -44,15 +44,15 @@ public:
     std::vector<media::DiscoverCatalog> discoverCatalogs() override { return delegate.discoverCatalogs(); }
     void searchHubs(const std::string& query, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
-        delegate.searchHubs(query, then, error);
+        delegate.searchHubs(query, stamped(then), error);
     }
     void getHomeHubs(int count, bool excludeContinueWatching, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
-        delegate.getHomeHubs(count, excludeContinueWatching, then, error);
+        delegate.getHomeHubs(count, excludeContinueWatching, stamped(then), error);
     }
     void getSectionHubs(const std::string& sectionId, int count, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
-        delegate.getSectionHubs(sectionId, count, then, error);
+        delegate.getSectionHubs(sectionId, count, stamped(then), error);
     }
     // Nuvio-specific: built from ProgressStore (watch_progress), not
     // delegated — the delegate's own implementation calls Stremio's account
@@ -60,18 +60,18 @@ public:
     void getContinueWatching(int count, media::Then<media::Container<media::Hub>> then, media::OnError error) override;
     void getLibraryGrid(const std::string& sectionId, const media::GridQuery& q, size_t start, size_t size,
         media::Then<media::Container<media::Item>> then, media::OnError error) override {
-        delegate.getLibraryGrid(sectionId, q, start, size, then, error);
+        delegate.getLibraryGrid(sectionId, q, start, size, stamped(then), error);
     }
     void getCollectionChildren(const std::string& collectionId, size_t start, size_t size,
         media::Then<media::Container<media::Item>> then, media::OnError error) override {
-        delegate.getCollectionChildren(collectionId, start, size, then, error);
+        delegate.getCollectionChildren(collectionId, start, size, stamped(then), error);
     }
     void getHubPage(const std::string& hubKey, size_t start, size_t size, media::Then<media::Container<media::Item>> then,
         media::OnError error) override {
-        delegate.getHubPage(hubKey, start, size, then, error);
+        delegate.getHubPage(hubKey, start, size, stamped(then), error);
     }
     void getItemDetail(const std::string& id, bool full, media::Then<media::Item> then, media::OnError error) override {
-        delegate.getItemDetail(id, full, then, error);
+        delegate.getItemDetail(id, full, stampedItem(then), error);
     }
     // Nuvio-specific ONLY in that the delegate's episodes come back from an
     // addon, which knows nothing about what this account has watched — the
@@ -85,23 +85,23 @@ public:
     void getNextUp(
         const std::string& showId, std::function<void(media::Item, bool)> then, media::OnError error) override;
     void getExtras(const std::string& id, media::Then<media::Container<media::Item>> then, media::OnError error) override {
-        delegate.getExtras(id, then, error);
+        delegate.getExtras(id, stamped(then), error);
     }
     void getRelated(const std::string& id, int count, media::Then<media::Container<media::Hub>> then,
         media::OnError error) override {
-        delegate.getRelated(id, count, then, error);
+        delegate.getRelated(id, count, stamped(then), error);
     }
     void getPersonMedia(const std::string& personId, int count, media::Then<media::Container<media::Item>> then,
         media::OnError error) override {
-        delegate.getPersonMedia(personId, count, then, error);
+        delegate.getPersonMedia(personId, count, stamped(then), error);
     }
     void search(const std::string& query, media::MediaKind kind, int limit, media::Then<media::Container<media::Item>> then,
         media::OnError error) override {
-        delegate.search(query, kind, limit, then, error);
+        delegate.search(query, kind, limit, stamped(then), error);
     }
     void getRecentlyAdded(size_t start, size_t size, media::Then<media::Container<media::Item>> then,
         media::OnError error) override {
-        delegate.getRecentlyAdded(start, size, then, error);
+        delegate.getRecentlyAdded(start, size, stamped(then), error);
     }
     void getGenres(const std::string& sectionId, media::MediaKind kind, media::Then<media::Container<media::Section>> then,
         media::OnError error) override {
@@ -161,6 +161,18 @@ private:
     /// Stamps viewCount/viewOffset from the ProgressStore onto items an addon
     /// returned, so watched badges and resume bars reflect this account.
     void applyWatchState(media::Container<media::Item>& c);
+    void applyWatchState(media::Container<media::Hub>& c);
+    void applyWatchState(media::Item& it);
+
+    /// Wraps a callback so whatever the addon engine hands back is stamped
+    /// with this ACCOUNT's watched flags and resume positions before anyone
+    /// draws it. An addon knows nothing about the account, so without this a
+    /// title marked watched looked watched only until the screen reloaded —
+    /// which is why the badge survived the action and not a refresh.
+    media::Then<media::Container<media::Hub>> stamped(media::Then<media::Container<media::Hub>> then);
+    media::Then<media::Container<media::Item>> stamped(media::Then<media::Container<media::Item>> then);
+    media::Then<media::Item> stampedItem(media::Then<media::Item> then);
+
 
     media::Capabilities caps_;
     stremio::StremioBackend delegate;

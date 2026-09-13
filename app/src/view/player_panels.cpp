@@ -9,10 +9,15 @@
 #include "view/mpv_core.hpp"
 #include "view/player_panel.hpp"
 #include "view/player_setting.hpp"
+#include "view/svg_image.hpp"
+#include "utils/image.hpp"
 
 #include <algorithm>
 #include <fmt/format.h>
+#include <cctype>
+#include <cstdio>
 #include <memory>
+#include <set>
 
 using namespace brls::literals;
 
@@ -25,11 +30,71 @@ constexpr float kSubPadX = 104, kSubPadTop = 72, kSubPadBottom = 152;
 constexpr float kAudPadX = 88, kAudPadTop = 56, kAudPadBottom = 128;
 constexpr float kInfoPadX = 96, kInfoPadTop = 72, kInfoPadBottom = 72;
 
-// Rail widths: RailColumn(width = 300.dp) for subtitles, 444/268 for audio.
-constexpr float kSubRailWidth = 600;
+// Rail widths, doubled from the reference's RailColumn calls: the subtitle
+// overlay is 200 / 300 / 280dp (languages, subtitles, style) and the audio
+// overlay 444 / 268dp (tracks, controls).
+constexpr float kSubLangWidth = 400;
+constexpr float kSubListWidth = 600;
+constexpr float kSubStyleWidth = 560;
 constexpr float kAudTrackWidth = 888;
 constexpr float kAudControlWidth = 536;
 constexpr float kRailGap = 28;  // 14dp between the reference's rails
+
+/// ISO 639-1/2 -> English name, for the language rail. The reference asks
+/// java.util.Locale for this; we have no such table, so these are the codes
+/// subtitle addons and media files actually carry. Anything unlisted falls
+/// back to the code itself, which is still more use than hiding it.
+const std::pair<const char*, const char*> kLanguages[] = {
+    {"en", "English"}, {"eng", "English"}, {"es", "Spanish"}, {"spa", "Spanish"}, {"fr", "French"},
+    {"fre", "French"}, {"fra", "French"}, {"de", "German"}, {"ger", "German"}, {"deu", "German"},
+    {"it", "Italian"}, {"ita", "Italian"}, {"pt", "Portuguese"}, {"por", "Portuguese"}, {"nl", "Dutch"},
+    {"dut", "Dutch"}, {"nld", "Dutch"}, {"sv", "Swedish"}, {"swe", "Swedish"}, {"no", "Norwegian"},
+    {"nor", "Norwegian"}, {"da", "Danish"}, {"dan", "Danish"}, {"fi", "Finnish"}, {"fin", "Finnish"},
+    {"pl", "Polish"}, {"pol", "Polish"}, {"cs", "Czech"}, {"cze", "Czech"}, {"ces", "Czech"},
+    {"ru", "Russian"}, {"rus", "Russian"}, {"uk", "Ukrainian"}, {"ukr", "Ukrainian"}, {"tr", "Turkish"},
+    {"tur", "Turkish"}, {"ar", "Arabic"}, {"ara", "Arabic"}, {"he", "Hebrew"}, {"heb", "Hebrew"},
+    {"hi", "Hindi"}, {"hin", "Hindi"}, {"ja", "Japanese"}, {"jpn", "Japanese"}, {"ko", "Korean"},
+    {"kor", "Korean"}, {"zh", "Chinese"}, {"chi", "Chinese"}, {"zho", "Chinese"}, {"th", "Thai"},
+    {"tha", "Thai"}, {"vi", "Vietnamese"}, {"vie", "Vietnamese"}, {"id", "Indonesian"}, {"ind", "Indonesian"},
+    {"el", "Greek"}, {"gre", "Greek"}, {"ell", "Greek"}, {"hu", "Hungarian"}, {"hun", "Hungarian"},
+    {"ro", "Romanian"}, {"rum", "Romanian"}, {"ron", "Romanian"}, {"bg", "Bulgarian"}, {"bul", "Bulgarian"},
+    {"hr", "Croatian"}, {"hrv", "Croatian"}, {"sr", "Serbian"}, {"srp", "Serbian"}, {"sk", "Slovak"},
+    {"slo", "Slovak"}, {"slk", "Slovak"}, {"sl", "Slovenian"}, {"slv", "Slovenian"}, {"fa", "Persian"},
+    {"per", "Persian"}, {"fas", "Persian"}, {"ms", "Malay"}, {"msa", "Malay"}, {"ta", "Tamil"},
+    {"tam", "Tamil"}, {"te", "Telugu"}, {"tel", "Telugu"}, {"bn", "Bengali"}, {"ben", "Bengali"},
+};
+
+/// Material "check" and "visibility" — the two badges the reference puts on an
+/// episode still.
+const char* kCheck = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+const char* kEye =
+    "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 "
+    "0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
+
+std::string hexColor(NVGcolor c) {
+    auto to8 = [](float f) {
+        int v = (int)(f * 255.0f + 0.5f);
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    };
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", to8(c.r), to8(c.g), to8(c.b));
+    return buf;
+}
+
+/// The side sheet's width less its padding — what a rail inside one gets.
+constexpr float kSheetInnerWidth = 944;
+
+std::string languageName(const std::string& code) {
+    if (code.empty() || code == "und" || code == "unknown") return "main/player/panel/lang_unknown"_i18n;
+    std::string lower;
+    for (char c : code) lower.push_back((char)std::tolower((unsigned char)c));
+    // "en-US", "pt_BR" -> match on the base tag as well as the whole thing
+    std::string base = lower.substr(0, lower.find_first_of("-_"));
+    for (auto& [k, v] : kLanguages)
+        if (lower == k || base == k) return v;
+    for (char& c : lower) c = (char)std::toupper((unsigned char)c);
+    return lower;
+}
 
 /// The overlay's title, in the reference's headlineMedium above the rails.
 brls::Label* overlayTitle(const std::string& text) {
@@ -46,9 +111,8 @@ brls::Label* overlayTitle(const std::string& text) {
 brls::Box* railRow() {
     auto* row = new brls::Box();
     row->setAxis(brls::Axis::ROW);
-    // Each rail is its own height and they end together at the bottom, which
-    // is what the reference's bottom-anchored overlays look like.
-    row->setAlignItems(brls::AlignItems::FLEX_END);
+    // Each rail is its own height and they all start at the top of the row.
+    row->setAlignItems(brls::AlignItems::FLEX_START);
     return row;
 }
 
@@ -105,69 +169,204 @@ std::string formatResolution(int w, int h) {
 
 namespace player_panels {
 
+namespace {
+
+/// One selectable subtitle: an mpv track id, or a transcode-side stream that
+/// needs a re-transcode to apply.
+struct SubOption {
+    std::string name;
+    std::string detail;
+    std::string lang;
+    int64_t id = 0;
+    bool transcode = false;
+};
+
+/// Every subtitle the player can currently offer, in mpv's order. Embedded
+/// tracks and the addon subtitles PlayerView sub-adds both land here, which is
+/// why one list covers what the reference splits across a Built-in and an
+/// Addons tab.
+std::vector<SubOption> collectSubtitles(const plex::Media* src) {
+    auto& mpv = MPVCore::instance();
+    std::vector<SubOption> out;
+
+    int64_t count = mpv.getInt("track-list/count");
+    for (int64_t n = 0; n < count; n++) {
+        if (mpv.getString(fmt::format("track-list/{}/type", n)) != "sub") continue;
+        SubOption o;
+        o.id = mpv.getInt(fmt::format("track-list/{}/id", n));
+        o.lang = mpv.getString(fmt::format("track-list/{}/lang", n));
+        o.name = trackTitle(n, "sub", fmt::format("{} {}", "main/player/subtitle"_i18n, o.id));
+        o.detail = mpv.getString(fmt::format("track-list/{}/codec", n));
+        out.push_back(std::move(o));
+    }
+    if (!out.empty() || src == nullptr || src->parts.empty()) return out;
+
+    // Transcode-side streams: no embedded subs in the HLS stream, so choosing
+    // one re-transcodes with it burned in.
+    for (auto& st : src->parts.front().streams) {
+        if (st.streamType != plex::streamTypeSubtitle) continue;
+        SubOption o;
+        o.id = st.id;
+        o.name = st.displayTitle;
+        o.lang = st.language;
+        o.transcode = true;
+        out.push_back(std::move(o));
+    }
+    return out;
+}
+
+}  // namespace
+
 void showSubtitles(const plex::Media* src) {
     auto& mpv = MPVCore::instance();
+    std::vector<SubOption> options = collectSubtitles(src);
 
+    // Top-anchored, as the reference's SubtitleSelectionOverlay is: its content
+    // Column wraps rather than filling the height, so it sits at the top of the
+    // padded box.
     auto* overlay = new PlayerOverlay(kSubPadX, kSubPadTop, kSubPadBottom);
     overlay->content()->addView(overlayTitle("main/player/subtitle"_i18n));
 
     auto* row = railRow();
-    auto* langs = new PlayerRail("main/player/subtitle"_i18n, kSubRailWidth);
 
-    int64_t sidActive = mpv.getInt("sid");
-    langs->addCard("main/player/none"_i18n, "", "", sidActive == 0, []() {
-        PlayerSetting::selectedSubtitle = 0;
-        MPVCore::instance().setInt("sid", 0);
-    });
+    // ---- rail 1: languages ------------------------------------------------
+    int64_t sid = mpv.getInt("sid");
+    std::string activeLang;
+    for (auto& o : options)
+        if (!o.transcode && o.id == sid) activeLang = o.lang;
 
-    bool anyEmbedded = false;
-    int64_t count = mpv.getInt("track-list/count");
-    for (int64_t n = 0; n < count; n++) {
-        if (mpv.getString(fmt::format("track-list/{}/type", n)) != "sub") continue;
-        int64_t id = mpv.getInt(fmt::format("track-list/{}/id", n));
-        std::string title = trackTitle(n, "sub", fmt::format("{} {}", "main/player/subtitle"_i18n, id));
-        anyEmbedded = true;
-        langs->addCard(title, trackDetail(n), "", id == sidActive, [id]() {
-            PlayerSetting::selectedSubtitle = id;
-            MPVCore::instance().setInt("sid", id);
-        });
+    std::vector<std::string> langs;  // "" is Off, and comes first
+    langs.push_back("");
+    for (auto& o : options) {
+        std::string key = o.lang.empty() ? "und" : o.lang;
+        if (std::find(langs.begin(), langs.end(), key) == langs.end()) langs.push_back(key);
     }
+    // Which language the middle rail is showing. Held by shared_ptr because
+    // the language cards rebuild that rail from their own click handlers,
+    // which outlive this function.
+    auto selectedLang = std::make_shared<std::string>(sid > 0 ? (activeLang.empty() ? "und" : activeLang) : "");
 
-    // Transcode-side streams: no embedded subs in the HLS stream, so the
-    // choice re-transcodes with the picked stream burned in.
-    if (!anyEmbedded && src != nullptr && !src->parts.empty()) {
-        for (auto& s : src->parts.front().streams) {
-            if (s.streamType != plex::streamTypeSubtitle) continue;
-            int64_t id = s.id;
-            langs->addCard(s.displayTitle, "", "", id == PlayerSetting::selectedSubtitle, [id]() {
+    auto* langRail = new PlayerRail("main/player/panel/languages"_i18n, kSubLangWidth, 720, false);
+    auto* listRail = new PlayerRail("main/player/subtitle"_i18n, kSubListWidth, 720, false);
+    listRail->setMarginLeft(kRailGap);
+
+    // Filling the middle rail is done repeatedly, so it is a function of the
+    // language rather than something built once alongside it.
+    auto fillList = [listRail, options, selectedLang](int64_t currentSid) {
+        listRail->clear();
+        if (selectedLang->empty()) {
+            listRail->addCard("main/player/none"_i18n, "", "", currentSid == 0, []() {
+                PlayerSetting::selectedSubtitle = 0;
+                MPVCore::instance().setInt("sid", 0);
+            });
+            return;
+        }
+        for (const SubOption& o : options) {
+            std::string key = o.lang.empty() ? "und" : o.lang;
+            if (key != *selectedLang) continue;
+            int64_t id = o.id;
+            bool transcode = o.transcode;
+            bool selected = transcode ? id == PlayerSetting::selectedSubtitle : id == currentSid;
+            listRail->addCard(o.name, o.detail, "", selected, [id, transcode]() {
                 PlayerSetting::selectedSubtitle = id;
-                MPVCore::instance().getCustomEvent()->fire(QUALITY_CHANGE, nullptr);
+                if (transcode)
+                    MPVCore::instance().getCustomEvent()->fire(QUALITY_CHANGE, nullptr);
+                else
+                    MPVCore::instance().setInt("sid", id);
             });
         }
+    };
+
+    for (const std::string& code : langs) {
+        bool isOff = code.empty();
+        std::string label = isOff ? "main/player/none"_i18n : languageName(code);
+        // Selecting a language does NOT close the overlay: it repopulates the
+        // rail beside it, which is the entire reason the two are separate.
+        langRail->addControl(label, "", nullptr);
     }
+    row->addView(langRail);
+    row->addView(listRail);
 
-    // Nothing at all: say why, the way the backend wants to say it.
-    if (!anyEmbedded && (src == nullptr || src->parts.empty())) {
-        std::string hint = AppConfig::instance().backend().subtitleMenuHint();
-        if (!hint.empty()) langs->addCard(hint, "", "", false, []() {});
-    }
+    // ---- rail 3: style ----------------------------------------------------
+    auto* styleRail = new PlayerRail("main/player/panel/sub_style"_i18n, kSubStyleWidth, 720, false);
+    styleRail->setMarginLeft(kRailGap);
 
-    row->addView(langs);
+    auto boldCard = std::make_shared<PlayerCard*>(nullptr);
 
-    // The reference's second rail is subtitle STYLE; ours is sync, which is
-    // the one control the player actually owns.
-    auto* tools = new PlayerRail("main/setting/playback/subsync"_i18n, kSubRailWidth);
-    tools->setMarginLeft(kRailGap);
-    tools->addCard(fmt::format("{:+.1f} s", mpv.getDouble("sub-delay")), "main/player/panel/subsync_hint"_i18n, "", false,
-        []() {
-            // Deferred: pushing straight from the click would have this
-            // overlay's own pop swallow the one we just put up.
-            brls::sync([]() { PlayerSetting::showSubsync(); });
+    // Delay is not a stepper in the reference either: it opens the live sync
+    // overlay, where the timing is nudged against the picture.
+    styleRail->addSetting("main/player/panel/sub_delay"_i18n, fmt::format("{:+.1f} s", mpv.getDouble("sub-delay")),
+        []() { brls::sync([]() { PlayerSetting::showSubsync(); }); });
+
+    auto sizeText = []() { return fmt::format("{:.0f} %", MPVCore::instance().getDouble("sub-scale") * 100); };
+    auto setSize = std::make_shared<std::function<void(const std::string&)>>();
+    auto bumpSize = [setSize, sizeText](double delta) {
+        return [setSize, sizeText, delta]() {
+            auto& m = MPVCore::instance();
+            m.setDouble("sub-scale", std::clamp(m.getDouble("sub-scale") + delta, 0.2, 4.0));
+            (*setSize)(sizeText());
+        };
+    };
+    *setSize = styleRail->addStepper(
+        "main/player/panel/sub_size"_i18n, sizeText(), bumpSize(-0.1), bumpSize(0.1));
+
+    *boldCard = styleRail->addSetting("main/player/panel/sub_bold"_i18n,
+        mpv.getInt("sub-bold") ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n, [boldCard]() {
+            auto& m = MPVCore::instance();
+            bool next = !m.getInt("sub-bold");
+            m.setInt("sub-bold", next ? 1 : 0);
+            (*boldCard)->setTrailingText(next ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n);
         });
-    row->addView(tools);
 
+    auto outText = []() { return fmt::format("{:.1f}", MPVCore::instance().getDouble("sub-border-size")); };
+    auto setOut = std::make_shared<std::function<void(const std::string&)>>();
+    auto bumpOut = [setOut, outText](double delta) {
+        return [setOut, outText, delta]() {
+            auto& m = MPVCore::instance();
+            m.setDouble("sub-border-size", std::clamp(m.getDouble("sub-border-size") + delta, 0.0, 10.0));
+            (*setOut)(outText());
+        };
+    };
+    *setOut = styleRail->addStepper(
+        "main/player/panel/sub_outline"_i18n, outText(), bumpOut(-0.5), bumpOut(0.5));
+
+    // sub-pos counts DOWN from the top of the frame (100 = the bottom), so
+    // "further up the screen" is a smaller number. Inverted here so the value
+    // beside the label means what the label says.
+    auto posText = []() { return fmt::format("{}", 100 - MPVCore::instance().getInt("sub-pos")); };
+    auto setPos = std::make_shared<std::function<void(const std::string&)>>();
+    auto bumpPos = [setPos, posText](int64_t delta) {
+        return [setPos, posText, delta]() {
+            auto& m = MPVCore::instance();
+            m.setInt("sub-pos", std::clamp(m.getInt("sub-pos") - delta, (int64_t)0, (int64_t)150));
+            (*setPos)(posText());
+        };
+    };
+    *setPos = styleRail->addStepper(
+        "main/player/panel/sub_offset"_i18n, posText(), bumpPos(-5), bumpPos(5));
+
+    row->addView(styleRail);
     overlay->content()->addView(row);
-    overlay->setFocusTarget(langs->focusTarget());
+
+    // The language cards' handlers need the rail they rebuild, which only
+    // exists once every rail is built — so they are attached last.
+    fillList(sid);
+    for (size_t i = 0; i < langRail->cards().size() && i < langs.size(); i++) {
+        std::string code = langs[i];
+        PlayerCard* card = langRail->cards()[i];
+        size_t which = i;
+        card->registerClickAction([selectedLang, code, fillList, langRail, which](brls::View*) {
+            *selectedLang = code;
+            const auto& all = langRail->cards();
+            for (size_t j = 0; j < all.size(); j++) all[j]->setSelected(j == which);
+            fillList(MPVCore::instance().getInt("sid"));
+            return true;
+        });
+        card->setSelected(code == *selectedLang);
+        if (code == *selectedLang) langRail->setFocusTarget(card);
+    }
+
+    overlay->setFocusTarget(langRail->focusTarget());
     overlay->present();
 }
 
@@ -178,7 +377,7 @@ void showAudio(const plex::Media* src) {
     overlay->content()->addView(overlayTitle("main/player/audio"_i18n));
 
     auto* row = railRow();
-    auto* tracks = new PlayerRail("main/player/audio"_i18n, kAudTrackWidth);
+    auto* tracks = new PlayerRail("main/player/audio"_i18n, kAudTrackWidth, 720, false);
 
     int64_t aidActive = mpv.getInt("aid");
     bool anyEmbedded = false;
@@ -209,39 +408,31 @@ void showAudio(const plex::Media* src) {
     // The narrow column of controls beside the tracks. The reference's are
     // delay, amplification, centre mix and a persist toggle; mpv gives us the
     // first two honestly, so those are the two that are here.
-    auto* controls = new PlayerRail("main/player/panel/audio_controls"_i18n, kAudControlWidth);
+    auto* controls = new PlayerRail("main/player/panel/audio_controls"_i18n, kAudControlWidth, 720, false);
     controls->setMarginLeft(24);  // spacing.md
 
-    // Each stepper relabels the readout above it, so the pair has to outlive
-    // this function — held by shared_ptr rather than captured by reference to
-    // a local that is gone the moment the panel is on screen.
-    auto delayCard = std::make_shared<PlayerCard*>(nullptr);
-    auto volCard   = std::make_shared<PlayerCard*>(nullptr);
-
     auto delayText = []() { return fmt::format("{:+.0f} ms", MPVCore::instance().getDouble("audio-delay") * 1000); };
-    auto volText   = []() { return fmt::format("{:.0f} %", MPVCore::instance().getDouble("volume")); };
-
-    *delayCard = controls->addControl("main/player/panel/delay"_i18n, delayText(), nullptr);
-    auto bumpDelay = [delayCard, delayText](double deltaSec) {
-        return [delayCard, delayText, deltaSec]() {
+    auto setDelay = std::make_shared<std::function<void(const std::string&)>>();
+    auto bumpDelay = [setDelay, delayText](double deltaSec) {
+        return [setDelay, delayText, deltaSec]() {
             auto& m = MPVCore::instance();
             m.setDouble("audio-delay", m.getDouble("audio-delay") + deltaSec);
-            PlayerRail::relabel(*delayCard, "main/player/panel/delay"_i18n, delayText());
+            (*setDelay)(delayText());
         };
     };
-    controls->addControl("main/player/panel/delay_minus"_i18n, "", bumpDelay(-0.05));
-    controls->addControl("main/player/panel/delay_plus"_i18n, "", bumpDelay(0.05));
+    *setDelay = controls->addStepper(
+        "main/player/panel/delay"_i18n, delayText(), bumpDelay(-0.05), bumpDelay(0.05));
 
-    *volCard = controls->addControl("main/player/panel/boost"_i18n, volText(), nullptr);
-    auto bumpVol = [volCard, volText](double delta) {
-        return [volCard, volText, delta]() {
+    auto volText = []() { return fmt::format("{:.0f} %", MPVCore::instance().getDouble("volume")); };
+    auto setVol = std::make_shared<std::function<void(const std::string&)>>();
+    auto bumpVol = [setVol, volText](double delta) {
+        return [setVol, volText, delta]() {
             auto& m = MPVCore::instance();
             m.setDouble("volume", std::clamp(m.getDouble("volume") + delta, 0.0, 200.0));
-            PlayerRail::relabel(*volCard, "main/player/panel/boost"_i18n, volText());
+            (*setVol)(volText());
         };
     };
-    controls->addControl("main/player/panel/boost_minus"_i18n, "", bumpVol(-5));
-    controls->addControl("main/player/panel/boost_plus"_i18n, "", bumpVol(5));
+    *setVol = controls->addStepper("main/player/panel/boost"_i18n, volText(), bumpVol(-5), bumpVol(5));
 
     row->addView(controls);
 
@@ -251,7 +442,7 @@ void showAudio(const plex::Media* src) {
 }
 
 void showSources(const std::string& subtitle, const std::vector<plex::Media>& sources, int current,
-    std::function<void(int)> onPick) {
+    std::function<void(int)> onPick, std::function<void()> onReload) {
     auto* panel = new PlayerSidePanel("main/player/sources"_i18n, subtitle);
 
     if (sources.empty()) {
@@ -264,35 +455,275 @@ void showSources(const std::string& subtitle, const std::vector<plex::Media>& so
         return;
     }
 
-    auto* rail = new PlayerRail("", 944, brls::Application::contentHeight - 320, false);  // the sheet's width less its padding
-    for (size_t i = 0; i < sources.size(); i++) {
-        const plex::Media& m = sources[i];
-        std::string name = m.label.empty() ? m.addonName : m.label;
-        std::string meta = m.addonName;
-        if (!m.videoResolution.empty()) meta += (meta.empty() ? "" : " · ") + m.videoResolution;
-        int index = (int)i;
-        rail->addCard(name, m.detail, meta, index == current, [onPick, index]() {
-            if (onPick) onPick(index);
+    auto* rail = new PlayerRail("", kSheetInnerWidth, brls::Application::contentHeight - 420, false);
+
+    // The addon filter, as the pre-playback picker has it: a refresh chip, All,
+    // then one chip per addon that returned something. Selecting one refills
+    // the list below without closing the sheet.
+    std::vector<std::string> addons;
+    for (const plex::Media& m : sources)
+        if (!m.addonName.empty() && std::find(addons.begin(), addons.end(), m.addonName) == addons.end())
+            addons.push_back(m.addonName);
+
+    auto activeAddon = std::make_shared<std::string>();  // empty = All
+    auto fill = [rail, sources, current, onPick, activeAddon]() {
+        rail->clear();
+        for (size_t i = 0; i < sources.size(); i++) {
+            const plex::Media& m = sources[i];
+            if (!activeAddon->empty() && m.addonName != *activeAddon) continue;
+            std::string name = m.label.empty() ? m.addonName : m.label;
+            std::string meta = m.addonName;
+            if (!m.videoResolution.empty()) meta += (meta.empty() ? "" : " · ") + m.videoResolution;
+            int index = (int)i;
+            rail->addCard(name, m.detail, meta, index == current, [onPick, index]() {
+                if (onPick) onPick(index);
+            });
+        }
+    };
+
+    auto* tabs = panel->tabs();
+    tabs->setMarginBottom(24);
+    if (onReload) {
+        auto* refresh = new PlayerPill("main/player/panel/refresh"_i18n, false);
+        refresh->setMarginRight(24);  // spacing.md
+        refresh->registerClickAction([onReload](brls::View*) {
+            brls::Application::popActivity(brls::TransitionAnimation::NONE, [onReload]() { onReload(); });
+            return true;
+        });
+        tabs->addView(refresh);
+    }
+
+    std::vector<PlayerPill*> pills;
+    auto select = std::make_shared<std::function<void(size_t)>>();
+    std::vector<std::string> names;
+    names.push_back("");  // All
+    for (auto& a : addons) names.push_back(a);
+
+    for (size_t i = 0; i < names.size(); i++) {
+        auto* pill = new PlayerPill(names[i].empty() ? "main/player/panel/all"_i18n : names[i], i == 0);
+        pill->setMarginRight(24);
+        pills.push_back(pill);
+        tabs->addView(pill);
+    }
+    *select = [pills, names, activeAddon, fill](size_t which) {
+        *activeAddon = names[which];
+        for (size_t j = 0; j < pills.size(); j++) pills[j]->setSelected(j == which);
+        fill();
+    };
+    for (size_t i = 0; i < pills.size(); i++) {
+        size_t which = i;
+        pills[i]->registerClickAction([select, which](brls::View*) {
+            (*select)(which);
+            return true;
         });
     }
+
+    fill();
     panel->body()->addView(rail);
     panel->setFocusTarget(rail->focusTarget());
     panel->present();
 }
 
-void showEpisodeTitles(const std::string& subtitle, const std::vector<std::string>& titles, int current,
+namespace {
+
+/// The reference's episode row (EpisodesSidePanel.EpisodeItem), doubled: a
+/// 260x180 still with the S/E code across its bottom-left and a state badge
+/// top-right, then the title, the air date and two lines of synopsis.
+class EpisodeRow : public brls::Box {
+public:
+    EpisodeRow(const plex::Item& ep, bool current) {
+        auto theme = brls::Application::getTheme();
+        this->setAxis(brls::Axis::ROW);
+        this->setAlignItems(brls::AlignItems::FLEX_START);
+        this->setPadding(20);         // 10dp
+        this->setCornerRadius(32);    // radii.xl
+        this->setBorderThickness(4);  // the focus ring, spacing.xxs
+        this->setFocusable(true);
+        this->setHideHighlightBackground(true);
+        this->setHideHighlightBorder(true);
+
+        auto* thumbBox = new brls::Box();
+        thumbBox->setDimensions(260, 180);
+        thumbBox->setShrink(0);
+        thumbBox->setCornerRadius(24);  // radii.md
+        thumbBox->setClipsToBounds(true);
+        thumbBox->setBackgroundColor(theme.getColor("color/grey_2"));
+
+        this->still = new brls::Image();
+        this->still->setDimensions(260, 180);
+        this->still->setScalingType(brls::ImageScalingType::FILL);
+        thumbBox->addView(this->still);
+        if (!ep.thumb.empty()) Image::load(this->still, ep.thumb, 260, 180);
+
+        auto* code = new brls::Box();
+        code->setPositionType(brls::PositionType::ABSOLUTE);
+        code->setPositionLeft(16);
+        code->setPositionBottom(16);
+        code->setCornerRadius(12);
+        code->setBackgroundColor(nvgRGBA(0, 0, 0, 191));
+        code->setPadding(8, 16, 8, 16);
+        auto* codeLabel = new brls::Label();
+        codeLabel->setText(fmt::format("S{}E{}", ep.parentIndex, ep.index));
+        codeLabel->setFontSize(24);  // labelMedium
+        codeLabel->setTextColor(nvgRGB(255, 255, 255));
+        code->addView(codeLabel);
+        thumbBox->addView(code);
+
+        // Playing now, or already watched — the reference marks both, in the
+        // same disc, with an eye and a tick.
+        if (current || ep.played()) {
+            auto* badge = new brls::Box();
+            badge->setPositionType(brls::PositionType::ABSOLUTE);
+            badge->setPositionTop(12);
+            badge->setPositionRight(12);
+            badge->setDimensions(44, 44);
+            badge->setCornerRadius(22);
+            badge->setAlignItems(brls::AlignItems::CENTER);
+            badge->setJustifyContent(brls::JustifyContent::CENTER);
+            badge->setBackgroundColor(nvgRGBA(0, 0, 0, 179));
+            auto* glyph = new SVGImage();
+            glyph->setDimensions(28, 28);
+            char svg[400];
+            std::snprintf(svg, sizeof(svg),
+                R"(<svg width="24" height="24" viewBox="0 0 24 24"><path d="%s" fill="%s"/></svg>)",
+                current ? kEye : kCheck, hexColor(theme.getColor("color/app")).c_str());
+            glyph->setImageFromSVGString(svg);
+            badge->addView(glyph);
+            thumbBox->addView(badge);
+        }
+        this->addView(thumbBox);
+
+        auto* text = new brls::Box();
+        text->setAxis(brls::Axis::COLUMN);
+        text->setGrow(1);
+        text->setMarginLeft(28);  // 14dp
+
+        this->titleLabel = new brls::Label();
+        this->titleLabel->setText(ep.title.empty() ? fmt::format("S{}E{}", ep.parentIndex, ep.index) : ep.title);
+        this->titleLabel->setFontSize(32);  // titleMedium
+        this->titleLabel->setSingleLine(true);
+        text->addView(this->titleLabel);
+
+        if (!ep.originallyAvailableAt.empty()) {
+            auto* date = new brls::Label();
+            date->setText(ep.originallyAvailableAt);
+            date->setFontSize(24);  // bodySmall
+            date->setMarginTop(8);
+            date->setTextColor(theme.getColor("font/tertiary"));
+            text->addView(date);
+        }
+        if (!ep.summary.empty()) {
+            auto* over = new brls::Label();
+            over->setText(ep.summary);
+            over->setFontSize(24);
+            over->setMarginTop(8);
+            over->setTextColor(theme.getColor("font/grey"));
+            text->addView(over);
+        }
+        this->addView(text);
+
+        this->applyColors();
+        this->addGestureRecognizer(new brls::TapGestureRecognizer(this));
+    }
+
+    void onFocusGained() override {
+        brls::Box::onFocusGained();
+        this->applyColors();
+    }
+    void onFocusLost() override {
+        brls::Box::onFocusLost();
+        this->applyColors();
+    }
+
+private:
+    void applyColors() {
+        auto theme = brls::Application::getTheme();
+        NVGcolor accent = theme.getColor("color/app");
+        bool focused = this->isFocused();
+        NVGcolor wash = accent;
+        wash.a = 0.20f;
+        this->setBackgroundColor(focused ? wash : theme.getColor("color/surface"));
+        this->setBorderColor(focused ? accent : nvgRGBA(0, 0, 0, 0));
+        this->titleLabel->setTextColor(nvgRGB(255, 255, 255));
+    }
+
+    brls::Image* still = nullptr;
+    brls::Label* titleLabel = nullptr;
+};
+
+}  // namespace
+
+void showEpisodes(const std::string& subtitle, const std::vector<plex::Item>& episodes, int current,
     std::function<void(int)> onPick) {
     auto* panel = new PlayerSidePanel("main/player/episode"_i18n, subtitle);
 
-    auto* rail = new PlayerRail("", 944, brls::Application::contentHeight - 320, false);
-    for (size_t i = 0; i < titles.size(); i++) {
-        int index = (int)i;
-        rail->addCard(titles[i], "", "", index == current, [onPick, index]() {
-            if (onPick) onPick(index);
+    // Seasons in the order the reference sorts them: the numbered ones
+    // ascending, specials (season 0) last.
+    std::vector<int64_t> seasons;
+    for (const plex::Item& e : episodes)
+        if (std::find(seasons.begin(), seasons.end(), e.parentIndex) == seasons.end()) seasons.push_back(e.parentIndex);
+    std::sort(seasons.begin(), seasons.end(), [](int64_t a, int64_t b) {
+        if ((a == 0) != (b == 0)) return b == 0;
+        return a < b;
+    });
+
+    int64_t openSeason = seasons.empty() ? 0 : seasons.front();
+    if (current >= 0 && current < (int)episodes.size()) openSeason = episodes[current].parentIndex;
+
+    auto* scroll = new brls::ScrollingFrame();
+    scroll->setGrow(1);
+    scroll->setScrollingIndicatorVisible(false);
+    auto* list = new brls::Box();
+    list->setAxis(brls::Axis::COLUMN);
+    scroll->setContentView(list);
+
+    auto focusRow = std::make_shared<brls::View*>(nullptr);
+    auto fill = [list, episodes, current, onPick, focusRow](int64_t season) {
+        list->clearViews();
+        *focusRow = nullptr;
+        bool first = true;
+        for (size_t i = 0; i < episodes.size(); i++) {
+            if (episodes[i].parentIndex != season) continue;
+            int index = (int)i;
+            auto* row = new EpisodeRow(episodes[i], index == current);
+            if (!first) row->setMarginTop(16);  // spacing.sm
+            first = false;
+            row->registerClickAction([onPick, index](brls::View*) {
+                brls::Application::popActivity(brls::TransitionAnimation::NONE, [onPick, index]() {
+                    if (onPick) onPick(index);
+                });
+                return true;
+            });
+            list->addView(row);
+            if (index == current || !*focusRow) *focusRow = row;
+        }
+    };
+
+    auto* tabs = panel->tabs();
+    tabs->setMarginBottom(24);
+    std::vector<PlayerPill*> pills;
+    for (size_t i = 0; i < seasons.size(); i++) {
+        std::string label = seasons[i] == 0 ? "main/player/panel/specials"_i18n
+                                            : fmt::format(fmt::runtime("main/player/panel/season"_i18n), seasons[i]);
+        auto* pill = new PlayerPill(label, seasons[i] == openSeason);
+        pill->setMarginRight(24);
+        pills.push_back(pill);
+        tabs->addView(pill);
+    }
+    for (size_t i = 0; i < pills.size(); i++) {
+        int64_t season = seasons[i];
+        size_t which = i;
+        auto all = pills;
+        pills[i]->registerClickAction([fill, season, all, which](brls::View*) {
+            for (size_t j = 0; j < all.size(); j++) all[j]->setSelected(j == which);
+            fill(season);
+            return true;
         });
     }
-    panel->body()->addView(rail);
-    panel->setFocusTarget(rail->focusTarget());
+
+    fill(openSeason);
+    panel->body()->addView(scroll);
+    panel->setFocusTarget(*focusRow);
     panel->present();
 }
 
@@ -343,7 +774,7 @@ brls::Box* section(brls::Box* parent, const std::string& title) {
 void showStreamInfo(const plex::Media* src, const std::string& addonName) {
     auto& mpv = MPVCore::instance();
 
-    auto* overlay = new PlayerOverlay(kInfoPadX, kInfoPadTop, kInfoPadBottom);
+    auto* overlay = new PlayerOverlay(kInfoPadX, kInfoPadTop, kInfoPadBottom, /*anchorBottom*/ true);
     auto* col = overlay->content();
     col->addView(overlayTitle("main/player/info"_i18n));
 

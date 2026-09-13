@@ -45,6 +45,12 @@ public:
     void onFocusGained() override;
     void onFocusLost() override;
 
+    /// Re-derives the highlight from who actually holds focus. onFocusLost is
+    /// not guaranteed: Application::giveFocus skips the whole swap — the old
+    /// view's onFocusLost included — when the target resolves to nullptr, so a
+    /// button could keep its white disc after focus had gone elsewhere.
+    void draw(NVGcontext* vg, float x, float y, float w, float h, brls::Style style, brls::FrameContext* ctx) override;
+
     static brls::View* create();
 
 private:

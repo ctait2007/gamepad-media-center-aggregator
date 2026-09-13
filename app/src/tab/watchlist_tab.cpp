@@ -161,9 +161,10 @@ void WatchlistTab::reload() {
 }
 
 void WatchlistTab::refreshFilters() {
-    this->pickerType->setOptions({"main/library/type/all"_i18n, "main/media/genres/movie"_i18n,
-                                     "main/media/genres/series"_i18n},
-        this->typeIndex);
+    // main/media/genres/* does not exist, so these two printed their own key
+    // back at the user. The strings that do exist are the sidebar's.
+    this->pickerType->setOptions(
+        {"main/library/type/all"_i18n, "main/stremio/movies"_i18n, "main/stremio/series"_i18n}, this->typeIndex);
     this->pickerSort->setOptions({"main/library/sort/added_desc"_i18n, "main/library/sort/added_asc"_i18n,
                                      "main/library/sort/title_az"_i18n, "main/library/sort/title_za"_i18n},
         this->sortIndex);

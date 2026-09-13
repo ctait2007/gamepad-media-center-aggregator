@@ -56,10 +56,18 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
     // current position — so a change here survives as the item's choice.
     view->registerSources([this](...) {
         int64_t pos = int64_t(MPVCore::instance().playback_time) * 1000;
-        player_panels::showSources(this->item.title, this->item.media, this->preferredVersion,
+        player_panels::showSources(
+            this->item.title, this->item.media, this->preferredVersion,
             [this, pos](int picked) {
                 if (picked == this->preferredVersion) return;
                 this->preferredVersion = picked;
+                MPVCore::instance().reset();
+                this->playMedia(pos);
+            },
+            // Refresh: re-resolve the streams from the addons and come back
+            // with whatever they say now, keeping the position.
+            [this, pos]() {
+                this->preferredVersion = -1;
                 MPVCore::instance().reset();
                 this->playMedia(pos);
             });
@@ -193,6 +201,16 @@ void PlayerView::setSeries(const std::string& showRatingKey) {
             }
             view->setList(values, index);
             this->episodes = std::move(r.Items);
+            // The sheet draws each episode's still, title, air date and
+            // synopsis, so it needs the items themselves — which live here.
+            std::string show = this->item.grandparentTitle.empty() ? this->item.title : this->item.grandparentTitle;
+            view->registerEpisodes([this, show](...) {
+                int cur = -1;
+                for (size_t i = 0; i < this->episodes.size(); i++)
+                    if (this->episodes[i].ratingKey == this->itemId) cur = (int)i;
+                player_panels::showEpisodes(show, this->episodes, cur, [this](int picked) { this->playIndex(picked); });
+                return true;
+            });
         },
         [ASYNC_TOKEN](const std::string& error) {
             ASYNC_RELEASE
@@ -493,7 +511,14 @@ void PlayerView::reportTimeline(const std::string& state, int64_t timeMs) {
     media::PlayState st = state == "paused"    ? media::PlayState::Paused
                           : state == "stopped" ? media::PlayState::Stopped
                                                : media::PlayState::Playing;
-    AppConfig::instance().backend().reportProgress(this->itemId, st, timeMs, this->item.duration, this->sessionId);
+    // mpv's duration, whenever the item has none of its own. A Stremio EPISODE
+    // never does — runtime lives on the show's meta, not on the entries of its
+    // videos[] — so every episode reported a duration of 0, and a backend that
+    // (rightly) refuses to store progress without one dropped the lot. That is
+    // the whole of Continue Watching for a series.
+    int64_t durMs = this->item.duration;
+    if (durMs <= 0) durMs = int64_t(MPVCore::instance().duration * 1000);
+    AppConfig::instance().backend().reportProgress(this->itemId, st, timeMs, durMs, this->sessionId);
 }
 
 void PlayerView::reportStop() {
