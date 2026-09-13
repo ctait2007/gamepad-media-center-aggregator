@@ -169,6 +169,9 @@
                 <PlayerButton id="video/osd/next" visibility="gone" />
                 <PlayerButton id="video/subtitle/box" visibility="gone" />
                 <PlayerButton id="video/audio/box" visibility="gone" />
+                <!-- the source re-selector: the reference's fifth control, and
+                     the one the row had no button for at all -->
+                <PlayerButton id="video/osd/sources" visibility="gone" />
                 <PlayerButton id="video/quality/box" visibility="gone" />
                 <PlayerButton id="show/episode/box" visibility="gone" />
                 <PlayerButton id="video/osd/cast" />

@@ -5,6 +5,7 @@
 #include "utils/keybind.hpp"
 #include "utils/misc.hpp"
 #include "view/mpv_core.hpp"
+#include "view/player_panels.hpp"
 #include "view/svg_image.hpp"
 #include "view/video_profile.hpp"
 #include "view/video_progress_slider.hpp"
@@ -281,13 +282,15 @@ VideoView::VideoView() {
     // only fire when there is something to pick.
     this->btnVideoSubtitle->setIconPath(player_icon::CLOSED_CAPTION);
     this->btnVideoAudio->setIconPath(player_icon::AUDIO);
-    this->btnVideoQuality->setIconPath(player_icon::SOURCES);
+    this->btnSources->setIconPath(player_icon::SOURCES);
+    this->btnVideoQuality->setIconPath(player_icon::QUALITY);
     this->btnEpisode->setIconPath(player_icon::EPISODES);
 
     // Stream information, on the row rather than behind a "more" menu: it is
     // the only entry of the reference's overflow that has any meaning here.
+    // What it opens is registered by the owner (registerStreamInfo), which is
+    // the only thing that knows which addon served the stream.
     this->btnCast->setIconPath(player_icon::INFO);
-    this->btnCast->setOnClick([this]() { this->toggleProfile(); });
 
     /// speed: LSB shortcut + touch long-press only (no longer on the OSD,
     /// not relevant there per user feedback)
@@ -320,6 +323,7 @@ void VideoView::setTitie(const std::string& title) {
 
 void VideoView::setMainTitle(const std::string& text) {
     this->titleLocked = true;
+    this->mainTitle   = text;
     this->titleLabel->setText(text);
 }
 
@@ -369,14 +373,13 @@ void VideoView::updateTime(double positionSec, double durationSec) {
 void VideoView::setList(const std::vector<std::string>& values, int index) {
     // 选集
     this->btnEpisode->registerClickAction([this, values](...) {
-        brls::Dropdown* dropdown = new brls::Dropdown(
-            "main/player/episode"_i18n, values,
-            [this](int selected) {
-                this->showLoading();
-                this->playIndexEvent.fire(selected);
-            },
-            this->playIndex);
-        brls::Application::pushActivity(new brls::Activity(dropdown));
+        this->hideOSD();
+        // The reference's EpisodesSidePanel, not a bottom sheet: the rows are
+        // built from the same list the Next button walks.
+        player_panels::showEpisodeTitles(this->mainTitle, values, this->playIndex, [this](int selected) {
+            this->showLoading();
+            this->playIndexEvent.fire(selected);
+        });
         return true;
     });
     this->btnEpisode->setVisibility(brls::Visibility::VISIBLE);
@@ -725,7 +728,8 @@ void VideoView::setTvMode(bool state) {
     // slider and the slider comes back DOWN to play/pause, which is how the
     // reference wires its controls (upFocusRequester = progressBar on each).
     for (PlayerButton* b : {btnToggle.getView(), btnNext.getView(), btnVideoSubtitle.getView(),
-             btnVideoAudio.getView(), btnVideoQuality.getView(), btnEpisode.getView(), btnCast.getView()})
+             btnVideoAudio.getView(), btnSources.getView(), btnVideoQuality.getView(), btnEpisode.getView(),
+             btnCast.getView()})
         if (state) b->setCustomNavigationRoute(brls::FocusDirection::UP, (brls::View*)osdSlider);
     osdSlider->setFocusable(state);
 }
@@ -830,20 +834,53 @@ void VideoView::hideVideoProgressSlider() { this->osdSlider->setVisibility(brls:
 // anything to pick (hasSubtitleControl / hasAudioControl / the sources panel).
 void VideoView::hideVideoQuality() { this->btnVideoQuality->setVisibility(brls::Visibility::GONE); }
 
+/// Opening a panel dismisses the transport controls first. The reference does
+/// the same, and without it a bottom-anchored overlay lands on top of our
+/// control row rather than on the video.
+static brls::ActionListener dismissing(VideoView* view, brls::ActionListener action) {
+    return [view, action](brls::View* v) {
+        view->hideOSD();
+        return action(v);
+    };
+}
+
 void VideoView::registerVideoQuality(brls::ActionListener action) {
+    action = dismissing(this, action);
     this->btnVideoQuality->registerClickAction(action);
     this->btnVideoQuality->setVisibility(brls::Visibility::VISIBLE);
     this->registerActions("main/player/quality"_i18n, brls::BUTTON_RSB, KeyBind::getVideoQuality(), action, true);
 }
 
 void VideoView::registerVideoSubtitle(brls::ActionListener action) {
+    action = dismissing(this, action);
     this->btnVideoSubtitle->registerClickAction(action);
     this->btnVideoSubtitle->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::registerVideoAudio(brls::ActionListener action) {
+    action = dismissing(this, action);
     this->btnVideoAudio->registerClickAction(action);
     this->btnVideoAudio->setVisibility(brls::Visibility::VISIBLE);
+}
+
+void VideoView::registerSources(brls::ActionListener action) {
+    action = dismissing(this, action);
+    this->btnSources->registerClickAction(action);
+    this->btnSources->setVisibility(brls::Visibility::VISIBLE);
+}
+
+void VideoView::setSourcesVisible(bool visible) {
+    this->btnSources->setVisibility(visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+}
+
+void VideoView::setVideoQualityVisible(bool visible) {
+    this->btnVideoQuality->setVisibility(visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+}
+
+void VideoView::registerStreamInfo(brls::ActionListener action) {
+    action = dismissing(this, action);
+    this->btnCast->registerClickAction(action);
+    this->btnCast->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::registerError(brls::ActionListener action) { this->errorAction = action; }

@@ -249,6 +249,10 @@ PlayerSetting::PlayerSetting() {
 
 PlayerSetting::~PlayerSetting() { brls::Logger::debug("PlayerSetting: delete"); }
 
+void PlayerSetting::showSubsync() {
+    brls::Application::pushActivity(new brls::Activity(new SubsyncOverlay()));
+}
+
 void PlayerSetting::showAudioMenu(const plex::Media* src) {
     auto& mpv = MPVCore::instance();
 

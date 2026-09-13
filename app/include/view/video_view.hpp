@@ -69,6 +69,20 @@ public:
     void registerVideoQuality(brls::ActionListener action);
     void registerVideoSubtitle(brls::ActionListener action);
     void registerVideoAudio(brls::ActionListener action);
+    /// The source re-selector. Like the three above, the button is GONE until
+    /// someone registers it, so it only appears for a backend that actually
+    /// has more than one stream to offer.
+    void registerSources(brls::ActionListener action);
+    /// Dismiss the transport controls — what opening a panel does first, so a
+    /// bottom-anchored overlay lands on the video and not on the control row.
+    void hideOSD();
+    /// Show or hide it once the owner knows whether there IS a choice — the
+    /// action stays registered either way, so this can flip per episode.
+    void setSourcesVisible(bool visible);
+    void setVideoQualityVisible(bool visible);
+    /// Stream information — the one entry of the reference's overflow menu we
+    /// kept, promoted onto the row.
+    void registerStreamInfo(brls::ActionListener action);
     /// Optional hook fired on MPV_FILE_ERROR. If it returns true the error is
     /// considered handled (e.g. PlayerView fell back to direct play) and no
     /// error dialog is shown. Unset for local/remote players -> dialog as before.
@@ -96,6 +110,7 @@ private:
     BRLS_BIND(PlayerButton, btnToggle, "video/osd/toggle");
     BRLS_BIND(PlayerButton, btnNext, "video/osd/next");
     BRLS_BIND(PlayerButton, btnCast, "video/osd/cast");
+    BRLS_BIND(PlayerButton, btnSources, "video/osd/sources");
     BRLS_BIND(PlayerButton, btnVideoQuality, "video/quality/box");
     BRLS_BIND(PlayerButton, btnVideoSubtitle, "video/subtitle/box");
     BRLS_BIND(PlayerButton, btnVideoAudio, "video/audio/box");
@@ -125,7 +140,6 @@ private:
     bool toggleProfile();
     /// OSD
     void toggleOSD();
-    void hideOSD();
     bool toggleSpeed();
     bool toggleVolume(brls::View* view);
     void showHint(const std::string& value);
@@ -144,6 +158,9 @@ private:
 
     std::string sourceName;
     bool titleLocked = false;
+    /// what setMainTitle was last given — the episode panel prints it under
+    /// its own heading, as the reference does with the show name
+    std::string mainTitle;
     int playIndex = -1;
     brls::Event<int> playIndexEvent;
     brls::VoidEvent settingEvent;

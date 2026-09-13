@@ -15,6 +15,13 @@ const char* AUDIO =
     "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 "
     "3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z";
 const char* SOURCES  = "M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z";
+// Material "high_quality" — the bitrate picker, which the reference has no
+// equivalent for (it never transcodes) but Plex and Jellyfin genuinely do.
+const char* QUALITY =
+    "M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8.5 "
+    "9.5c0 .55-.45 1-1 1h-.75v1.5H7.25v-1.5H6.5c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h3c.55 0 1 .45 1 "
+    "1v3zm2 1.5v-6h1.5v6h-1.5zM18.5 13c0 .55-.45 1-1 1h-2v-1.5h1.5v-3h-1.5V8h2c.55 0 1 .45 1 1v4zM7 "
+    "10.5h2v3H7v-3z";
 const char* EPISODES = "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z";
 const char* INFO =
     "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 "

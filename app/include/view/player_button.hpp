@@ -29,6 +29,7 @@ extern const char* SKIP_NEXT;
 extern const char* CLOSED_CAPTION;
 extern const char* AUDIO;
 extern const char* SOURCES;
+extern const char* QUALITY;
 extern const char* EPISODES;
 extern const char* INFO;
 }  // namespace player_icon

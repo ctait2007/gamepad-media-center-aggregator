@@ -13,6 +13,7 @@
 #include "utils/dialog.hpp"
 #include "utils/misc.hpp"
 #include "view/mpv_core.hpp"
+#include "view/player_panels.hpp"
 #include "view/player_setting.hpp"
 #include "view/video_view.hpp"
 #include "view/video_profile.hpp"
@@ -43,11 +44,29 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
     // direct-access OSD pickers; &stream lets them switch transcode-side
     // tracks (the Vita default) as well as embedded ones
     view->registerVideoSubtitle([this](...) {
-        PlayerSetting::showSubtitleMenu(&this->stream);
+        player_panels::showSubtitles(&this->stream);
         return true;
     });
     view->registerVideoAudio([this](...) {
-        PlayerSetting::showAudioMenu(&this->stream);
+        player_panels::showAudio(&this->stream);
+        return true;
+    });
+    // The source re-selector. Switching source is the same operation the
+    // pre-playback picker performs — pin preferredVersion and reload from the
+    // current position — so a change here survives as the item's choice.
+    view->registerSources([this](...) {
+        int64_t pos = int64_t(MPVCore::instance().playback_time) * 1000;
+        player_panels::showSources(this->item.title, this->item.media, this->preferredVersion,
+            [this, pos](int picked) {
+                if (picked == this->preferredVersion) return;
+                this->preferredVersion = picked;
+                MPVCore::instance().reset();
+                this->playMedia(pos);
+            });
+        return true;
+    });
+    view->registerStreamInfo([this](...) {
+        player_panels::showStreamInfo(&this->stream, this->stream.addonName);
         return true;
     });
     // transcode stream failed to play -> retry once in direct play before the
@@ -232,6 +251,13 @@ void PlayerView::applyIdentity() {
                                                 : this->item.title);
         this->view->setEpisodeLine("");
     }
+    // Neither control earns a place on the row when it has nothing to offer:
+    // one source is not a choice, and an addon stream carries no bitrate
+    // ladder to step down (the reference never transcodes, so it has no
+    // quality button at all).
+    this->view->setSourcesVisible(this->item.media.size() > 1);
+    this->view->setVideoQualityVisible(this->stream.bitrate * 1000 >= 720000);
+
     // the addon's own one-liner for the stream, flattened
     std::string src = this->stream.label.empty() ? this->stream.detail : this->stream.label;
     for (char& c : src)

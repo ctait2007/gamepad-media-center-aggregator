@@ -29,6 +29,11 @@ public:
     static void showSubtitleMenu(const plex::Media* src);
     static void showAudioMenu(const plex::Media* src);
 
+    /// The live subtitle-sync overlay, pushed on its own. The class behind it
+    /// is file-local to player_setting.cpp; the Subtitles panel needs to reach
+    /// it, and this is cheaper than moving the whole overlay out.
+    static void showSubsync();
+
     enum class Equalizer {
         BRIGHTNESS,
         CONTRAST,
