@@ -10,6 +10,9 @@
 #include <borealis/core/logger.hpp>
 #include <chrono>
 #include <fmt/format.h>
+#include <cctype>
+#include <mutex>
+#include <random>
 #include <stdexcept>
 
 namespace nuvio {
@@ -28,6 +31,15 @@ int64_t nowSeconds() {
 bool isUnauthorized(const std::exception& ex) {
     std::string msg = ex.what();
     return msg.find("401") != std::string::npos;
+}
+
+bool isValidClientId(const std::string& id) {
+    // NuvioTV's own acceptance test for a stored id (SyncClientIdentity.
+    // isValidSyncClientId): length 16..96, alphanumerics plus - and _.
+    if (id.size() < 16 || id.size() > 96) return false;
+    for (char c : id)
+        if (!std::isalnum((unsigned char)c) && c != '-' && c != '_') return false;
+    return true;
 }
 
 HTTP::Header bearerHeaders() {
@@ -73,6 +85,35 @@ nlohmann::json rpc(const std::string& function, const nlohmann::json& payload) {
     } catch (const std::exception& ex) {
         throw std::runtime_error(fmt::format("Nuvio rpc/{} failed: {}", function, ex.what()));
     }
+}
+
+std::string syncClientId() {
+    static std::mutex idMtx;
+    static std::string cached;
+    std::lock_guard<std::mutex> lock(idMtx);
+    if (!cached.empty()) return cached;
+
+    auto& cfg = AppConfig::instance();
+    std::string stored = cfg.getItem(AppConfig::SYNC_CLIENT_ID, std::string{});
+    if (isValidClientId(stored)) {
+        cached = stored;
+        return cached;
+    }
+
+    // Same shape as NuvioTV's SyncClientIdentity.generateClientId(): the
+    // prefix plus 32 characters of [a-z0-9]. random_device rather than a
+    // time seed — two consoles first launched in the same second must not
+    // end up claiming the same origin.
+    static const char alphabet[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> pick(0, (int)sizeof(alphabet) - 2);
+    std::string id = "nuvio-tv-";
+    for (int i = 0; i < 32; i++) id.push_back(alphabet[pick(gen)]);
+
+    cfg.setItem(AppConfig::SYNC_CLIENT_ID, id);
+    cached = id;
+    return cached;
 }
 
 nlohmann::json restGet(const std::string& pathAndQuery) {

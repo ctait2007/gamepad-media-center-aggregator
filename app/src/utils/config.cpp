@@ -68,6 +68,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {SCROLLBAR, {"scrollbar"}},
     {POSTER_LABELS, {"poster_labels"}},
+    {SYNC_CLIENT_ID, {"sync_client_id"}},
     {SHOW_HERO, {"show_hero"}},
     {SHOW_CONTINUE, {"show_continue"}},
     {CATALOG_ADDON_NAME, {"catalog_addon_name"}},
@@ -605,6 +606,13 @@ media::Backend& AppConfig::backend() {
                 this->activeBackend = new plex::PlexBackend();
                 break;
         }
+        // Which backend the session is actually running on, printed once. The
+        // log otherwise cannot tell a Nuvio connection from a Stremio one —
+        // both drive the same addons — so a report of "the library is not
+        // syncing" had no way to say whether the sync path was even reached.
+        brls::Logger::info("backend: type={} url={} account={} library={}", type, this->server_url,
+            this->getToken().empty() ? "anonymous" : "signed in",
+            this->activeBackend->caps().listKind == media::ListKind::None ? "on-device" : "backend");
     }
     return *this->activeBackend;
 }

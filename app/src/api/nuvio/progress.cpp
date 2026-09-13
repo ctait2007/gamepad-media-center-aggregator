@@ -8,6 +8,7 @@
 #include "utils/config.hpp"
 #include <algorithm>
 #include <borealis/core/logger.hpp>
+#include <fmt/format.h>
 
 namespace nuvio {
 
@@ -200,11 +201,17 @@ void ProgressStore::pushProgress(const WatchProgressRow& row) {
     };
     if (row.season >= 0) entry["season"] = row.season;
     if (row.episode >= 0) entry["episode"] = row.episode;
-    // progress_key intentionally omitted: the server derives it from
-    // content_id/season/episode (see sync_push_watch_progress), which is
-    // exactly the identity we key the local cache on too.
-    nuvio::rpc(
-        "sync_push_watch_progress", {{"p_profile_id", profileId}, {"p_entries", nlohmann::json::array({entry})}});
+    // progress_key: the reference sends it on every entry and it is the map key
+    // its own store is built on — "<contentId>" for a movie, "<contentId>_s<S>e<E>"
+    // for an episode (WatchProgressSyncService.episodeKey). Leaving the server to
+    // derive one risked a second row per episode that its delta pull then never
+    // matched to ours.
+    entry["progress_key"] = (row.season >= 0 && row.episode >= 0)
+                                ? fmt::format("{}_s{}e{}", row.contentId, row.season, row.episode)
+                                : row.contentId;
+    nuvio::rpc("sync_push_watch_progress",
+        {{"p_profile_id", profileId}, {"p_entries", nlohmann::json::array({entry})},
+            {"p_origin_client_id", nuvio::syncClientId()}});
 
     std::lock_guard<std::mutex> lock(mtx);
     lastPushed[cacheKey(row.contentId, row.season, row.episode)] = std::chrono::steady_clock::now();
@@ -235,9 +242,14 @@ void ProgressStore::pushWatched(
     int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
                       .count();
     nlohmann::json entry = {{"content_id", contentId}, {"content_type", contentType}, {"title", ""}, {"watched_at", now}};
-    if (season >= 0) entry["season"] = season;
-    if (episode >= 0) entry["episode"] = episode;
-    nuvio::rpc("sync_push_watched_items", {{"p_profile_id", profileId}, {"p_items", nlohmann::json::array({entry})}});
+    // season/episode are ALWAYS present here, explicitly null for a movie, as
+    // the reference sends them (WatchedItemsSyncService.pushItemsToRemoteLocked).
+    // Omitting a key the row shape declares is not the same as sending null.
+    entry["season"] = season >= 0 ? nlohmann::json(season) : nlohmann::json(nullptr);
+    entry["episode"] = episode >= 0 ? nlohmann::json(episode) : nlohmann::json(nullptr);
+    nuvio::rpc("sync_push_watched_items",
+        {{"p_profile_id", profileId}, {"p_items", nlohmann::json::array({entry})},
+            {"p_origin_client_id", nuvio::syncClientId()}});
 
     std::lock_guard<std::mutex> lock(mtx);
     for (auto& w : watched) {
@@ -254,7 +266,9 @@ void ProgressStore::clearWatched(const std::string& contentId, int64_t season, i
     nlohmann::json key = {{"content_id", contentId}};
     if (season >= 0) key["season"] = season;
     if (episode >= 0) key["episode"] = episode;
-    nuvio::rpc("sync_delete_watched_items", {{"p_profile_id", profileId}, {"p_keys", nlohmann::json::array({key})}});
+    nuvio::rpc("sync_delete_watched_items",
+        {{"p_profile_id", profileId}, {"p_keys", nlohmann::json::array({key})},
+            {"p_origin_client_id", nuvio::syncClientId()}});
 
     std::lock_guard<std::mutex> lock(mtx);
     watched.erase(std::remove_if(watched.begin(), watched.end(),

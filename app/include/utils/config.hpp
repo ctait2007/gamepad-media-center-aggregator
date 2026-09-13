@@ -121,6 +121,12 @@ public:
         /// behaviour; off here, which is the look its reference screens have.
         POSTER_LABELS,
 
+        /// Per-install id sent as `p_origin_client_id` on every Nuvio sync
+        /// push, so the server can tell this client's own writes apart from
+        /// another device's. Generated once and kept (NuvioTV's
+        /// SyncClientIdentity does exactly this, in a SharedPreferences file).
+        SYNC_CLIENT_ID,
+
         // --- Layout toggles the reference exposes and we did not (NuvioTV
         // LayoutSettingsScreen.kt). All default to what the app already did, so
         // an existing install sees no change until it asks for one.

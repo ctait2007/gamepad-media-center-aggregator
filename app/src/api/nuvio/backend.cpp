@@ -28,7 +28,7 @@ NuvioBackend::NuvioBackend() {
     // Browsable catalogs + composed home rows + ratings, always on (same as
     // Stremio's addon-protocol navigation). Watch progress/history (Continue
     // Watching, Next Up, mark watched) is always on too — an account is
-    // required to sign in at all. Library/watchlist sync is not done yet.
+    // required to sign in at all, and the library rides on the same session.
     caps_.sections = true;
     caps_.homeHubs = true;
     caps_.continueWatching = true;
@@ -42,9 +42,13 @@ NuvioBackend::NuvioBackend() {
     caps_.globalSearch = false;
     caps_.recentlyAdded = false;
     caps_.markWatched = true;
-    // Library/watchlist ("My List") sync is a separate, not-yet-done piece —
-    // canList/listWatchlist/etc. stay unoverridden (base no-ops) until then.
-    caps_.listKind = media::ListKind::None;
+    // Library ("My List") lives on the account, in the same `library` rows
+    // NuvioTV writes: canList/listWatchlist/getWatchlistState/setWatchlisted
+    // below drive LibraryStore. This flag is what utils/local_library.hpp
+    // reads to decide account-vs-on-device, so leaving it None (as it was)
+    // silently sent every add, every removal and every read to library.json
+    // instead — the account's own library never changed and never appeared.
+    caps_.listKind = media::ListKind::Library;
     caps_.ratings = true;
     caps_.skipIntro = false;
     caps_.transcode = false;

@@ -24,6 +24,14 @@ void ensureFreshSession();
 /// name and HTTP status, never a token) on any other failure.
 nlohmann::json rpc(const std::string& function, const nlohmann::json& payload);
 
+/// This install's sync client id, generated once and persisted. Every PUSH and
+/// DELETE rpc carries it as `p_origin_client_id`, exactly as NuvioTV's
+/// SyncClientIdentity does: the server uses it to keep a client's own writes
+/// out of the delta stream it sends back. PostgREST matches an RPC by its
+/// argument NAMES, so omitting a parameter the function declares without a
+/// default makes the call 404 rather than merely lose the tagging.
+std::string syncClientId();
+
 /// GET {activeServerUrl}/rest/v1/{pathAndQuery} with the active connection's
 /// bearer token. Same refresh/retry/error convention as rpc().
 nlohmann::json restGet(const std::string& pathAndQuery);

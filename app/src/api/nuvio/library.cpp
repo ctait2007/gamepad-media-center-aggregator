@@ -151,7 +151,8 @@ bool LibraryStore::contains(const std::string& contentId, const std::string& con
 void LibraryStore::add(const LibraryRow& row) {
     int profileId = AppConfig::instance().getNuvioProfileIndex();
     nuvio::rpc("sync_push_library_items",
-        {{"p_profile_id", profileId}, {"p_items", nlohmann::json::array({toMutation(row)})}});
+        {{"p_profile_id", profileId}, {"p_items", nlohmann::json::array({toMutation(row)})},
+            {"p_origin_client_id", nuvio::syncClientId()}});
 
     std::lock_guard<std::mutex> lock(mtx);
     for (auto& r : list) {
@@ -167,7 +168,8 @@ void LibraryStore::remove(const std::string& contentId, const std::string& conte
     int profileId = AppConfig::instance().getNuvioProfileIndex();
     nuvio::rpc("sync_delete_library_items",
         {{"p_profile_id", profileId},
-            {"p_keys", nlohmann::json::array({{{"content_id", contentId}, {"content_type", contentType}}})}});
+            {"p_keys", nlohmann::json::array({{{"content_id", contentId}, {"content_type", contentType}}})},
+            {"p_origin_client_id", nuvio::syncClientId()}});
 
     std::lock_guard<std::mutex> lock(mtx);
     list.erase(std::remove_if(list.begin(), list.end(),
