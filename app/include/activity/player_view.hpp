@@ -70,6 +70,10 @@ private:
     bool toggleQuality();
 
     // Playback
+    /// Title / episode line / "via <stream>", from the item and the chosen
+    /// stream rather than from a pre-joined string handed in by the caller.
+    void applyIdentity();
+
     std::string itemId;  // ratingKey
     /// playMethod: "directplay" | "transcode" (VideoProfile display)
     std::string playMethod;

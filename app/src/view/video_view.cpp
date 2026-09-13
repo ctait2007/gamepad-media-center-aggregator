@@ -117,12 +117,8 @@ VideoView::VideoView() {
         },
         true);
 
-    /// 播放器设置按钮
-    this->btnSetting->registerClickAction([this](brls::View* view) {
-        this->settingEvent.fire();
-        return true;
-    });
-    this->btnSetting->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnSetting));
+    // Player settings are on X alone now: the reference's control row has no
+    // settings button, and everything it does have is on the row itself.
     this->registerActions(
         "main/player/setting"_i18n, brls::BUTTON_X, KeyBind::getSetting(),
         [this](brls::View* view) {
@@ -179,8 +175,6 @@ VideoView::VideoView() {
         true, true);
 
     /// 音量按钮
-    this->btnVolume->registerClickAction([this](brls::View* view) { return this->toggleVolume(view); });
-    this->btnVolume->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnVolume));
 
     this->registerMpvEvent();
 
@@ -302,34 +296,18 @@ VideoView::VideoView() {
     }));
 
     /// 播放/暂停 按钮
-    this->btnToggle->registerClickAction([](...) {
-        MPVCore::instance().togglePlay();
-        return true;
-    });
-    this->btnToggle->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnToggle));
+    this->btnToggle->setOnClick([]() { MPVCore::instance().togglePlay(); });
+    this->btnToggle->setIconPath(player_icon::PLAY);
 
     /// OSD 锁定按钮
     this->osdLockBox->registerClickAction([this](...) { return this->toggleOSDLock(); });
     this->osdLockBox->addGestureRecognizer(new brls::TapGestureRecognizer(this->osdLockBox));
 
-    this->btnClose->registerClickAction([](...) {
-        brls::sync([]() { close(); });
-        return true;
-    });
-    this->btnClose->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnClose));
-
-    /// 播放控制
-    this->btnBackward->registerClickAction([this](...) {
-        this->playIndexEvent.fire(--this->playIndex);
-        return true;
-    });
-    this->btnBackward->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnBackward));
-
-    this->btnForward->registerClickAction([this](...) {
-        this->playIndexEvent.fire(++this->playIndex);
-        return true;
-    });
-    this->btnForward->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnForward));
+    // Skip to the next episode — the reference's second control. Revealed by
+    // setList() once there IS one; closing the file is what the old forward
+    // arrow did, and it lives here now.
+    this->btnNext->setIconPath(player_icon::SKIP_NEXT);
+    this->btnNext->setOnClick([this]() { this->playIndexEvent.fire(this->playIndex + 1); });
 
     this->registerActions(
         "main/player/toggle"_i18n, brls::BUTTON_A, KeyBind::getVideoPause(), [this](brls::View* view) {
@@ -347,14 +325,28 @@ VideoView::VideoView() {
     this->registerActions(
         "profile", brls::BUTTON_BACK, KeyBind::getVideoProfile(),
         [this](brls::View* view) { return this->toggleProfile(); }, true);
-    this->btnCast->registerClickAction([this](...) { return this->toggleProfile(); });
-    this->btnCast->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnCast));
+    // The three pickers carry their glyphs from the start; whether they are on
+    // the row at all is decided by registerVideoSubtitle/Audio/Quality, which
+    // only fire when there is something to pick.
+    this->btnVideoSubtitle->setIconPath(player_icon::CLOSED_CAPTION);
+    this->btnVideoAudio->setIconPath(player_icon::AUDIO);
+    this->btnVideoQuality->setIconPath(player_icon::SOURCES);
+    this->btnEpisode->setIconPath(player_icon::EPISODES);
+
+    // Stream information, on the row rather than behind a "more" menu: it is
+    // the only entry of the reference's overflow that has any meaning here.
+    this->btnCast->setIconPath(player_icon::INFO);
+    this->btnCast->setOnClick([this]() { this->toggleProfile(); });
 
     /// speed: LSB shortcut + touch long-press only (no longer on the OSD,
     /// not relevant there per user feedback)
     this->registerActions(
         "main/player/speed"_i18n, brls::BUTTON_LSB, KeyBind::getVideoSpeed(),
         [this](...) { return this->toggleSpeed(); }, true);
+
+    // Paint the clock and a 0:00 / 0:00 straight away rather than leaving three
+    // blank lines until mpv reports its first duration.
+    this->updateTime(0, 0);
 }
 
 VideoView::~VideoView() {
@@ -365,7 +357,63 @@ VideoView::~VideoView() {
     MPVCore::instance().stop();
 }
 
-void VideoView::setTitie(const std::string& title) { this->titleLabel->setText(title); }
+/// Callers hand over ONE joined string ("Show · S1E2 — Name"); the reference
+/// splits that across three lines. PlayerView derives the split from the item
+/// (setEpisodeLine/setSourceLine) and this is what is left for the top line, so
+/// a caller-supplied string is kept only as the fallback for a caller that has
+/// no item to derive from.
+void VideoView::setTitie(const std::string& title) {
+    if (this->titleLocked) return;
+    this->titleLabel->setText(title);
+}
+
+void VideoView::setMainTitle(const std::string& text) {
+    this->titleLocked = true;
+    this->titleLabel->setText(text);
+}
+
+void VideoView::setEpisodeLine(const std::string& text) {
+    this->episodeLabel->setText(text);
+    this->episodeLabel->setVisibility(text.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+}
+
+void VideoView::setSourceLine(const std::string& text) {
+    this->sourceName = text;
+    this->applySourceLine();
+}
+
+/// The reference prints "via <stream>" only while PAUSED — it is there to tell
+/// you what you are watching when you have stopped to look, not to sit over the
+/// picture the whole time.
+void VideoView::applySourceLine() {
+    bool show = !this->sourceName.empty() && MPVCore::instance().isPaused();
+    this->sourceLabel->setVisibility(show ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    if (show) this->sourceLabel->setText(fmt::format(fmt::runtime("main/player/via"_i18n), this->sourceName));
+}
+
+/// "0:11 / 24:06" on the right of the control row, and the wall clock with the
+/// finish time top-right — both the reference's.
+void VideoView::updateTime(double positionSec, double durationSec) {
+    this->timeLabel->setText(fmt::format("{} / {}", misc::sec2Time(positionSec), misc::sec2Time(durationSec)));
+
+    std::time_t now = std::time(nullptr);
+    std::tm lt {};
+    localtime_r(&now, &lt);
+    char buf[16];
+    std::strftime(buf, sizeof(buf), "%H:%M", &lt);
+    this->clockLabel->setText(buf);
+
+    double remaining = durationSec - positionSec;
+    if (durationSec <= 0 || remaining < 0) {
+        this->endsLabel->setText("");
+        return;
+    }
+    std::time_t end = now + (std::time_t)remaining;
+    std::tm et {};
+    localtime_r(&end, &et);
+    std::strftime(buf, sizeof(buf), "%H:%M", &et);
+    this->endsLabel->setText(fmt::format(fmt::runtime("main/player/ends_at"_i18n), buf));
+}
 
 void VideoView::setList(const std::vector<std::string>& values, int index) {
     // 选集
@@ -380,21 +428,14 @@ void VideoView::setList(const std::vector<std::string>& values, int index) {
         brls::Application::pushActivity(new brls::Activity(dropdown));
         return true;
     });
-    this->btnEpisode->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnEpisode));
     this->btnEpisode->setVisibility(brls::Visibility::VISIBLE);
-    this->showEpisodeLabel->setVisibility(brls::Visibility::VISIBLE);
 
+    // "Skip to next episode" appears only when there IS a next one, exactly as
+    // the reference gates it on nextEpisode?.hasAired.
     auto event = [this, values](int index) {
         this->playIndex = index;
-
-        auto v1 = index > 0 ? brls::Visibility::VISIBLE : brls::Visibility::GONE;
-        auto v2 = index + 1 < (int)values.size() ? brls::Visibility::VISIBLE : brls::Visibility::GONE;
-
-        this->btnBackward->setVisibility(v1);
-        for (brls::View* view : this->btnBackward->getChildren()) view->setVisibility(v1);
-
-        this->btnForward->setVisibility(v2);
-        for (brls::View* view : this->btnForward->getChildren()) view->setVisibility(v2);
+        this->btnNext->setVisibility(
+            index + 1 < (int)values.size() ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     };
 
     this->playIndexEvent.subscribe(event);
@@ -424,7 +465,7 @@ void VideoView::requestSeeking(int seek, int delay) {
     }
     infoLabel->setText(fmt::format("{:+d} s", seek));
     osdSlider->setProgress(progress);
-    leftStatusLabel->setText(misc::sec2Time(mpv.duration * progress));
+    this->updateTime(mpv.duration * progress, mpv.duration);
 
     // 延迟触发跳转进度
     brls::cancelDelay(this->seekingIter);
@@ -572,11 +613,6 @@ void VideoView::onChildFocusGained(View* directChild, View* focusedView) {
         if (focusedView->getParent()->getVisibility() == brls::Visibility::GONE) {
             brls::Application::giveFocus(this);
         }
-        // 设定自定义导航
-        if (focusedView == this->osdSettingIcon) {
-            this->osdSettingIcon->setCustomNavigationRoute(brls::FocusDirection::DOWN,
-                lastFocusedView == this->btnToggle ? "video/osd/toggle" : "video/osd/lock/box");
-        }
         lastFocusedView = focusedView;
         return;
     }
@@ -605,14 +641,16 @@ void VideoView::registerMpvEvent() {
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(true);
             }
-            this->toggleIcon->setImageFromSVGRes("icon/ico-pause.svg");
+            this->btnToggle->setIconPath(player_icon::PAUSE);
+            this->applySourceLine();
             break;
         case MpvEventEnum::MPV_PAUSE:
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(false);
             }
             hideLoading(false);
-            this->toggleIcon->setImageFromSVGRes("icon/ico-play.svg");
+            this->btnToggle->setIconPath(player_icon::PLAY);
+            this->applySourceLine();
             break;
         case MpvEventEnum::START_FILE:
             if (MPVCore::OSD_ON_TOGGLE) {
@@ -627,20 +665,20 @@ void VideoView::registerMpvEvent() {
             break;
         case MpvEventEnum::UPDATE_DURATION:
             if (this->seekingRange == 0) {
-                this->rightStatusLabel->setText(misc::sec2Time(mpv.duration));
+                this->updateTime(mpv.video_progress, mpv.duration);
                 this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
             }
             break;
         case MpvEventEnum::UPDATE_PROGRESS:
             if (this->seekingRange == 0) {
-                this->leftStatusLabel->setText(misc::sec2Time(mpv.video_progress));
+                this->updateTime(mpv.video_progress, mpv.duration);
                 this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
             }
             break;
         case MpvEventEnum::END_OF_FILE:
             // 播放结束
             disableDimming(false);
-            this->toggleIcon->setImageFromSVGRes("icon/ico-play.svg");
+            this->btnToggle->setIconPath(player_icon::PLAY);
             this->playIndexEvent.fire(++this->playIndex);
             break;
         case MpvEventEnum::CACHE_SPEED_CHANGE:
@@ -652,10 +690,9 @@ void VideoView::registerMpvEvent() {
             }
             break;
         case MpvEventEnum::VIDEO_MUTE:
-            this->volumeIcon->setImageFromSVGRes("icon/ico-volume-off.svg");
-            break;
         case MpvEventEnum::VIDEO_UNMUTE:
-            this->volumeIcon->setImageFromSVGRes("icon/ico-volume.svg");
+            // no volume control on the reference's row; the mute state shows in
+            // the same toast every other volume change already uses
             break;
         case MpvEventEnum::MPV_FILE_ERROR: {
             // Let an owner (PlayerView) try to recover first (e.g. fall back to
@@ -737,12 +774,13 @@ void VideoView::showHint(const std::string& value) {
 }
 
 void VideoView::setTvMode(bool state) {
-    btnToggle->setCustomNavigationRoute(brls::FocusDirection::RIGHT, state ? osdSlider : iconBox);
-    volumeIcon->setCustomNavigationRoute(brls::FocusDirection::UP, state ? osdSlider : osdLockBox);
-    audioIcon->setCustomNavigationRoute(brls::FocusDirection::UP, state ? osdSlider : osdLockBox);
-    subtitleIcon->setCustomNavigationRoute(brls::FocusDirection::UP, state ? osdSlider : osdLockBox);
-    qualityIcon->setCustomNavigationRoute(brls::FocusDirection::UP, state ? osdSlider : osdLockBox);
-    osdLockBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, state ? osdSlider : iconBox);
+    // One row now, with the bar directly above it: every button goes UP to the
+    // slider and the slider comes back DOWN to play/pause, which is how the
+    // reference wires its controls (upFocusRequester = progressBar on each).
+    for (PlayerButton* b : {btnToggle.getView(), btnNext.getView(), btnVideoSubtitle.getView(),
+             btnVideoAudio.getView(), btnVideoQuality.getView(), btnEpisode.getView(), btnCast.getView()})
+        b->setCustomNavigationRoute(brls::FocusDirection::UP, state ? (brls::View*)osdSlider : (brls::View*)osdLockBox);
+    osdLockBox->setCustomNavigationRoute(brls::FocusDirection::DOWN, state ? (brls::View*)osdSlider : (brls::View*)btnToggle);
     osdSlider->setFocusable(state);
 }
 
@@ -859,25 +897,25 @@ void VideoView::playNext(int offset) { this->playIndexEvent.fire(this->playIndex
 
 void VideoView::hideVideoProgressSlider() { this->osdSlider->setVisibility(brls::Visibility::GONE); }
 
-void VideoView::hideVideoQuality() {
-    this->btnVideoQuality->setVisibility(brls::Visibility::GONE);
-    for (brls::View* view : this->btnVideoQuality->getChildren()) view->setVisibility(brls::Visibility::GONE);
-}
+// Each of the three pickers is GONE until someone registers it, and comes back
+// when they do — the reference gates the same three on whether there is
+// anything to pick (hasSubtitleControl / hasAudioControl / the sources panel).
+void VideoView::hideVideoQuality() { this->btnVideoQuality->setVisibility(brls::Visibility::GONE); }
 
 void VideoView::registerVideoQuality(brls::ActionListener action) {
     this->btnVideoQuality->registerClickAction(action);
-    this->btnVideoQuality->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnVideoQuality));
+    this->btnVideoQuality->setVisibility(brls::Visibility::VISIBLE);
     this->registerActions("main/player/quality"_i18n, brls::BUTTON_RSB, KeyBind::getVideoQuality(), action, true);
 }
 
 void VideoView::registerVideoSubtitle(brls::ActionListener action) {
     this->btnVideoSubtitle->registerClickAction(action);
-    this->btnVideoSubtitle->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnVideoSubtitle));
+    this->btnVideoSubtitle->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::registerVideoAudio(brls::ActionListener action) {
     this->btnVideoAudio->registerClickAction(action);
-    this->btnVideoAudio->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnVideoAudio));
+    this->btnVideoAudio->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::registerError(brls::ActionListener action) { this->errorAction = action; }

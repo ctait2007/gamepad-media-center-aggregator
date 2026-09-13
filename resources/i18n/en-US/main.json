@@ -55,7 +55,9 @@
         "error": "Playback error",
         "direct_fallback": "Transcode failed, playing directly",
         "episode": "Episode",
-        "speed_up": "Current speed {}"
+        "speed_up": "Current speed {}",
+        "via": "via {}",
+        "ends_at": "Ends at {}"
     },
     "media": {
         "choose_source": "Choose a source",

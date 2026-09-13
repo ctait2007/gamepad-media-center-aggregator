@@ -42,6 +42,12 @@ VideoProgressSlider::VideoProgressSlider() {
 
     this->registerFloatXMLAttribute("pointer", [this](float value) { pointer->setDimensions(value, value); });
     this->registerFloatXMLAttribute("icon", [this](float value) { pointerIcon->setDimensions(value, value); });
+    // NuvioTV's bar has no handle at all — focusing it thickens the track
+    // instead. The pointer box stays (it is what takes focus and what the pan
+    // recogniser is attached to); only its disc goes.
+    this->registerBoolXMLAttribute("knob", [this](bool value) {
+        pointerIcon->setVisibility(value ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    });
     this->registerFloatXMLAttribute("line", [this](float value) {
         line->setHeight(value);
         lineEmpty->setHeight(value);
@@ -54,7 +60,9 @@ VideoProgressSlider::VideoProgressSlider() {
     Theme theme = Application::getTheme();
 
     line->setColor(theme["brls/slider/line_filled"]);
-    lineEmpty->setColor(theme["brls/slider/line_empty"]);
+    // NuvioTV's track is white at 0.3, not the mid-grey borealis ships: on a
+    // near-black player it has to read as "unplayed film", not as a control.
+    lineEmpty->setColor(nvgRGBA(255, 255, 255, 77));
 
     pointer->addGestureRecognizer(new PanGestureRecognizer(
         [this](PanGestureStatus status, Sound* soundToPlay) {

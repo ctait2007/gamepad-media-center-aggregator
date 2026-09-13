@@ -7,6 +7,8 @@
 #include <borealis.hpp>
 #include <utils/event.hpp>
 
+#include "view/player_button.hpp"
+
 class VideoProgressSlider;
 class SVGImage;
 class VideoProfile;
@@ -35,13 +37,20 @@ public:
 
     void invalidate() override;
 
-    View* getDefaultFocus() override { return this->isOsdShown ? this->btnToggle : this; }
+    View* getDefaultFocus() override { return this->isOsdShown ? (View*)this->btnToggle.getView() : (View*)this; }
 
     void onChildFocusGained(View* directChild, View* focusedView) override;
 
     View* getNextFocus(brls::FocusDirection direction, View* currentView) override { return this; }
 
     void setTitie(const std::string& title);
+    /// The top line, derived from the item — takes over from setTitie's joined
+    /// string for good once called.
+    void setMainTitle(const std::string& text);
+    /// "S2 E1 • The Scrub" under the title; empty hides the line.
+    void setEpisodeLine(const std::string& text);
+    /// The stream's name, shown as "via <name>" while paused.
+    void setSourceLine(const std::string& text);
 
     void setList(const std::vector<std::string>& values, int index = -1);
 
@@ -74,27 +83,25 @@ public:
 
 private:
     /// OSD
+    // The control row is NuvioTV's: play/pause, next episode, subtitles, audio,
+    // sources, episodes, stream info. Close, seek, volume and player settings
+    // are not on it — the reference has no such chrome, and on a pad they are
+    // O, the d-pad, RT+d-pad and X respectively.
     BRLS_BIND(brls::Label, titleLabel, "video/osd/title");
-    BRLS_BIND(brls::Box, btnForward, "video/osd/forward");
-    BRLS_BIND(brls::Box, btnBackward, "video/osd/backward");
-    BRLS_BIND(brls::Box, btnSetting, "video/osd/setting");
-    BRLS_BIND(brls::Box, btnCast, "video/osd/cast");
-    BRLS_BIND(brls::Box, btnToggle, "video/osd/toggle");
-    BRLS_BIND(brls::Box, btnVideoQuality, "video/quality/box");
-    BRLS_BIND(brls::Box, btnVideoSubtitle, "video/subtitle/box");
-    BRLS_BIND(brls::Box, btnVideoAudio, "video/audio/box");
-    BRLS_BIND(brls::Box, btnEpisode, "show/episode/box");
-    BRLS_BIND(brls::Box, btnVolume, "video/osd/volume");
-    BRLS_BIND(brls::Box, btnClose, "video/close/box");
+    BRLS_BIND(brls::Label, episodeLabel, "video/osd/episode");
+    BRLS_BIND(brls::Label, sourceLabel, "video/osd/source");
+    BRLS_BIND(brls::Label, timeLabel, "video/osd/time");
+    BRLS_BIND(brls::Label, clockLabel, "video/osd/clock");
+    BRLS_BIND(brls::Label, endsLabel, "video/osd/ends");
+    BRLS_BIND(PlayerButton, btnToggle, "video/osd/toggle");
+    BRLS_BIND(PlayerButton, btnNext, "video/osd/next");
+    BRLS_BIND(PlayerButton, btnCast, "video/osd/cast");
+    BRLS_BIND(PlayerButton, btnVideoQuality, "video/quality/box");
+    BRLS_BIND(PlayerButton, btnVideoSubtitle, "video/subtitle/box");
+    BRLS_BIND(PlayerButton, btnVideoAudio, "video/audio/box");
+    BRLS_BIND(PlayerButton, btnEpisode, "show/episode/box");
     BRLS_BIND(brls::Box, osdLockBox, "video/osd/lock/box");
-    BRLS_BIND(brls::Box, iconBox, "video/osd/icon/box");
-    BRLS_BIND(SVGImage, qualityIcon, "video/quality/icon");
-    BRLS_BIND(SVGImage, subtitleIcon, "video/subtitle/icon");
-    BRLS_BIND(SVGImage, audioIcon, "video/audio/icon");
     BRLS_BIND(SVGImage, osdLockIcon, "video/osd/lock/icon");
-    BRLS_BIND(SVGImage, toggleIcon, "video/osd/toggle/icon");
-    BRLS_BIND(SVGImage, volumeIcon, "video/osd/volume/icon");
-    BRLS_BIND(SVGImage, osdSettingIcon, "video/osd/setting/icon");
     BRLS_BIND(brls::Box, osdTopBox, "video/osd/top/box");
     BRLS_BIND(brls::Box, osdBottomBox, "video/osd/bottom/box");
     // 用于显示缓冲组件
@@ -107,9 +114,6 @@ private:
     BRLS_BIND(SVGImage, infoIcon, "video/osd/info/icon");
     // 用于显示和控制视频时长
     BRLS_BIND(VideoProgressSlider, osdSlider, "video/osd/bottom/progress");
-    BRLS_BIND(brls::Label, leftStatusLabel, "video/left/status");
-    BRLS_BIND(brls::Label, rightStatusLabel, "video/right/status");
-    BRLS_BIND(brls::Label, showEpisodeLabel, "show/episode/label");
     BRLS_BIND(brls::Label, speedHintLabel, "video/speed/hint/label");
     BRLS_BIND(brls::Box, speedHintBox, "video/speed/hint/box");
     BRLS_BIND(brls::Label, hintLabel, "video/osd/hint/label");
@@ -128,6 +132,9 @@ private:
     bool toggleSpeed();
     bool toggleVolume(brls::View* view);
     void showHint(const std::string& value);
+    /// elapsed/total on the row, wall clock + finish time top-right
+    void updateTime(double positionSec, double durationSec);
+    void applySourceLine();
     void setTvMode(bool state);
 
     /// @brief 延迟 200ms 触发进度跳转到 seeking_range
@@ -138,6 +145,8 @@ private:
     /// @brief notify videoview closed
     static void disableDimming(bool disable);
 
+    std::string sourceName;
+    bool titleLocked = false;
     int playIndex = -1;
     brls::Event<int> playIndexEvent;
     brls::VoidEvent settingEvent;

@@ -210,6 +210,7 @@ int main(int argc, char* argv[]) {
     brls::Application::registerXMLView("GalleryView", GalleryView::create);
     brls::Application::registerXMLView("SearchList", SearchList::create);
     brls::Application::registerXMLView("VideoProgressSlider", VideoProgressSlider::create);
+    brls::Application::registerXMLView("PlayerButton", PlayerButton::create);
 
     brls::Application::registerXMLView("HomeTab", HomeTab::create);
     brls::Application::registerXMLView("SearchTab", SearchTab::create);

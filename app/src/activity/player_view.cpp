@@ -212,6 +212,33 @@ bool PlayerView::playIndex(int index) {
     return true;
 }
 
+/// NuvioTV splits the player's identity across three lines rather than one
+/// string: the SHOW (or the movie and its year) in headlineMedium, the episode
+/// as "S2 E1 • The Scrub" under it, and the stream's own name as "via …" under
+/// that, the last only while paused. Derived from the item here instead of at
+/// each call site, which used to hand over one pre-joined title.
+void PlayerView::applyIdentity() {
+    bool episode = this->item.type == plex::mediaTypeEpisode;
+    if (episode && !this->item.grandparentTitle.empty()) {
+        this->view->setMainTitle(this->item.grandparentTitle);
+        std::string line = fmt::format("S{} E{}", this->item.parentIndex, this->item.index);
+        if (!this->item.title.empty()) line += "  •  " + this->item.title;
+        this->view->setEpisodeLine(line);
+    } else if (episode) {
+        this->view->setMainTitle(this->item.title);
+        this->view->setEpisodeLine(fmt::format("S{} E{}", this->item.parentIndex, this->item.index));
+    } else {
+        this->view->setMainTitle(this->item.year ? fmt::format("{} ({})", this->item.title, this->item.year)
+                                                : this->item.title);
+        this->view->setEpisodeLine("");
+    }
+    // the addon's own one-liner for the stream, flattened
+    std::string src = this->stream.label.empty() ? this->stream.detail : this->stream.label;
+    for (char& c : src)
+        if (c == '\n') c = ' ';
+    this->view->setSourceLine(src);
+}
+
 void PlayerView::playMedia(const int64_t seekMs) {
     // Capture/automation guard: in GMCA_NAV_PIPE mode a stray "Play" from the
     // screenshot harness must never actually start playback — doing so pushes a
@@ -240,6 +267,7 @@ void PlayerView::playMedia(const int64_t seekMs) {
         if (this->preferredVersion >= 0 && this->preferredVersion < (int)this->item.media.size() &&
             accessible(this->item.media[this->preferredVersion])) {
             this->stream = this->item.media[this->preferredVersion];
+            this->applyIdentity();
             this->setChapters(this->item.chapters, this->item.duration);
             this->startPlayback(seekMs);
             return;
@@ -275,6 +303,7 @@ void PlayerView::playMedia(const int64_t seekMs) {
                 return;
             }
             this->stream = *chosen;
+            this->applyIdentity();
             this->setChapters(this->item.chapters, this->item.duration);
             this->startPlayback(seekMs);
         },
