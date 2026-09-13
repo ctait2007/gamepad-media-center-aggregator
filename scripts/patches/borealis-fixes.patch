@@ -1179,7 +1179,7 @@ index 9b31fcf..00bb8f3 100644
      state->buttons[BUTTON_NAV_UP] |= state->buttons[BUTTON_UP];
      state->buttons[BUTTON_NAV_RIGHT] |= state->buttons[BUTTON_RIGHT];
 diff --git a/library/lib/platforms/ps4/ps4_ime.cpp b/library/lib/platforms/ps4/ps4_ime.cpp
-index 928fbdf..00ee24a 100644
+index 928fbdf..d884b67 100644
 --- a/library/lib/platforms/ps4/ps4_ime.cpp
 +++ b/library/lib/platforms/ps4/ps4_ime.cpp
 @@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
@@ -1246,7 +1246,7 @@ index 928fbdf..00ee24a 100644
      imeDialogSetting.type                = type;
      imeDialogSetting.enterLabel          = OrbisButtonLabel::ORBIS_BUTTON_LABEL_DEFAULT;
      imeDialogSetting.inputMethod         = OrbisInput::ORBIS__DEFAULT;
-@@ -128,52 +160,154 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
+@@ -128,52 +160,157 @@ void InitializeImeDialog(const std::string& title, const std::string& init, cons
      imeDialogSetting.verticalAlignment   = OrbisVAlignment::ORBIS_V_VALIGN_BOTTOM;
  }
  
@@ -1398,10 +1398,13 @@ index 928fbdf..00ee24a 100644
 +            // on a debounce off the field's value, and the field's own clear
 +            // button is still how you throw it away.
 +            //
-+            // On this console it is also the only way text gets out at all.
-+            // The firmware is binding CIRCLE to select and CROSS to cancel in
-+            // this dialog, against a system that reports cross (logged above),
-+            // so every session ends CANCELLED however much was typed.
++            // This is a PREFERENCE, not a workaround. Confirming the dialog has
++            // always worked (its own Enter key does it); what is wrong on this
++            // console is only that the FACE BUTTONS are inverted — the firmware
++            // binds circle to select and cross to cancel, against a system that
++            // reports cross (logged above). Cross is therefore also the button
++            // a user reaches for to leave the keyboard, which is the case this
++            // covers.
 +            Logger::info("ime: cancelled with {} character(s) typed — keeping them", text.size());
 +            f(text);
          }
@@ -1415,7 +1418,7 @@ index 928fbdf..00ee24a 100644
      return 0;
  }
  
-@@ -181,6 +315,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
+@@ -181,6 +318,11 @@ bool Ps4ImeManager::openForText(std::function<void(std::string)> f, std::string
      std::string subText, int maxStringLength, std::string initialText,
      int kbdDisableBitmask)
  {
