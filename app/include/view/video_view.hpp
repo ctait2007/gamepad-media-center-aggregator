@@ -151,7 +151,6 @@ private:
     bool toggleProfile();
     /// OSD
     void toggleOSD();
-    bool toggleSpeed();
     bool toggleVolume(brls::View* view);
     void showHint(const std::string& value);
     /// elapsed/total on the row, wall clock + finish time top-right

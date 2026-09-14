@@ -924,7 +924,9 @@ brls::Box* section(brls::Box* parent, const std::string& title) {
 void showStreamInfo(const plex::Media* src, const std::string& addonName) {
     auto& mpv = MPVCore::instance();
 
-    auto* overlay = new PlayerOverlay(kInfoPadX, kInfoPadTop, kInfoPadBottom, /*anchorBottom*/ true);
+    // Top-anchored like the other two. It reads as a page of fields, and a
+    // page that grows downward from its heading is the one people can scan.
+    auto* overlay = new PlayerOverlay(kInfoPadX, kInfoPadTop, kInfoPadBottom);
     auto* col = overlay->content();
     col->addView(overlayTitle("main/player/info"_i18n));
 

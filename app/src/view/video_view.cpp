@@ -15,7 +15,10 @@ using namespace brls::literals;
 
 static int getSeekRange(int current) {
     current = abs(current);
-    if (current < 60) return 5;
+    // 10 s for the first jumps, not 5: a single press should move far enough
+    // to be worth pressing. The tiers above it are unchanged — holding the
+    // button still accelerates through a long file.
+    if (current < 60) return 10;
     if (current < 300) return 10;
     if (current < 600) return 20;
     if (current < 1200) return 60;
@@ -104,15 +107,10 @@ VideoView::VideoView() {
         },
         true);
 
-    // Player settings are on X alone now: the reference's control row has no
-    // settings button, and everything it does have is on the row itself.
-    this->registerActions(
-        "main/player/setting"_i18n, brls::BUTTON_X, KeyBind::getSetting(),
-        [this](brls::View* view) {
-            this->settingEvent.fire();
-            return true;
-        },
-        true);
+    // NO settings shortcut. Square used to open the playback side panel, and
+    // everything worth reaching from the player is already on the control row
+    // (settingEvent is still here for any caller that wants to open it another
+    // way — nothing on the player fires it).
 
     this->registerActions(
         "volumeUp", brls::BUTTON_NAV_UP, KeyBind::getVolumeUp(),
@@ -155,6 +153,34 @@ VideoView::VideoView() {
                 return true;
             }
             return false;
+        },
+        true, true);
+
+    // Left/right with the OSD DOWN seek, which is what every other player on
+    // this hardware does and what these two did here: nothing. Same steps as
+    // LB/RB and the progress bar, so holding accumulates through getSeekRange's
+    // tiers. Registered on the button only, not the key — the keyboard bindings
+    // for seeking are already on LB/RB above, and the same key twice on one
+    // view is one registration too many. With the OSD up and focus on the
+    // control row these must stay navigation, so that case falls through.
+    this->registerAction(
+        "\uE08F", brls::BUTTON_NAV_LEFT,
+        [this](brls::View* view) -> bool {
+            if (this->isChildFocused()) return false;
+            this->showOSD(true);
+            this->seekingRange -= getSeekRange(this->seekingRange);
+            this->requestSeeking(seekingRange);
+            return true;
+        },
+        true, true);
+    this->registerAction(
+        "\uE08E", brls::BUTTON_NAV_RIGHT,
+        [this](brls::View* view) -> bool {
+            if (this->isChildFocused()) return false;
+            this->showOSD(true);
+            this->seekingRange += getSeekRange(this->seekingRange);
+            this->requestSeeking(seekingRange);
+            return true;
         },
         true, true);
 
@@ -291,11 +317,9 @@ VideoView::VideoView() {
     // the only thing that knows which addon served the stream.
     this->btnCast->setIconPath(player_icon::INFO);
 
-    /// speed: LSB shortcut + touch long-press only (no longer on the OSD,
-    /// not relevant there per user feedback)
-    this->registerActions(
-        "main/player/speed"_i18n, brls::BUTTON_LSB, KeyBind::getVideoSpeed(),
-        [this](...) { return this->toggleSpeed(); }, true);
+    // NO stick-click shortcuts. L3 opened a playback-speed dropdown and R3 a
+    // bitrate one (see registerVideoQuality); both were a surprise under the
+    // thumb mid-film and neither is worth a dedicated button.
 
     // Paint the clock and a 0:00 / 0:00 straight away rather than leaving three
     // blank lines until mpv reports its first duration.
@@ -724,15 +748,6 @@ void VideoView::setTvMode(bool state) {
     osdSlider->setFocusable(state);
 }
 
-bool VideoView::toggleSpeed() {
-    brls::Dropdown* dropdown = new brls::Dropdown(
-        "main/player/speed"_i18n, {"2.0x", "1.75x", "1.5x", "1.25x", "1.0x", "0.75x", "0.5x"},
-        [](int selected) { MPVCore::instance().setSpeed((200 - selected * 25) / 100.0f); },
-        int(200 - MPVCore::instance().video_speed * 100) / 25);
-    brls::Application::pushActivity(new brls::Activity(dropdown));
-    return true;
-}
-
 bool VideoView::toggleVolume(brls::View* view) {
     // 一直显示 OSD
     this->showOSD(false);
@@ -838,7 +853,6 @@ void VideoView::registerVideoQuality(brls::ActionListener action) {
     action = dismissing(this, action);
     this->btnVideoQuality->registerClickAction(action);
     this->btnVideoQuality->setVisibility(brls::Visibility::VISIBLE);
-    this->registerActions("main/player/quality"_i18n, brls::BUTTON_RSB, KeyBind::getVideoQuality(), action, true);
 }
 
 void VideoView::registerVideoSubtitle(brls::ActionListener action) {

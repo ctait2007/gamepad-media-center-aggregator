@@ -525,13 +525,33 @@ PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom, bool 
     this->column->setHeight(brls::Application::contentHeight - padTop - padBottom);
     this->addView(this->column);
 
-    this->registerAction("hints/back"_i18n, brls::BUTTON_B, [](brls::View*) {
+    auto dismiss = [](brls::View*) {
         brls::Application::popActivity();
         return true;
-    });
+    };
+    this->registerAction("hints/back"_i18n, brls::BUTTON_B, dismiss);
+    // Cross closes it too. On a panel with cards this never fires — the card
+    // under the cursor takes A first — but on one that is all text (stream
+    // info) it is the only thing between a press and the PLAYER underneath.
+    this->registerAction("hints/ok"_i18n, brls::BUTTON_A, dismiss, true);
 }
 
-void PlayerOverlay::present() { brls::Application::pushActivity(new brls::Activity(this)); }
+void PlayerOverlay::present() {
+    // An overlay with nothing focusable inside it never takes focus, so focus
+    // stays on the player behind and every press goes THERE: on the stream-info
+    // panel, which is labels and nothing else, cross reached the player's
+    // play/pause and brought the OSD back up over the top of it. Make the
+    // overlay itself the focus target in that case so it captures input like
+    // any other activity. Panels with cards are untouched — this would
+    // otherwise steal the focus that belongs to the first card, since a
+    // focusable Box returns ITSELF from getDefaultFocus before its children.
+    if (!this->focusTargetView && !brls::Box::getDefaultFocus()) {
+        this->setFocusable(true);
+        this->setHideHighlightBorder(true);
+        this->setHideHighlightBackground(true);
+    }
+    brls::Application::pushActivity(new brls::Activity(this));
+}
 
 brls::View* PlayerOverlay::getDefaultFocus() {
     if (this->focusTargetView) return this->focusTargetView;
