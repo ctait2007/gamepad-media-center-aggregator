@@ -6,15 +6,17 @@
 #include "view/continue_card.hpp"
 #include "api/plex.hpp"
 
+// Row metrics, all the reference's: 24dp between rows, the title's own 14dp
+// below it, and 12dp between the cards.
 const std::string recylingVideoContentXML = R"xml(
     <brls:Box
         width="auto"
         height="auto"
         axis="column"
-        marginBottom="36">
+        marginBottom="48">
 
         <brls:Header
-            marginBottom="6"
+            marginBottom="28"
             id="recycler/title" />
 
         <!-- NuvioTV's CatalogRowSection stacks a dim "from <addon>" line under
@@ -23,8 +25,7 @@ const std::string recylingVideoContentXML = R"xml(
         <brls:Label
             id="recycler/subtitle"
             fontSize="24"
-            marginTop="-4"
-            marginBottom="12"
+            marginBottom="28"
             textColor="@theme/font/tertiary"
             visibility="gone" />
 
@@ -57,6 +58,8 @@ RecylingVideo::RecylingVideo() {
     this->registerAutoXMLAttribute(
         "nextPage", [this]() { this->recycler->onNextPage([this]() { this->doRequest(); }); });
 
+    this->recycler->estimatedRowSpace = brls::getStyle()["app/card/item_space"];
+
     this->recycler->registerCell("Cell", VideoCardCell::create);
     this->recycler->registerCell("More", MoreCardCell::create);
     this->recycler->registerCell("Continue", ContinueCardCell::create);
@@ -67,8 +70,13 @@ RecylingVideo::~RecylingVideo() {}
 void RecylingVideo::setTitle(const std::string& text) { this->title->setTitle(text); }
 
 void RecylingVideo::setSubtitle(const std::string& text) {
+    bool shown = !text.empty();
     this->subtitle->setText(text);
-    this->subtitle->setVisibility(text.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    this->subtitle->setVisibility(shown ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // The 28 below the title is the gap the reference leaves between the row
+    // header and the cards; with the addon line in between, the title keeps
+    // only the 4dp the reference stacks the two on, and the line carries it.
+    this->title->setMarginBottom(shown ? 8 : 28);
 }
 
 void RecylingVideo::setSidePadding(float padding) {

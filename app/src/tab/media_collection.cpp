@@ -71,7 +71,7 @@ public:
         this->spanCount = brls::getStyle().getMetric("app/grid/6");
         // 2:3 posters + label area, recomputed at layout (recycling_grid.cpp)
         this->itemImageRatio = 1.5f;
-        this->itemExtraHeight = 55;
+        this->itemExtraHeight = brls::getStyle()["app/card/labels"];
         // insets inside the scroll (collection.xml no longer has root
         // padding); top 70: the floating tab bar (60) passes in front
         float side = brls::getStyle()["main/content_padding_sides"];
@@ -99,7 +99,7 @@ public:
         this->registerCell("Cell", VideoCardCell::create);
         this->spanCount = brls::getStyle().getMetric("app/grid/6");
         this->itemImageRatio = 1.5f;
-        this->itemExtraHeight = 55;
+        this->itemExtraHeight = brls::getStyle()["app/card/labels"];
         // top 70: same contract as GenresTab (floating bar above)
         float side = brls::getStyle()["main/content_padding_sides"];
         this->setPadding(70, side, brls::getStyle()["main/content_padding_top_bottom"], side);
@@ -434,7 +434,7 @@ public:
         this->registerCell("Cell", VideoCardCell::create);
         this->spanCount = brls::getStyle().getMetric("app/grid/6");
         this->itemImageRatio = 1.5f;
-        this->itemExtraHeight = 55;
+        this->itemExtraHeight = brls::getStyle()["app/card/labels"];
         float side = brls::getStyle()["main/content_padding_sides"];
         this->setPadding(70, side, brls::getStyle()["main/content_padding_top_bottom"], side);
         this->onNextPage([this] { this->doRequest(); });

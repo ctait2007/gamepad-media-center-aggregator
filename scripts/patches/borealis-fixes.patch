@@ -1982,7 +1982,7 @@ index da1210f..6533b0a 100644
  
      return this;
 diff --git a/library/lib/views/header.cpp b/library/lib/views/header.cpp
-index 9ede1ca..f018d37 100644
+index 9ede1ca..74c9123 100644
 --- a/library/lib/views/header.cpp
 +++ b/library/lib/views/header.cpp
 @@ -40,7 +40,8 @@ const std::string headerXML = R"xml(
@@ -1991,7 +1991,7 @@ index 9ede1ca..f018d37 100644
              height="auto"
 -            fontSize="@style/brls/header/font_size" />
 +            fontSize="@style/brls/header/font_size"
-+            fontWeight="medium" />
++            fontWeight="semibold" />
  
          <brls:Padding />
  
@@ -2122,7 +2122,7 @@ index 8e6acb3..76c9249 100644
          layouted = true;
          reloadData();
 diff --git a/library/lib/views/scrolling_frame.cpp b/library/lib/views/scrolling_frame.cpp
-index 61978bd..6104ec8 100644
+index 61978bd..96b5246 100644
 --- a/library/lib/views/scrolling_frame.cpp
 +++ b/library/lib/views/scrolling_frame.cpp
 @@ -18,6 +18,7 @@
@@ -2315,7 +2315,18 @@ index 61978bd..6104ec8 100644
          return currentFocus;
  
      return this;
-@@ -542,11 +607,24 @@ bool ScrollingFrame::updateScrolling(bool animated)
+@@ -536,17 +601,44 @@ bool ScrollingFrame::updateScrolling(bool animated)
+     float itemHeight  = focusedView ? focusedView->getHeight() : 0.0f;
+     View* parent      = focusedView ? focusedView->getParent() : nullptr;
+ 
++    // Where the block that owns the focused view (a media row and its title,
++    // a section and its header) starts inside the scrolling content.
++    float blockY = localY;
++
+     while (parent && dynamic_cast<ScrollingFrame*>(parent->getParent()) == nullptr)
+     {
++        blockY = parent->getLocalY();
+         localY += parent->getLocalY();
          parent = parent->getParent();
      }
  
@@ -2335,6 +2346,15 @@ index 61978bd..6104ec8 100644
 +    {
 +        int currentSelectionMiddleOnScreen = localY + itemHeight / 2;
 +        newScroll                          = currentSelectionMiddleOnScreen - viewportHeight / 2;
++
++        // Centering the focused view alone scrolls whatever sits above it
++        // inside its own block off the top -- a row's title, a section's
++        // header -- once that block fills most of the viewport. Stop at the
++        // block's own top instead, which is where the reference anchors it.
++        // A block that comfortably fits is centered as before: its top is
++        // then below the centered offset and this never binds.
++        if (newScroll > blockY)
++            newScroll = blockY;
 +    }
  
      float contentHeight = this->getContentHeight();
@@ -2343,7 +2363,7 @@ index 61978bd..6104ec8 100644
  
      if (newScroll < 0)
          newScroll = 0;
-@@ -570,6 +648,16 @@ Rect ScrollingFrame::getVisibleFrame()
+@@ -570,6 +662,16 @@ Rect ScrollingFrame::getVisibleFrame()
      return frame;
  }
  

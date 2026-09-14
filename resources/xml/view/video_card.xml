@@ -1,5 +1,5 @@
 <brls:Box
-    highlightCornerRadius="16"
+    highlightCornerRadius="@style/brls/highlight/corner_radius"
     axis="column"
     width="auto"
     height="auto">
@@ -9,8 +9,8 @@
         id="video/card/pic_box"
         axis="row"
         focusable="true"
-        highlightCornerRadius="16"
-        cornerRadius="12"
+        highlightCornerRadius="@style/brls/highlight/corner_radius"
+        cornerRadius="@style/app/card/corner_radius"
         backgroundColor="@theme/color/grey_1"
         grow="1">
 
@@ -33,7 +33,7 @@
             id="video/card/picture"
             grow="1"
             scalingType="fill"
-            cornerRadius="12" />
+            cornerRadius="@style/app/card/corner_radius" />
 
         <!-- focus "play" affordance for cards that start playback on select
              (continue-watching, episodes, clips): a light orange wash over the
@@ -48,7 +48,7 @@
             width="100%"
             height="100%"
             visibility="gone"
-            cornerRadius="12"
+            cornerRadius="@style/app/card/corner_radius"
             alignItems="center"
             justifyContent="center">
             <brls:Box
@@ -123,21 +123,23 @@
     <brls:Box
         id="video/card/labels"
         axis="column"
-        marginTop="10"
-        justifyContent="spaceEvenly"
-        alignItems="center">
+        height="@style/app/card/labels"
+        paddingTop="@style/app/card/label/top"
+        paddingLeft="8"
+        paddingRight="8"
+        alignItems="flexStart">
         <brls:Label
             wireframe="false"
             singleLine="true"
             id="video/card/label/title"
-            height="25"
-            fontSize="18" />
+            height="@style/app/card/label/title_height"
+            fontSize="@style/app/card/label/title_size" />
         <brls:Label
             wireframe="false"
             singleLine="true"
             id="video/card/label/ext"
-            fontSize="12"
-            height="20"
+            fontSize="@style/app/card/label/sub_size"
+            height="@style/app/card/label/sub_height"
             textColor="@theme/font/grey" />
     </brls:Box>
 

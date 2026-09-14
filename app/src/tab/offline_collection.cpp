@@ -10,7 +10,7 @@ OfflineCollection::OfflineCollection(const std::string& sectionKey) {
     // same 2:3 poster grid as the online library (media_collection.cpp)
     this->spanCount = brls::getStyle().getMetric("app/grid/6");
     this->itemImageRatio = 1.5f;
-    this->itemExtraHeight = 55;
+    this->itemExtraHeight = brls::getStyle()["app/card/labels"];
     float side = brls::getStyle()["main/content_padding_sides"];
     this->setPadding(70, side, brls::getStyle()["main/content_padding_top_bottom"], side);
 

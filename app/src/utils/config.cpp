@@ -1129,6 +1129,17 @@ void AppConfig::initThemes() {
     // checkLogin()/addUser() re-apply the connected backend's palette afterwards.
     this->applyTheme(std::nullopt);
 
+    // Card label block + row gap, as every panel below 1080p has always had
+    // them; the 1080p branch replaces them with the reference's own.
+    brls::getStyle().addMetric("app/card/label/top", 10);
+    brls::getStyle().addMetric("app/card/label/title_size", 18);
+    brls::getStyle().addMetric("app/card/label/title_height", 25);
+    brls::getStyle().addMetric("app/card/label/sub_size", 12);
+    brls::getStyle().addMetric("app/card/label/sub_height", 20);
+    brls::getStyle().addMetric("app/card/labels", 55);
+    brls::getStyle().addMetric("app/card/item_space", 18);
+    brls::getStyle().addMetric("app/card/corner_radius", 12);
+
     if (brls::Application::ORIGINAL_WINDOW_HEIGHT == 544) {
         brls::getStyle().addMetric("app/album/height", 215);
         brls::getStyle().addMetric("app/books/height", 270);
@@ -1159,18 +1170,38 @@ void AppConfig::initThemes() {
         // posters, readable from the couch (UI_REDESIGN.md §4).
         switch (brls::Application::ORIGINAL_WINDOW_HEIGHT) {
         case 1080:
+            // NuvioTV writes its tokens in dp for a 960x540dp screen (its
+            // 1080p density is 2.0), so every number below is its dp doubled.
             brls::getStyle().addMetric("app/album/height", 250);
             brls::getStyle().addMetric("app/books/height", 320);
             brls::getStyle().addMetric("app/video/height", 340);
-            brls::getStyle().addMetric("app/card/poster/width", 225);
-            brls::getStyle().addMetric("app/card/poster/row", 393);
-            brls::getStyle().addMetric("app/card/wide/width", 410);
-            brls::getStyle().addMetric("app/card/wide/row", 286);
-            brls::getStyle().addMetric("app/grid/6", 7);
-            brls::getStyle().addMetric("app/grid/5", 6);
-            brls::getStyle().addMetric("app/grid/4", 5);
-            brls::getStyle().addMetric("app/grid/3", 4);
-            brls::getStyle().addMetric("app/grid/2", 3);
+            // Poster: the 126x189dp base card, scaled by the 0.84 x 1.08 the
+            // reference's home applies to it (ModernHomeContent) = 114.3 x
+            // 171.5dp -> 229 x 343, + the label block under it.
+            brls::getStyle().addMetric("app/card/poster/width", 229);
+            brls::getStyle().addMetric("app/card/poster/row", 443);
+            // Continue Watching tile ("card" style): 126dp x 1.24 x 1.34
+            // across, 16:9. Its text prints over the artwork, so no labels.
+            brls::getStyle().addMetric("app/card/wide/width", 419);
+            brls::getStyle().addMetric("app/card/wide/row", 336);
+            brls::getStyle().addMetric("app/card/item_space", 24);
+            // posterCard radius, 12dp
+            brls::getStyle().addMetric("app/card/corner_radius", 24);
+            // The label block: 16 above the title (the reference's 8dp gap),
+            // a 24sp line for it, then a 12sp line + its 2dp spacer.
+            brls::getStyle().addMetric("app/card/label/top", 16);
+            brls::getStyle().addMetric("app/card/label/title_size", 32);
+            brls::getStyle().addMetric("app/card/label/title_height", 48);
+            brls::getStyle().addMetric("app/card/label/sub_size", 24);
+            brls::getStyle().addMetric("app/card/label/sub_height", 36);
+            brls::getStyle().addMetric("app/card/labels", 100);
+            // A 229-wide poster and its 24 of gap: six across the grid puts
+            // the cell within a few px of the reference's own 126dp card.
+            brls::getStyle().addMetric("app/grid/6", 6);
+            brls::getStyle().addMetric("app/grid/5", 5);
+            brls::getStyle().addMetric("app/grid/4", 4);
+            brls::getStyle().addMetric("app/grid/3", 3);
+            brls::getStyle().addMetric("app/grid/2", 2);
             break;
         case 900:
             brls::getStyle().addMetric("main/sidebar/width", 120);
@@ -1209,7 +1240,11 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/grid/3", 3);
             brls::getStyle().addMetric("app/grid/2", 2);
         }
-        brls::getStyle().addMetric("main/content_padding_sides", 40);
+        // 1080p: the reference starts its rows 106dp (212 px) in from the
+        // screen edge, so 68 on top of the 144 rail lands them exactly there.
+        // Every other panel keeps the 40 it had, its rail being narrower.
+        brls::getStyle().addMetric(
+            "main/content_padding_sides", brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080 ? 68 : 40);
         brls::getStyle().addMetric("main/content_padding_top_bottom", 30);
     }
 
@@ -1222,34 +1257,45 @@ void AppConfig::initThemes() {
     // its row headers in. The whole app's type scale is matched to that
     // Material3 scale doubled: label 20/24/28, body 24/28/32, title 28/32/40.
     brls::getStyle().addMetric("brls/header/font_size", 32);
+    // Borealis pads a Header 11 above and below its text. The reference pads
+    // nothing: the gap under a section title is the title's own margin, so
+    // every one of ours would sit 22 too tall with the library default.
+    brls::getStyle().addMetric("brls/header/padding_top_bottom", 0);
     // Line height. Borealis ships 1.65, which is far looser than the reference:
     // NuvioTV's Material3 styles pair 14sp text with a 20sp line (1.43), 16/24
     // (1.5), 12/16 (1.33) — clustered around 1.43, never 1.65. Everything in
     // the app reads a shade tighter now, matching it.
     brls::getStyle().addMetric("brls/label/default_line_height", 1.43f);
-    // Nav rail. Measured off the reference at 1080p: a 144px rail (72dp at its
-    // 2.0 density) with 36px glyphs and ~123px between item centres.
-    brls::getStyle().addMetric("main/sidebar/width", 144);
-    brls::getStyle().addMetric("main/sidebar/icon", 36);
-    // 68 = the reference's 34dp "leading visual" slot; the gap that follows
-    // brings item centres ~123px apart, as measured off its rail.
-    brls::getStyle().addMetric("main/sidebar/item_size", 68);
-    brls::getStyle().addMetric("main/sidebar/item_spacing", 55);
+    // Nav rail, 1080p only -- every other panel sized its own above and this
+    // block used to overwrite it.
+    brls::getStyle().addMetric("main/sidebar/item_indent", 0);
+    if (brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080) {
+        brls::getStyle().addMetric("main/sidebar/width", 144);
+        brls::getStyle().addMetric("main/sidebar/icon", 36);
+        // 68 = the reference's 34dp "leading visual" slot; the gap that follows
+        // brings item centres ~123px apart, as measured off its rail.
+        brls::getStyle().addMetric("main/sidebar/item_size", 68);
+        brls::getStyle().addMetric("main/sidebar/item_spacing", 55);
+        // The reference's rail overlays the content and offsets its items by
+        // 12dp inside a 72dp column, which puts the glyphs' centre 48dp
+        // (96 px) from the screen edge. Ours is a real 144 column, so the
+        // items are indented instead of centred to land in the same place.
+        brls::getStyle().addMetric("main/sidebar/item_indent", 62);
+    }
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
-    // 16 (not 12): the halo extends ~5 px beyond the frame, so its arc must
-    // be wider than the posters' cornerRadius 12 (Nuvio's posterCard radius)
-    // to hug it.
-    brls::getStyle().addMetric("brls/highlight/corner_radius", 16);
+    // The halo is drawn ~5 px outside the frame, so its arc has to be wider
+    // than the posters' own cornerRadius (24 = the reference's 12dp) to hug it.
+    brls::getStyle().addMetric("brls/highlight/corner_radius", 28);
 
     // Every */row metric above is "poster height + kCardLabelHeight of title
     // block". With the labels off (video_card.xml collapses the block, see
     // BaseCardCell::applyPosterLabels) that allowance would be an empty gap
     // under each poster, so take it back off the row.
     if (!this->getItem(POSTER_LABELS, false)) {
-        constexpr float kCardLabelHeight = 55;
+        float labels = brls::getStyle()["app/card/labels"];
         for (const char* m : {"app/card/poster/row", "app/card/wide/row"}) {
             float v = brls::getStyle()[m];
-            if (v > kCardLabelHeight) brls::getStyle().addMetric(m, v - kCardLabelHeight);
+            if (v > labels) brls::getStyle().addMetric(m, v - labels);
         }
     }
 }

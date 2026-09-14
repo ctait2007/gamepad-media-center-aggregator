@@ -1,5 +1,5 @@
 <brls:Box
-    highlightCornerRadius="20"
+    highlightCornerRadius="@style/brls/highlight/corner_radius"
     padding="5">
 
     <!-- NuvioTV's Continue Watching tile: a 16:9 still with the time left in
@@ -12,8 +12,8 @@
         focusable="true"
         width="100%"
         height="100%"
-        highlightCornerRadius="20"
-        cornerRadius="16"
+        highlightCornerRadius="@style/brls/highlight/corner_radius"
+        cornerRadius="@style/app/card/corner_radius"
         backgroundColor="@theme/color/grey_1">
 
         <!-- placeholder behind the image: an entry with no still keeps the
@@ -37,7 +37,7 @@
             scalingType="fill"
             width="100%"
             height="100%"
-            cornerRadius="16" />
+            cornerRadius="@style/app/card/corner_radius" />
 
         <!-- the text sits on this, not bare artwork -->
         <brls:Image
@@ -47,7 +47,7 @@
             width="100%"
             height="72%"
             scalingType="stretch"
-            cornerRadius="16"
+            cornerRadius="@style/app/card/corner_radius"
             image="@res/img/fade-bottom-dark.png" />
 
         <!-- "27m left" -->

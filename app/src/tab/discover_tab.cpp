@@ -77,7 +77,7 @@ DiscoverTab::DiscoverTab() {
     // tuned for a library grid that has no filter row above it.
     this->grid->spanCount = 6;
     this->grid->itemImageRatio = 1.5f;
-    this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
+    this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? brls::getStyle()["app/card/labels"] : 0;
     // paddingTop: the top row's focus ring is drawn ~5px OUTSIDE its frame, so
     // flush against the meta line above it the ring came out clipped and the
     // row read as cut off.

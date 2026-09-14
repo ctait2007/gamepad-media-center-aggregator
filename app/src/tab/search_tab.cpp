@@ -130,7 +130,7 @@ SearchTab::SearchTab() {
 
     this->results->registerCell("Cell", VideoCardCell::create);
     // the row budgets for the title block only when Layout > poster titles is on
-    this->results->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
+    this->results->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? brls::getStyle()["app/card/labels"] : 0;
 }
 
 SearchTab::~SearchTab() { brls::Logger::debug("SearchTab: deleted"); }

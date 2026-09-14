@@ -154,6 +154,9 @@ void RecyclingView::showSkeleton(unsigned int num) { this->setDataSource(new Dat
 RecyclingGrid::RecyclingGrid() {
     brls::Logger::debug("View RecyclingGrid: create");
 
+    // Same gap the rows put between their cards (the reference's 12dp).
+    this->estimatedRowSpace = brls::getStyle()["app/card/item_space"];
+
     // Empty/error states: icon + title + explanatory subtitle
     this->hintImage = new SVGImage();
     this->hintImage->detach();

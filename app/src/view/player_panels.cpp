@@ -424,10 +424,13 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
 
     // sub-pos counts DOWN from the top of the frame (100 = the bottom), so
     // "further up the screen" is a smaller number. Inverted here so the value
-    // beside the label means what the label says.
-    auto pos = std::make_shared<double>(core.getOptionDouble("sub-pos", 100));
+    // beside the label means what the label says — and counted from 98 rather
+    // than 100, which is where the subtitles now start (MPVCore's sub-pos):
+    // zero on this stepper is the resting position, not mpv's bottom edge.
+    constexpr double kSubPosBase = 98;
+    auto pos = std::make_shared<double>(core.getOptionDouble("sub-pos", kSubPosBase));
     auto setPos = std::make_shared<std::function<void(const std::string&)>>();
-    auto posText = [pos]() { return fmt::format("{:.0f}", 100 - *pos); };
+    auto posText = [pos]() { return fmt::format("{:.0f}", kSubPosBase - *pos); };
     auto bumpPos = [pos, setPos, posText](double delta) {
         return [pos, setPos, posText, delta]() {
             *pos = std::clamp(*pos - delta, 0.0, 150.0);

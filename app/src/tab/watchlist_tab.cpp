@@ -107,7 +107,7 @@ WatchlistTab::WatchlistTab() {
     this->grid->registerCell("Cell", VideoCardCell::create);
     this->grid->spanCount = 6;
     this->grid->itemImageRatio = 1.5f;
-    this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? 55 : 0;
+    this->grid->itemExtraHeight = AppConfig::instance().getItem(AppConfig::POSTER_LABELS, false) ? brls::getStyle()["app/card/labels"] : 0;
     // paddingTop: the top row's focus ring is drawn ~5px outside its frame, so
     // flush under the filter row it came out clipped (same reason Discover's
     // grid carries one).

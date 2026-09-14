@@ -323,12 +323,13 @@ RecylingVideo* HomeTab::buildRow(const RowData& row) {
     view->setFrameHeight(frameHeight);
     {
         // playlists AND music (artist/album/track): SQUARE covers (1:1)
-        // — width = image height of the row (frame - 55 of labels,
+        // — width = image height of the row (frame less the label block,
         // video_card.xml metrics); everything else keeps 2:3 posters
         const std::string& t0 = row.items.front().type;
         bool square = t0 == plex::mediaTypePlaylist || t0 == plex::mediaTypeArtist ||
                       t0 == plex::mediaTypeAlbum || t0 == plex::mediaTypeTrack;
-        view->setItemWidth(square ? frameHeight - 55 : brls::getStyle()["app/card/poster/width"]);
+        view->setItemWidth(square ? frameHeight - brls::getStyle()["app/card/labels"]
+                             : brls::getStyle()["app/card/poster/width"]);
     }
     view->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
     // truncated hub (more=1): "+" card to the full page

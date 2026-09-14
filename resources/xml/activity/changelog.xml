@@ -19,8 +19,8 @@
                 height="auto"
                 axis="column"
                 alignItems="stretch"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides"
+                paddingLeft="96"
+                paddingRight="96"
                 paddingTop="@style/main/content_padding_top_bottom"
                 paddingBottom="@style/main/content_padding_top_bottom">
                 <brls:Label

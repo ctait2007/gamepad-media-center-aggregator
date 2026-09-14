@@ -209,6 +209,10 @@ void MPVCore::init() {
     // panel, whose steppers start from these.
     mpv_set_option_string(mpv, "sub-font-size", "48");
     mpv_set_option_string(mpv, "sub-border-size", "1");
+    // Two notches off the bottom edge, and THAT is what the panel calls 0 (see
+    // kSubPosBase). mpv's own 100 puts the line hard against the frame, which
+    // is where a TV's overscan starts eating it.
+    mpv_set_option_string(mpv, "sub-pos", "98");
     mpv_set_option_string(mpv, "vo", MPVCore::VO.c_str());
 #if defined(__PS4__) || defined(__PSV__) || defined(TRIMUI)
     mpv_set_option_string(mpv, "audio-channels", "stereo");

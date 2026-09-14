@@ -1260,7 +1260,13 @@ void AutoSidebarItem::applyIconRailStyle() {
     float size = brls::getStyle()["main/sidebar/item_size"];
     this->setWidth(size);
     this->setHeight(size);
-    this->setAlignSelf(brls::AlignSelf::CENTER);
+    float indent = brls::getStyle()["main/sidebar/item_indent"];
+    if (indent > 0) {
+        this->setAlignSelf(brls::AlignSelf::FLEX_START);
+        this->setMarginLeft(indent);
+    } else {
+        this->setAlignSelf(brls::AlignSelf::CENTER);
+    }
     this->setPadding(0, 0, 0, 0);
     this->setCornerRadius(size / 2);
     this->setHighlightCornerRadius(size / 2);
