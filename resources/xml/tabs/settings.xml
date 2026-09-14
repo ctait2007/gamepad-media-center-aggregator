@@ -199,6 +199,12 @@
                                 id="setting/player/pause_screen" />
                             <brls:BooleanCell
                                 id="setting/player/next_episode_card" />
+                            <brls:SelectorCell
+                                id="setting/player/next_episode_mode" />
+                            <brls:SelectorCell
+                                id="setting/player/next_episode_percent" />
+                            <brls:SelectorCell
+                                id="setting/player/next_episode_minutes" />
                             <brls:BooleanCell
                                 id="setting/player/touch_gesture" />
                             <brls:BooleanCell

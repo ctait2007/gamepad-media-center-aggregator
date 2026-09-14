@@ -13,8 +13,9 @@
                       from the bottom right as the current one runs out.
 
     All three are plain child views of VideoView rather than pushed
-    activities: none takes focus, which is what lets the player's own buttons
-    keep working underneath them.
+    activities. The first two take no focus, which is what lets the player's
+    own buttons keep working underneath them; the third takes focus while it
+    is up, as the reference's own Card does.
 */
 
 #pragma once
@@ -22,6 +23,7 @@
 #include <borealis.hpp>
 #include <api/plex/types.hpp>
 
+#include <functional>
 #include <string>
 
 /// The startup screen. Hidden until show(), and torn down by hide().
@@ -79,15 +81,21 @@ private:
 };
 
 /// "Up next": NuvioTV's PostPlayOverlay in AutoPlay mode. Comes up over the
-/// last of an episode and offers the next one. Not focusable — VideoView says
-/// what cross and circle mean while it is up, the same arrangement the pause
-/// screen uses — so the OSD underneath keeps working.
+/// last of an episode and offers the next one. Focusable, as the reference's
+/// Card is: it takes focus when it appears with the controls down, select
+/// plays the next episode, and back dismisses it and hands focus back.
 class NextEpisodeCard : public brls::Box {
 public:
     NextEpisodeCard();
 
     /// The episode being offered. Empty title hides the card.
     void setEpisode(const plex::Item& ep);
+
+    /// What select on the card does. Called once, by VideoView.
+    void onPlay(std::function<void()> cb);
+
+    /// Focus lands on the card itself rather than anything inside it.
+    brls::View* getDefaultFocus() override;
 
     /// The card sits above the OSD when it is up and near the frame edge when
     /// it is not, as the reference's bottom padding does.

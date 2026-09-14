@@ -177,6 +177,8 @@ private:
     bool pauseScreenShown();
 
     void tickNextEpisodeCard(double positionSec, double durationSec);
+    bool nextCardHasFocus();
+    void hideNextEpisodeCard();
     void dismissNextEpisodeCard();
     bool toggleProfile();
     /// OSD

@@ -32,6 +32,10 @@
 #include "api/plex.hpp"
 #include "api/media/langs.hpp"
 #include "utils/dialog.hpp"
+
+#include <algorithm>
+#include <vector>
+
 #ifdef __SWITCH__
 #include "utils/overclock.hpp"
 #endif
@@ -267,6 +271,36 @@ void SettingTab::onCreate() {
         "main/setting/playback/next_episode_card"_i18n, MPVCore::NEXT_EPISODE_CARD, [&conf](bool value) {
             MPVCore::NEXT_EPISODE_CARD = value;
             conf.setItem(AppConfig::NEXT_EPISODE_CARD, value);
+        });
+
+    // When "up next" comes up: the reference's three PlayerSettingsDataStore
+    // keys, at its own ranges. Its two sliders run over doubled integers —
+    // 194..200 for the percentage and 0..7 for the minutes — so that the half
+    // steps survive; the rows here are those same steps, spelled out.
+    selectorNextEpisodeMode->init("main/setting/playback/next_episode_mode"_i18n,
+        {
+            "main/setting/playback/next_episode_threshold/percentage"_i18n,
+            "main/setting/playback/next_episode_threshold/minutes"_i18n,
+        },
+        std::clamp(MPVCore::NEXT_EPISODE_MODE, 0, 1), [&conf](int selected) {
+            MPVCore::NEXT_EPISODE_MODE = selected;
+            conf.setItem(AppConfig::NEXT_EPISODE_MODE, selected);
+        });
+
+    std::vector<std::string> percentOptions;
+    for (int half = 194; half <= 200; half++) percentOptions.push_back(fmt::format("{:.1f}%", half / 2.0));
+    selectorNextEpisodePercent->init("main/setting/playback/next_episode_percent"_i18n, percentOptions,
+        std::clamp(MPVCore::NEXT_EPISODE_PERCENT, 194, 200) - 194, [&conf](int selected) {
+            MPVCore::NEXT_EPISODE_PERCENT = 194 + selected;
+            conf.setItem(AppConfig::NEXT_EPISODE_PERCENT, MPVCore::NEXT_EPISODE_PERCENT);
+        });
+
+    std::vector<std::string> minuteOptions;
+    for (int half = 0; half <= 7; half++) minuteOptions.push_back(fmt::format("{:.1f} min", half / 2.0));
+    selectorNextEpisodeMinutes->init("main/setting/playback/next_episode_minutes"_i18n, minuteOptions,
+        std::clamp(MPVCore::NEXT_EPISODE_MINUTES, 0, 7), [&conf](int selected) {
+            MPVCore::NEXT_EPISODE_MINUTES = selected;
+            conf.setItem(AppConfig::NEXT_EPISODE_MINUTES, selected);
         });
 
     btnTouchGesture->init("main/setting/playback/touch_gesture"_i18n, MPVCore::TOUCH_GESTURE, [&conf](bool value) {

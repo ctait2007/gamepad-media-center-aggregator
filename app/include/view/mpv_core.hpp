@@ -160,6 +160,19 @@ public:
     /// is why this was the only one to show it.
     inline static int PAUSE_SCREEN_DELAY = 15;  // seconds
 
+    /// When "up next" comes up, from PlayerSettingsDataStore's three keys.
+    ///
+    /// The reference stores its two sliders as doubled integers (its
+    /// percentage slider runs 194..200 and its minutes one 0..7) so that half
+    /// steps survive a whole-number store; we keep the same encoding rather
+    /// than inventing a second one.
+    ///   MODE     0 = percentage of the episode, 1 = minutes before the end
+    ///   PERCENT  halves of a percent, clamped 194..200 -> 97..100 %
+    ///   MINUTES  halves of a minute, clamped 0..7 -> 0..3.5 min
+    inline static int NEXT_EPISODE_MODE = 0;
+    inline static int NEXT_EPISODE_PERCENT = 198;  // 99 %
+    inline static int NEXT_EPISODE_MINUTES = 4;    // 2 min
+
     // 低画质解码，剔除解码过程中的部分步骤，可以用来节省cpu
     inline static bool LOW_QUALITY = false;
     inline static bool SUBS_FALLBACK = true;

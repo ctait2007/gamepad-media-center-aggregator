@@ -163,6 +163,11 @@ public:
         PAUSE_SCREEN,
         /// "Up next" card at the end of an episode (layout_next_episode_card).
         NEXT_EPISODE_CARD,
+        /// When it comes up (nextEpisodeThresholdMode / ...Percent /
+        /// ...MinutesBeforeEnd). See MPVCore for the doubled-integer encoding.
+        NEXT_EPISODE_MODE,
+        NEXT_EPISODE_PERCENT,
+        NEXT_EPISODE_MINUTES,
         PAUSE_SCREEN_DELAY,
         TOUCH_GESTURE,
         CLIP_POINT,

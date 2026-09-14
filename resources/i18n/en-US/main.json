@@ -111,7 +111,7 @@
             "buffering": "Buffering…"
         },
         "up_next": {
-            "label": "NEXT EPISODE",
+            "label": "Next Episode",
             "play": "Play"
         }
     },
@@ -398,7 +398,14 @@
             "audio_channels": "Audio Channels",
             "video_quality": "Video Quality",
             "subsync": "Subtitle Sync",
-            "next_episode_card": "Show \"up next\" near the end of an episode"
+            "next_episode_card": "Show \"up next\" near the end of an episode",
+            "next_episode_mode": "Next episode threshold mode",
+            "next_episode_percent": "Threshold percentage",
+            "next_episode_minutes": "Threshold minutes",
+            "next_episode_threshold": {
+                "percentage": "Percentage",
+                "minutes": "Minutes before end"
+            }
         },
         "transcode": {
             "header": "Transcode"

@@ -9,6 +9,8 @@
 #include "view/video_profile.hpp"
 #include "view/video_progress_slider.hpp"
 
+#include <algorithm>
+
 const int VIDEO_SEEK_NODELAY = 0;
 
 using namespace brls::literals;
@@ -43,9 +45,8 @@ VideoView::VideoView() {
     this->registerAction(
         "hints/back"_i18n, brls::BUTTON_B,
         [this](brls::View* view) {
-            // Circle on the pause screen is "put that away", not "leave" —
-            // it hands you back the paused OSD. Checked before everything
-            // else, since the screen is up over all of it.
+            // Circle on a screen that is up is "put that away", not "leave".
+            // Checked before everything else, since they are up over all of it.
             if (this->nextCard && this->nextCard->shown()) {
                 this->dismissNextEpisodeCard();
                 return true;
@@ -130,6 +131,14 @@ VideoView::VideoView() {
             auto& state = brls::Application::getControllerState();
             if (state.buttons[brls::BUTTON_RT]) {
                 this->requestVolume((int)MPVCore::instance().volume + 5, 400);
+                return true;
+            }
+            // "Up next" is up: up puts focus on it, the reference's
+            // progressBarUpFocusRequester. Already on it, up does nothing —
+            // there is nothing above the card, as there is nothing above its
+            // Card — which is also why this comes before waking the bar.
+            if (this->nextCard && this->nextCard->shown()) {
+                if (!this->nextCardHasFocus()) brls::Application::giveFocus(this->nextCard);
                 return true;
             }
             // d-pad with the OSD hidden: wake it and focus the controls
@@ -301,13 +310,10 @@ VideoView::VideoView() {
 
     this->registerActions(
         "main/player/toggle"_i18n, brls::BUTTON_A, KeyBind::getVideoPause(), [this](brls::View* view) {
-            // "Up next" is up: cross takes it, the way the reference's card
-            // answers select. Circle below puts it away instead.
-            if (this->nextCard && this->nextCard->shown()) {
-                this->dismissNextEpisodeCard();
-                this->playIndexEvent.fire(this->playIndex + 1);
-                return true;
-            }
+            // NO "up next" case here. The card answers select itself, as the
+            // reference's Card does, and only while it holds focus — hijacking
+            // cross globally instead left no way to pause over the last of an
+            // episode and no way to see what cross was about to do.
             MPVCore::instance().togglePlay();
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(true);
@@ -349,6 +355,15 @@ VideoView::VideoView() {
     this->addView(this->pauseScreen);
     this->nextCard = new NextEpisodeCard();
     this->addView(this->nextCard);
+    // Select ON THE CARD plays the next episode: registered on the card, so it
+    // only ever fires while the card holds focus.
+    this->nextCard->onPlay([this]() {
+        this->dismissNextEpisodeCard();
+        this->playIndexEvent.fire(this->playIndex + 1);
+    });
+    // Down off the card is the volumeDown handler's own "d-pad with the OSD
+    // hidden" case, and up back onto it is the volumeUp one's — both below,
+    // where the player already decides what the d-pad means.
 
     // Paint the clock and a 0:00 / 0:00 straight away rather than leaving three
     // blank lines until mpv reports its first duration.
@@ -528,12 +543,7 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     // draw osd
     brls::Time current = brls::getCPUTimeUsec();
     if (current < this->osdLastShowTime) {
-        if (!this->isOsdShown) {
-            this->isOsdShown = true;
-    // "Up next" rides above the controls when they are out, as the reference's
-    // 122 dp bottom padding does.
-    if (this->nextCard) this->nextCard->setOsdVisible(true);
-        }
+        if (!this->isOsdShown) this->isOsdShown = true;
 
         osdTopBox->setVisibility(brls::Visibility::VISIBLE);
         osdBottomBox->setVisibility(brls::Visibility::VISIBLE);
@@ -541,9 +551,17 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
         osdTopBox->frame(ctx);
 
     } else if (this->isOsdShown) {
+        // The bar timing out. Everything the deliberate hideOSD() does, since
+        // the card cannot tell the two apart and neither can the viewer.
         this->isOsdShown = false;
+        if (this->nextCard) this->nextCard->setOsdVisible(false);
         // 当焦点位于video组件内部重新赋予焦点，用来隐藏屏幕上的高亮框
-        if (isChildFocused()) brls::Application::giveFocus(this);
+        if (isChildFocused()) {
+            if (this->nextCard && this->nextCard->shown())
+                brls::Application::giveFocus(this->nextCard);
+            else
+                brls::Application::giveFocus(this);
+        }
         osdTopBox->setVisibility(brls::Visibility::INVISIBLE);
         osdBottomBox->setVisibility(brls::Visibility::INVISIBLE);
     }
@@ -610,6 +628,11 @@ void VideoView::invalidate() { View::invalidate(); }
 
 void VideoView::onChildFocusGained(View* directChild, View* focusedView) {
     Box::onChildFocusGained(directChild, focusedView);
+    // "Up next" is the one child allowed focus with the OSD down — it IS the
+    // control at that point, as the reference's Card is. Without this the
+    // bounce below takes the focus straight back off it and the card lights up
+    // for a frame and then goes dead.
+    if (directChild == this->nextCard) return;
     // 只有在全屏显示OSD时允许OSD组件获取焦点
     if (this->isOsdShown) {
         // 当弹幕按钮隐藏时不可获取焦点
@@ -786,6 +809,10 @@ void VideoView::showOSD(bool autoHide) {
     // but left focus somewhere other than play/pause. frame() still owns the
     // hide, so this only ever runs ahead of it, never against it.
     this->isOsdShown = true;
+    // "Up next" rides above the controls when they are out, as the reference's
+    // 122 dp bottom padding does. Set HERE rather than in draw(): showOSD marks
+    // the bar shown itself, so draw's "it just came up" branch never runs.
+    if (this->nextCard) this->nextCard->setOsdVisible(true);
     if (autoHide) {
         this->osdLastShowTime = brls::getCPUTimeUsec() + VideoView::OSD_SHOW_TIME;
         this->osdState = OSDState::SHOWN;
@@ -824,52 +851,113 @@ bool VideoView::pauseScreenShown() { return this->pauseScreen && this->pauseScre
 
 /// "Up next", on NuvioTV's rules (PlayerNextEpisodeRules).
 ///
-/// The card comes up once the position crosses the threshold — the reference's
-/// PERCENTAGE mode at its own 99% default, which it clamps to 97..100 — and
-/// only after the stream has first reported a position clearly AWAY from the
-/// end (its isAwayFromEnd arming). Without that arming a file whose first
-/// position report lands at the duration (a resume at the very end, a seek
-/// that overshot) puts the card up the instant it opens.
+/// The reference's rule has two halves. When it has outro markers for the
+/// episode it fires at the outro, and when it has none it falls back to a
+/// threshold the viewer sets — a percentage of the episode, or a number of
+/// minutes before the end. Only the second half is reachable here, and it is
+/// reachable in the reference too: the markers come from an intro database
+/// whose endpoint is a build-time key (INTRODB_API_URL, read from a private
+/// localProperties and absent from the example one), and its own repository
+/// gates every lookup on that key being set. A NuvioTV built without it runs
+/// this same path, which is why its settings screen calls the threshold
+/// "Fallback when no outro timestamp exists" and still ships it as the
+/// default-on behaviour.
 ///
-/// The reference also reads outro markers from an intro database and fires at
-/// the outro start when the credits run to the end of the file. That database
-/// is behind a build-time key we do not have, so this is its own no-marker
-/// fallback path, which is the same code either way.
+/// So: shouldShowNextEpisodeCard's no-marker branch, at its own clamps, off
+/// its own three settings.
+
+namespace {
+/// PlayerNextEpisodeRules.NEAR_END_MS and END_OF_VIDEO_EPSILON_MS.
+constexpr double kNextNearEndSec = 0.5;
+constexpr double kNextEndEpsilonSec = 1.0;
+
+/// shouldShowNextEpisodeCard, no-marker branch.
+bool nextEpisodeThresholdMet(double positionSec, double durationSec) {
+    if (durationSec <= 0) return false;
+    // "A duration below the current position is not a valid end-of-video
+    // signal" — mpv reports one every time a file is opened, before it knows
+    // how long the new one is.
+    if (positionSec > durationSec + kNextEndEpsilonSec) return false;
+
+    if (MPVCore::NEXT_EPISODE_MODE == 1) {
+        double minutes = std::clamp(MPVCore::NEXT_EPISODE_MINUTES / 2.0, 0.0, 3.5);
+        return durationSec - positionSec <= minutes * 60.0;
+    }
+    double percent = std::clamp(MPVCore::NEXT_EPISODE_PERCENT / 2.0, 97.0, 100.0);
+    return positionSec / durationSec >= percent / 100.0;
+}
+
+/// isAwayFromEnd: a reading clearly before the end AND outside the window.
+bool nextEpisodeAwayFromEnd(double positionSec, double durationSec) {
+    return durationSec > 0 && positionSec < durationSec - kNextNearEndSec &&
+           !nextEpisodeThresholdMet(positionSec, durationSec);
+}
+}  // namespace
+
 void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
     if (!this->nextCard) return;
     if (!MPVCore::NEXT_EPISODE_CARD) return;
 
     // Nothing to offer: a film, the last episode, or a list we were never given.
     if (this->playIndex < 0 || this->playIndex + 1 >= this->playListSize) return;
-    if (durationSec <= 0 || this->nextCardDismissed) return;
+    if (this->nextCardDismissed) return;
 
-    constexpr double kThresholdPercent = 99.0;  // the reference's default
-    constexpr double kNearEndSec = 0.5;         // its NEAR_END_MS
-
-    bool past = positionSec / durationSec >= kThresholdPercent / 100.0;
-
+    // Arming, the reference's isAwayFromEnd: the card cannot come up until the
+    // stream has first reported a position clearly outside the window. Without
+    // it a file whose first report lands at the duration — a resume at the very
+    // end, an open before mpv knows the length — puts the card up as it opens.
     if (!this->nextCardArmed) {
-        if (positionSec < durationSec - kNearEndSec && !past) this->nextCardArmed = true;
+        if (nextEpisodeAwayFromEnd(positionSec, durationSec)) {
+            this->nextCardArmed = true;
+            brls::Logger::debug("VideoView: up next armed at {:.0f}/{:.0f}s", positionSec, durationSec);
+        }
         return;
     }
-    // Seeking back out of the window takes the card away again.
-    if (!past) {
-        if (this->nextCard->shown()) this->nextCard->hide();
+
+    if (!nextEpisodeThresholdMet(positionSec, durationSec)) {
+        // Seeking back out of the window takes the card away again — and hands
+        // focus back, since it was holding it.
+        this->hideNextEpisodeCard();
         return;
     }
     if (this->nextCard->shown()) return;
     // Anything full-screen owns the screen while it is up.
     if (this->pauseScreenShown() || this->loadingScreen->shown()) return;
 
+    brls::Logger::debug("VideoView: up next at {:.0f}/{:.0f}s ({})", positionSec, durationSec,
+        MPVCore::NEXT_EPISODE_MODE == 1 ? fmt::format("{:.1f} min before end", MPVCore::NEXT_EPISODE_MINUTES / 2.0)
+                                        : fmt::format("{:.1f}%", MPVCore::NEXT_EPISODE_PERCENT / 2.0));
+
     this->nextCard->setOsdVisible(this->isOsdShown);
     this->nextCard->show();
+    // The reference's onPlaced: the card takes focus as it appears, but only
+    // with the controls down. With them up it waits to be navigated to, so
+    // that the card arriving cannot pull focus off a control mid-press.
+    if (!this->isOsdShown) brls::Application::giveFocus(this->nextCard);
 }
 
 void VideoView::setNextEpisode(const plex::Item& ep) { this->nextCard->setEpisode(ep); }
 
+/// Take the card down, and give focus back to the video if the card had it —
+/// leaving it on a hidden view is how the player stops answering buttons.
+bool VideoView::nextCardHasFocus() {
+    if (!this->nextCard) return false;
+    for (brls::View* v = brls::Application::getCurrentFocus(); v; v = v->getParent())
+        if (v == this->nextCard) return true;
+    return false;
+}
+
+void VideoView::hideNextEpisodeCard() {
+    if (!this->nextCard || !this->nextCard->shown()) return;
+    bool hadFocus = this->nextCardHasFocus();
+    this->nextCard->hide();
+    if (hadFocus) brls::Application::giveFocus(this);
+}
+
+/// Circle, or having taken the offer. Stays down for the rest of the episode.
 void VideoView::dismissNextEpisodeCard() {
     this->nextCardDismissed = true;
-    if (this->nextCard) this->nextCard->hide();
+    this->hideNextEpisodeCard();
 }
 
 void VideoView::schedulePauseScreen() {
@@ -917,9 +1005,14 @@ void VideoView::tickPauseScreen(brls::Time current) {
 }
 
 void VideoView::hideOSD() {
-    if (this->nextCard) this->nextCard->setOsdVisible(false);
     this->osdLastShowTime = 0;
     this->osdState = OSDState::HIDDEN;
+    if (!this->nextCard) return;
+    this->nextCard->setOsdVisible(false);
+    // The bar going away is the reference's controlsVisible turning false, and
+    // its card takes focus the moment that is true. Ours has to, too: the OSD
+    // is where focus was, and there is nothing else left to hold it.
+    if (this->nextCard->shown()) brls::Application::giveFocus(this->nextCard);
 }
 
 void VideoView::showHint(const std::string& value) {

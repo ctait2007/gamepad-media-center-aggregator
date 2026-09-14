@@ -341,16 +341,23 @@ void PauseScreen::hide() { this->setVisibility(brls::Visibility::GONE); }
 //
 // PostPlayOverlay.kt's AutoPlay card, at the reference's own numbers: 420 dp
 // wide with a 14 dp corner over 0xE3191919 and a hairline white border, a
-// 112x64 still with a 9 dp corner, "NEXT EPISODE" at 11 sp over the episode at
-// 14 sp semibold, and a bordered pill on the right. Bottom-right of the frame,
-// 26 dp in, 122 dp up while the controls are showing and 30 up when they are
-// not.
+// 112x64 still with a 9 dp corner under a transparent-to-black-32% wash,
+// "Next Episode" at 11 sp over "S2 E2 • The Scrub" at 14 sp semibold, and a
+// bordered "Play" pill on the right. Bottom-right of the frame, 26 dp in,
+// 122 dp up while the controls are showing and 30 up when they are not.
+//
+// FOCUSABLE, as the reference's Card is: it takes focus the moment it appears
+// with the controls down (its onPlaced), select plays the next episode and
+// back dismisses it. Hijacking cross globally instead — which is what this
+// did first — left no way to pause over the last of an episode and no way to
+// see what cross was about to do.
 
 namespace {
 constexpr float kNextCardWidth = 840, kNextCardRadius = 28;
 constexpr float kNextPadX = 20, kNextPadY = 18;
 constexpr float kNextStillWidth = 224, kNextStillHeight = 128, kNextStillRadius = 18;
 constexpr float kNextRight = 52, kNextBottomOsd = 244, kNextBottomBare = 60;
+constexpr float kNextPillWidth = 200;
 }  // namespace
 
 NextEpisodeCard::NextEpisodeCard() {
@@ -370,19 +377,42 @@ NextEpisodeCard::NextEpisodeCard() {
     this->card->setAxis(brls::Axis::ROW);
     this->card->setAlignItems(brls::AlignItems::CENTER);
     this->card->setCornerRadius(kNextCardRadius);
+    this->card->setHighlightCornerRadius(kNextCardRadius + 4);
     this->card->setBackgroundColor(nvgRGBA(0x19, 0x19, 0x19, 0xE3));
     this->card->setBorderThickness(2);
     this->card->setBorderColor(nvgRGBA(255, 255, 255, 41));  // white 16%
     this->card->setPadding(kNextPadY, kNextPadX, kNextPadY, kNextPadX);
+    this->card->setFocusable(true);
+    // Keep the card's own fill under the focus halo: borealis would otherwise
+    // paint brls/highlight/background over it and lose the panel colour.
+    this->card->setHideHighlightBackground(true);
     this->addView(this->card);
+
+    // The still, with the reference's transparent -> black 32% wash over it.
+    auto* stillBox = new brls::Box();
+    stillBox->setWidth(kNextStillWidth);
+    stillBox->setHeight(kNextStillHeight);
+    stillBox->setShrink(0);
+    stillBox->setMarginRight(20);
+    this->card->addView(stillBox);
 
     this->still = new brls::Image();
     this->still->setWidth(kNextStillWidth);
     this->still->setHeight(kNextStillHeight);
     this->still->setCornerRadius(kNextStillRadius);
     this->still->setScalingType(brls::ImageScalingType::FILL);
-    this->still->setMarginRight(20);
-    this->card->addView(this->still);
+    stillBox->addView(this->still);
+
+    auto* wash = new brls::Image();
+    wash->setPositionType(brls::PositionType::ABSOLUTE);
+    wash->setPositionTop(0);
+    wash->setPositionLeft(0);
+    wash->setWidth(kNextStillWidth);
+    wash->setHeight(kNextStillHeight);
+    wash->setCornerRadius(kNextStillRadius);
+    wash->setScalingType(brls::ImageScalingType::STRETCH);
+    wash->setImageFromRes("img/fade-bottom-dark.png");
+    stillBox->addView(wash);
 
     auto* column = new brls::Box();
     column->setAxis(brls::Axis::COLUMN);
@@ -401,14 +431,16 @@ NextEpisodeCard::NextEpisodeCard() {
     this->titleLabel->setMarginTop(4);
     // A Label needs a width before it will ellipsize rather than push the pill
     // beside it off the card.
-    this->titleLabel->setWidth(kNextCardWidth - kNextPadX * 2 - kNextStillWidth - 20 - 260);
+    this->titleLabel->setWidth(kNextCardWidth - kNextPadX * 2 - kNextStillWidth - 20 - kNextPillWidth);
     column->addView(this->titleLabel);
 
     // The "Play" pill: a bordered capsule, as the reference draws it.
     auto* pill = new brls::Box();
     pill->setAxis(brls::Axis::ROW);
     pill->setAlignItems(brls::AlignItems::CENTER);
+    pill->setJustifyContent(brls::JustifyContent::CENTER);
     pill->setHeight(56);
+    pill->setShrink(0);
     pill->setPadding(0, 20, 0, 20);
     pill->setMarginLeft(16);
     pill->setCornerRadius(28);
@@ -428,16 +460,28 @@ NextEpisodeCard::NextEpisodeCard() {
     pill->addView(play);
 }
 
+void NextEpisodeCard::onPlay(std::function<void()> cb) {
+    this->card->registerClickAction([cb](brls::View*) {
+        cb();
+        return true;
+    });
+    this->card->addGestureRecognizer(new brls::TapGestureRecognizer(this->card));
+}
+
+brls::View* NextEpisodeCard::getDefaultFocus() { return this->card; }
+
 void NextEpisodeCard::setEpisode(const plex::Item& ep) {
+    // "S2 E2 • Fake ID" — the reference's season_episode_format and its own
+    // single-spaced bullet, not the wider one the OSD's episode line uses.
     std::string line = fmt::format("S{} E{}", ep.parentIndex, ep.index);
-    if (!ep.title.empty()) line += "  •  " + ep.title;
+    if (!ep.title.empty()) line += " • " + ep.title;
     this->titleLabel->setText(line);
 
     this->still->clear();
     const std::string& art = ep.thumb.empty() ? ep.parentThumb : ep.thumb;
     // An episode with no still leaves the card its text rather than a gap the
     // width of one — the reference always has artwork here, ours may not.
-    this->still->setVisibility(art.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    this->still->getParent()->setVisibility(art.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     if (!art.empty()) Image::load(this->still, art, (int)kNextStillWidth);
 }
 
