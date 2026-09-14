@@ -25,11 +25,15 @@ constexpr float kStageOffset = 188;
 
 // PauseOverlay.kt's content padding (start/end huge, top 40, bottom 120) and
 // the gaps between its blocks (spacing.md / sm / md / lg, then 20 and md).
-// The reference's content padding is start/end huge, top 40, bottom 120 dp.
-// The bottom is the one number that is not its own: at 120 dp a short block —
-// a film with two lines of synopsis and no episode title — sits right down on
-// the edge of the frame, which on a TV is the first thing overscan eats.
-constexpr float kPausePadX = 112, kPausePadTop = 80, kPausePadBottom = 320;
+// TOP-anchored, unlike the reference, whose column arranges to Bottom. Bottom
+// anchoring means the block's position depends on how much there is IN it: an
+// episode with a long synopsis sits where the reference puts it, and a film
+// with two lines and no episode title slides down to the frame edge. Only one
+// of those can be right, and it is the one that does not move. 264 px is where
+// the reference's own block starts, measured off its screenshot, so the case
+// it was drawn for lands exactly where it does — and every other case now
+// lands there too instead of somewhere lower.
+constexpr float kPausePadX = 112, kPausePadTop = 276, kPausePadBottom = 80;
 constexpr float kPauseLogoHeight = 192;
 
 /// A full-screen absolutely-positioned layer, the unit both screens stack.
@@ -203,14 +207,14 @@ PauseScreen::PauseScreen() {
 
     this->clockLabel = label(68, nvgRGBA(255, 255, 255, 242));
     this->clockLabel->setPositionType(brls::PositionType::ABSOLUTE);
-    this->clockLabel->setPositionTop(kPausePadTop);
+    this->clockLabel->setPositionTop(80);
     this->clockLabel->setPositionRight(kPausePadX);
     this->addView(this->clockLabel);
 
-    // Bottom-anchored: the reference's content Column arranges to Bottom.
+    // Top-anchored — see the padding note above.
     auto* column = fullLayer();
     column->setAxis(brls::Axis::COLUMN);
-    column->setJustifyContent(brls::JustifyContent::FLEX_END);
+    column->setJustifyContent(brls::JustifyContent::FLEX_START);
     column->setPaddingLeft(kPausePadX);
     column->setPaddingRight(kPausePadX);
     column->setPaddingTop(kPausePadTop);

@@ -360,35 +360,52 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
 
     // Delay is not a stepper in the reference either: it opens the live sync
     // overlay, where the timing is nudged against the picture.
-    styleRail->addSetting("main/player/panel/sub_delay"_i18n, fmt::format("{:+.1f} s", mpv.getDouble("sub-delay")),
+    styleRail->addSetting("main/player/panel/sub_delay"_i18n,
+        fmt::format("{:+.1f} s", mpv.getOptionDouble("sub-delay")),
         []() { brls::sync([]() { PlayerSetting::showSubsync(); }); });
 
-    auto sizeText = []() { return fmt::format("{:.0f} %", MPVCore::instance().getDouble("sub-scale") * 100); };
+    // EVERY stepper below holds its own value.
+    //
+    // They used to read the property back from mpv, add the step, and write it
+    // again — and mpv's property writes are asynchronous, so the read on the
+    // second press still returned the value from before the first. Two presses
+    // moved one step, three moved one or two depending on timing. The value is
+    // seeded from mpv once, stepped locally, and written out; the number on
+    // screen and the number mpv has can then never disagree.
+    //
+    // The writes go through the `set` COMMAND rather than the typed setters:
+    // mpv will not convert several of these property types from the format
+    // those setters use, and drops the write silently when it will not.
+    auto& core = MPVCore::instance();
+
+    auto size = std::make_shared<double>(core.getOptionDouble("sub-scale", 1.0));
     auto setSize = std::make_shared<std::function<void(const std::string&)>>();
-    auto bumpSize = [setSize, sizeText](double delta) {
-        return [setSize, sizeText, delta]() {
-            auto& m = MPVCore::instance();
-            m.setDouble("sub-scale", std::clamp(m.getDouble("sub-scale") + delta, 0.2, 4.0));
+    auto sizeText = [size]() { return fmt::format("{:.0f} %", *size * 100); };
+    auto bumpSize = [size, setSize, sizeText](double delta) {
+        return [size, setSize, sizeText, delta]() {
+            *size = std::clamp(*size + delta, 0.2, 4.0);
+            MPVCore::instance().setOption("sub-scale", fmt::format("{:.2f}", *size));
             (*setSize)(sizeText());
         };
     };
     *setSize = styleRail->addStepper(
         "main/player/panel/sub_size"_i18n, sizeText(), bumpSize(-0.1), bumpSize(0.1));
 
+    auto bold = std::make_shared<bool>(core.getString("sub-bold") == "yes");
     *boldCard = styleRail->addSetting("main/player/panel/sub_bold"_i18n,
-        mpv.getInt("sub-bold") ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n, [boldCard]() {
-            auto& m = MPVCore::instance();
-            bool next = !m.getInt("sub-bold");
-            m.setInt("sub-bold", next ? 1 : 0);
-            (*boldCard)->setTrailingText(next ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n);
+        *bold ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n, [boldCard, bold]() {
+            *bold = !*bold;
+            MPVCore::instance().setOption("sub-bold", *bold ? "yes" : "no");
+            (*boldCard)->setTrailingText(*bold ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n);
         });
 
-    auto outText = []() { return fmt::format("{:.1f}", MPVCore::instance().getDouble("sub-border-size")); };
+    auto outline = std::make_shared<double>(core.getOptionDouble("sub-border-size", 1.0));
     auto setOut = std::make_shared<std::function<void(const std::string&)>>();
-    auto bumpOut = [setOut, outText](double delta) {
-        return [setOut, outText, delta]() {
-            auto& m = MPVCore::instance();
-            m.setDouble("sub-border-size", std::clamp(m.getDouble("sub-border-size") + delta, 0.0, 10.0));
+    auto outText = [outline]() { return fmt::format("{:.1f}", *outline); };
+    auto bumpOut = [outline, setOut, outText](double delta) {
+        return [outline, setOut, outText, delta]() {
+            *outline = std::clamp(*outline + delta, 0.0, 10.0);
+            MPVCore::instance().setOption("sub-border-size", fmt::format("{:.1f}", *outline));
             (*setOut)(outText());
         };
     };
@@ -398,12 +415,13 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
     // sub-pos counts DOWN from the top of the frame (100 = the bottom), so
     // "further up the screen" is a smaller number. Inverted here so the value
     // beside the label means what the label says.
-    auto posText = []() { return fmt::format("{}", 100 - MPVCore::instance().getInt("sub-pos")); };
+    auto pos = std::make_shared<double>(core.getOptionDouble("sub-pos", 100));
     auto setPos = std::make_shared<std::function<void(const std::string&)>>();
-    auto bumpPos = [setPos, posText](int64_t delta) {
-        return [setPos, posText, delta]() {
-            auto& m = MPVCore::instance();
-            m.setInt("sub-pos", std::clamp(m.getInt("sub-pos") - delta, (int64_t)0, (int64_t)150));
+    auto posText = [pos]() { return fmt::format("{:.0f}", 100 - *pos); };
+    auto bumpPos = [pos, setPos, posText](double delta) {
+        return [pos, setPos, posText, delta]() {
+            *pos = std::clamp(*pos - delta, 0.0, 150.0);
+            MPVCore::instance().setOption("sub-pos", fmt::format("{:.0f}", *pos));
             (*setPos)(posText());
         };
     };

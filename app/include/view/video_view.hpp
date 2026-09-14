@@ -219,9 +219,9 @@ private:
     /// OSD and take no focus from it.
     LoadingScreen* loadingScreen = nullptr;
     PauseScreen* pauseScreen = nullptr;
-    /// When the pause screen is due, on the same clock as the OSD's own
+    /// When the current pause began, on the same clock as the OSD's own
     /// auto-hide. 0 = not waiting for anything.
-    brls::Time pauseScreenDueTime = 0;
+    brls::Time pausedSince = 0;
     /// Gate on the pause screen: it is only for a pause the VIEWER made, after
     /// something has actually played. The reference asks the same two things.
     bool firstFrameSeen = false;

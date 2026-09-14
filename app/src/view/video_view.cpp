@@ -800,32 +800,41 @@ void VideoView::setPauseItem(const plex::Item& item, const std::string& showTitl
 bool VideoView::pauseScreenShown() { return this->pauseScreen && this->pauseScreen->shown(); }
 
 void VideoView::schedulePauseScreen() {
-    this->pauseScreenDueTime = 0;
+    this->pausedSince = 0;
     if (!MPVCore::PAUSE_SCREEN || !this->firstFrameSeen) return;
-    // A deadline read in draw(), the way the OSD's own auto-hide works, rather
-    // than a queued brls::delay: that queue fired the callback immediately on
-    // the console, so the screen arrived the instant playback paused instead
-    // of after the wait that is the whole point of it.
-    this->pauseScreenDueTime = brls::getCPUTimeUsec() + (brls::Time)MPVCore::PAUSE_SCREEN_DELAY * 1000000;
+    // WHEN THE PAUSE STARTED, not a deadline — tickPauseScreen re-derives how
+    // long it has lasted on every frame, and re-checks that it is still
+    // running. A stored deadline only has to be wrong once (a stale one left
+    // armed, a clock read somewhere it should not have been) to put the screen
+    // up the instant playback pauses, which is what kept happening.
+    this->pausedSince = brls::getCPUTimeUsec();
+    brls::Logger::debug("VideoView: pause screen armed, {} s", MPVCore::PAUSE_SCREEN_DELAY);
 }
 
 void VideoView::cancelPauseScreen() {
-    this->pauseScreenDueTime = 0;
+    this->pausedSince = 0;
     if (this->pauseScreen) this->pauseScreen->hide();
 }
 
-/// Called once a frame from draw(). Shows the screen when the wait is up and
-/// nothing has come along in the meantime that should keep it away.
+/// Called once a frame from draw(). Shows the screen when the pause has lasted
+/// long enough and nothing has come along that should keep it away.
 void VideoView::tickPauseScreen(brls::Time current) {
-    if (!this->pauseScreenDueTime || current < this->pauseScreenDueTime) return;
-    this->pauseScreenDueTime = 0;
+    if (!this->pausedSince || this->pauseScreen->shown()) return;
+    brls::Time waited = current - this->pausedSince;
+    if (waited < (brls::Time)MPVCore::PAUSE_SCREEN_DELAY * 1000000) return;
 
-    if (!MPVCore::instance().isPaused() || this->loadingScreen->shown()) return;
+    // Still paused? A resume cancels this outright, but re-reading mpv costs
+    // nothing and covers a pause that ended without the event reaching us.
+    if (!MPVCore::instance().isPaused() || this->loadingScreen->shown()) {
+        this->pausedSince = 0;
+        return;
+    }
     // Not over a panel. A panel is a pushed activity, so the focus is no
     // longer anywhere under this view — which is the cheapest way to ask.
     brls::View* focus = brls::Application::getCurrentFocus();
     for (brls::View* v = focus; v; v = v->getParent()) {
         if (v != this) continue;
+        brls::Logger::debug("VideoView: pause screen after {} ms", waited / 1000);
         this->hideOSD();
         // Same wall clock the OSD shows, kept in step by updateTime.
         this->pauseScreen->setClock(this->clockLabel->getFullText());

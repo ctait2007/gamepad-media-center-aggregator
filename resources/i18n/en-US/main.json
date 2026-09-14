@@ -68,6 +68,7 @@
             "lang_unknown": "Unknown",
             "sub_style": "Subtitle Style",
             "sub_delay": "Delay",
+            "sub_delay_reset": "Reset",
             "sub_size": "Font size",
             "sub_bold": "Bold",
             "sub_outline": "Outline",

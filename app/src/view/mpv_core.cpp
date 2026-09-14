@@ -888,6 +888,20 @@ void MPVCore::setInt(const std::string &key, int64_t value) {
     mpv_set_property_async(mpv, 0, key.c_str(), MPV_FORMAT_INT64, &value);
 }
 
+void MPVCore::setOption(const std::string &key, const std::string &value) {
+    this->command("set", key.c_str(), value.c_str());
+}
+
+double MPVCore::getOptionDouble(const std::string &key, double fallback) {
+    std::string text = this->getString(key);
+    if (text.empty()) return fallback;
+    try {
+        return std::stod(text);
+    } catch (const std::exception &) {
+        return fallback;
+    }
+}
+
 std::unordered_map<std::string, mpv_node> MPVCore::getNodeMap(const std::string &key) {
     mpv_node node;
     std::unordered_map<std::string, mpv_node> nodeMap;

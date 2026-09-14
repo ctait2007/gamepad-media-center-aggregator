@@ -1,4 +1,5 @@
 #include <borealis/views/hint.hpp>
+#include <algorithm>
 #include "utils/config.hpp"
 #include "utils/event.hpp"
 #include "view/button_close.hpp"
@@ -8,14 +9,14 @@
 
 using namespace brls::literals;
 
-/// Live subtitle-sync overlay. Translucent so the video AND its subtitles
-/// stay visible underneath: the user nudges the delay with LEFT/RIGHT and
-/// immediately sees whether it lines up (no more adjusting blind). Centered
-/// so it never sits on top of the subtitles it is meant to align.
+/// The subtitle-delay overlay, following the reference's own
+/// (PlayerScreen.SubtitleDelayOverlay): a titled card with the delay beside
+/// the heading, a tick-marked track with a wide thumb under it, and a Reset
+/// beneath that. LEFT/RIGHT step by 100 ms over the reference's +/-180 s range.
+/// Translucent, so the subtitles it is aligning stay visible underneath.
 class SubsyncOverlay : public brls::Box {
 public:
     SubsyncOverlay() {
-        auto theme = brls::Application::getTheme();
         this->setAxis(brls::Axis::COLUMN);
         this->setJustifyContent(brls::JustifyContent::CENTER);
         this->setAlignItems(brls::AlignItems::CENTER);
@@ -24,77 +25,134 @@ public:
         this->setHideHighlightBackground(true);
         this->setHideHighlightBorder(true);
 
-        auto* panel = new brls::Box(brls::Axis::COLUMN);
-        panel->setAlignItems(brls::AlignItems::CENTER);
-        panel->setCornerRadius(12);
-        panel->setBackgroundColor(nvgRGBA(0x1C, 0x1C, 0x1C, 0xF0));
-        panel->setPadding(26, 52, 26, 52);
+        // A dim behind the card. The reference draws this over its own
+        // subtitle overlay, which stays on screen underneath — without
+        // something to push it back, the rails behind read through the card
+        // and the two panels fight each other.
+        auto* scrim = new brls::Box();
+        scrim->setPositionType(brls::PositionType::ABSOLUTE);
+        scrim->setPositionTop(0);
+        scrim->setPositionLeft(0);
+        scrim->setWidth(brls::Application::contentWidth);
+        scrim->setHeight(brls::Application::contentHeight);
+        scrim->setBackgroundColor(nvgRGBA(0, 0, 0, 150));
+        this->addView(scrim);
+
+        auto* card = new brls::Box(brls::Axis::COLUMN);
+        card->setWidth(brls::Application::contentWidth * 0.6f);
+        card->setCornerRadius(52);
+        card->setBackgroundColor(nvgRGBA(0x0F, 0x0F, 0x0F, 0xCC));
+        card->setPadding(40, 52, 40, 52);
+
+        // heading — delay, on one row
+        auto* head = new brls::Box(brls::Axis::ROW);
+        head->setJustifyContent(brls::JustifyContent::SPACE_BETWEEN);
+        head->setAlignItems(brls::AlignItems::CENTER);
+        head->setWidth(brls::Application::contentWidth * 0.6f - 104);
 
         auto* heading = new brls::Label();
-        heading->setText("main/setting/playback/subsync"_i18n);
-        heading->setFontSize(18);
-        heading->setTextColor(theme.getColor("font/grey"));
-        heading->setMarginBottom(20);
-        panel->addView(heading);
-
-        // row: ◀  (value)  ▶  — chevrons cue LEFT/RIGHT, muted vs the value
-        auto* row = new brls::Box(brls::Axis::ROW);
-        row->setAlignItems(brls::AlignItems::CENTER);
-
-        auto* left = new brls::Label();
-        left->setText("◀");
-        left->setFontSize(22);
-        left->setTextColor(theme.getColor("font/grey"));
-        left->setMarginRight(34);
-        row->addView(left);
+        heading->setText("main/player/panel/sub_delay"_i18n);
+        heading->setFontSize(44);
+        heading->setTextColor(nvgRGB(255, 255, 255));
+        head->addView(heading);
 
         this->value = new brls::Label();
-        this->value->setFontSize(26);
-        this->value->setWidth(120);
-        this->value->setHorizontalAlign(brls::HorizontalAlign::CENTER);
-        this->value->setTextColor(theme.getColor("color/white"));
-        row->addView(this->value);
+        this->value->setFontSize(44);
+        this->value->setTextColor(nvgRGBA(255, 255, 255, 242));
+        head->addView(this->value);
+        card->addView(head);
 
-        auto* right = new brls::Label();
-        right->setText("▶");
-        right->setFontSize(22);
-        right->setTextColor(theme.getColor("font/grey"));
-        right->setMarginLeft(34);
-        row->addView(right);
+        // track: a flat rail, five ticks along it, and the thumb over the top
+        auto* slider = new brls::Box();
+        slider->setWidth(brls::Application::contentWidth * 0.6f - 104);
+        slider->setHeight(48);
+        slider->setMarginTop(36);
 
-        panel->addView(row);
+        auto* track = new brls::Box();
+        track->setPositionType(brls::PositionType::ABSOLUTE);
+        track->setPositionTop(20);
+        track->setPositionLeft(0);
+        track->setWidth(brls::Application::contentWidth * 0.6f - 104);
+        track->setHeight(8);
+        track->setCornerRadius(4);
+        track->setBackgroundColor(nvgRGBA(255, 255, 255, 38));
+        slider->addView(track);
 
-        // back hint inside the card, native key glyph like the rest of the app
+        this->trackWidth = brls::Application::contentWidth * 0.6f - 104;
+        for (int i = 0; i < 5; i++) {
+            auto* tick = new brls::Box();
+            tick->setPositionType(brls::PositionType::ABSOLUTE);
+            tick->setWidth(2);
+            tick->setHeight(i == 2 ? 26 : 18);
+            tick->setPositionTop(i == 2 ? 11 : 15);
+            tick->setPositionLeft((this->trackWidth - 2) * i / 4);
+            tick->setBackgroundColor(nvgRGBA(0x4A, 0xA3, 0xFF, 133));
+            slider->addView(tick);
+        }
+
+        this->thumb = new brls::Box();
+        this->thumb->setPositionType(brls::PositionType::ABSOLUTE);
+        this->thumb->setPositionTop(16);
+        this->thumb->setWidth(kThumbWidth);
+        this->thumb->setHeight(16);
+        this->thumb->setCornerRadius(8);
+        this->thumb->setBackgroundColor(nvgRGBA(0x4A, 0xA3, 0xFF, 242));
+        slider->addView(this->thumb);
+        card->addView(slider);
+
+        // reset
+        this->resetCard = new brls::Box();
+        this->resetCard->setJustifyContent(brls::JustifyContent::CENTER);
+        this->resetCard->setAlignItems(brls::AlignItems::CENTER);
+        this->resetCard->setMarginTop(32);
+        this->resetCard->setWidth(brls::Application::contentWidth * 0.6f - 104);
+        this->resetCard->setCornerRadius(24);
+        this->resetCard->setBackgroundColor(nvgRGBA(255, 255, 255, 28));
+        this->resetCard->setPaddingTop(18);
+        this->resetCard->setPaddingBottom(18);
+        auto* resetLabel = new brls::Label();
+        resetLabel->setText("main/player/panel/sub_delay_reset"_i18n);
+        resetLabel->setFontSize(28);
+        resetLabel->setTextColor(nvgRGB(255, 255, 255));
+        this->resetCard->addView(resetLabel);
+        card->addView(this->resetCard);
+
         auto* hint = new brls::Label();
         hint->setText(brls::Hint::getKeyIcon(brls::BUTTON_B) + "  " + "hints/back"_i18n);
-        hint->setFontSize(16);
-        hint->setTextColor(theme.getColor("font/grey"));
-        hint->setMarginTop(22);
-        panel->addView(hint);
+        hint->setFontSize(24);
+        hint->setTextColor(nvgRGBA(255, 255, 255, 140));
+        hint->setMarginTop(28);
+        card->addView(hint);
 
-        this->addView(panel);
+        this->addView(card);
 
-        // local source of truth for the display: mpv set/get is async, so
-        // re-reading right after setDouble returns the OLD value (the first
-        // nudge then never showed, and the closed value didn't match what
-        // re-opened). Seed from mpv once, then track locally.
-        this->delay = MPVCore::instance().getDouble("sub-delay");
+        // Local source of truth for the display: mpv's writes are async, so a
+        // read straight after one returns the OLD value. Seeded once, tracked
+        // here, written out through the `set` command (which parses the value
+        // with the option's own parser — the typed setter was being dropped).
+        this->delay = MPVCore::instance().getOptionDouble("sub-delay");
         this->refresh();
 
         this->registerAction(
-            "main/setting/playback/subsync"_i18n, brls::BUTTON_NAV_LEFT,
+            "main/player/panel/sub_delay"_i18n, brls::BUTTON_NAV_LEFT,
             [this](brls::View*) {
-                this->nudge(-0.1);
+                this->nudge(-kStep);
                 return true;
             },
             true, true);
         this->registerAction(
             "", brls::BUTTON_NAV_RIGHT,
             [this](brls::View*) {
-                this->nudge(0.1);
+                this->nudge(kStep);
                 return true;
             },
             true, true);
+        this->registerAction("main/player/panel/sub_delay_reset"_i18n, brls::BUTTON_A, [this](brls::View*) {
+            this->delay = 0;
+            MPVCore::instance().setOption("sub-delay", "0");
+            this->refresh();
+            return true;
+        });
         this->registerAction("hints/back"_i18n, brls::BUTTON_B, [](brls::View*) {
             brls::Application::popActivity();
             return true;
@@ -105,16 +163,25 @@ public:
     brls::View* getDefaultFocus() override { return this; }
 
 private:
+    // The reference's own range and step (SubtitleDelayConfig.kt).
+    static constexpr double kMin = -180.0, kMax = 180.0, kStep = 0.1;
+    static constexpr float kThumbWidth = 44;
+
     brls::Label* value = nullptr;
+    brls::Box* thumb = nullptr;
+    brls::Box* resetCard = nullptr;
+    float trackWidth = 0;
     double delay = 0;
 
     void nudge(double d) {
-        this->delay += d;
-        MPVCore::instance().setDouble("sub-delay", this->delay);
+        this->delay = std::clamp(this->delay + d, kMin, kMax);
+        MPVCore::instance().setOption("sub-delay", fmt::format("{:.1f}", this->delay));
         this->refresh();
     }
     void refresh() {
         this->value->setText(fmt::format("{:+.1f} s", this->delay));
+        float fraction = (float)((this->delay - kMin) / (kMax - kMin));
+        this->thumb->setPositionLeft((this->trackWidth - kThumbWidth) * fraction);
     }
 };
 

@@ -70,6 +70,15 @@ public:
     int64_t getInt(const std::string &key, int64_t default_value = 0);
     void setInt(const std::string &key, int64_t value);
 
+    /// Set an option through mpv's `set` COMMAND, which parses the value with
+    /// the option's own parser. The typed setters above hand mpv a format it
+    /// then has to convert, and it refuses several of those outright — a flag
+    /// from INT64, a choice from INT64 — dropping the write without an error.
+    /// Anything whose property type is not plainly numeric goes through here.
+    void setOption(const std::string &key, const std::string &value);
+    /// Read a numeric option back as text and parse it, for the same reason.
+    double getOptionDouble(const std::string &key, double fallback = 0);
+
     std::unordered_map<std::string, mpv_node> getNodeMap(const std::string &key);
 
     void togglePlay();
