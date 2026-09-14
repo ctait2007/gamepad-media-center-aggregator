@@ -84,6 +84,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {PLAYER_VIDEO_QUALITY, {"player_video_quality"}},
     {FULLSCREEN, {"fullscreen"}},
     {OSD_ON_TOGGLE, {"osd_on_toggle"}},
+    {LOADING_SCREEN, {"loading_screen"}},
+    {LOADING_STAGES, {"loading_stages"}},
+    {PAUSE_SCREEN, {"pause_screen"}},
     {TOUCH_GESTURE, {"touch_gesture"}},
     {CLIP_POINT, {"clip_point"}},
     {SYNC_SETTING, {"sync_setting"}},
@@ -377,6 +380,9 @@ bool AppConfig::init() {
     VideoContext::FULLSCREEN = this->getItem(FULLSCREEN, false);
 
     MPVCore::OSD_ON_TOGGLE = this->getItem(OSD_ON_TOGGLE, true);
+    MPVCore::LOADING_SCREEN = this->getItem(LOADING_SCREEN, true);
+    MPVCore::LOADING_STAGES = this->getItem(LOADING_STAGES, true);
+    MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
     MPVCore::TOUCH_GESTURE = this->getItem(TOUCH_GESTURE, true);
     MPVCore::CLIP_POINT = this->getItem(CLIP_POINT, true);
     // 初始化内存缓存大小

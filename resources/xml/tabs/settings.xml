@@ -192,6 +192,12 @@
                             <brls:BooleanCell
                                 id="setting/player/osd_on_toggle" />
                             <brls:BooleanCell
+                                id="setting/player/loading_screen" />
+                            <brls:BooleanCell
+                                id="setting/player/loading_stages" />
+                            <brls:BooleanCell
+                                id="setting/player/pause_screen" />
+                            <brls:BooleanCell
                                 id="setting/player/touch_gesture" />
                             <brls:BooleanCell
                                 id="setting/player/tv_model" />

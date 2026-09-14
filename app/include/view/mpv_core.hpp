@@ -129,6 +129,17 @@ public:
     inline static bool TOUCH_GESTURE = true;
     inline static bool CLIP_POINT = true;
 
+    /// The player's two full-screen states (view/player_screens.hpp). The
+    /// reference makes all three of these settings, in the same order and
+    /// with the same defaults.
+    inline static bool LOADING_SCREEN = true;   // the startup screen at all
+    inline static bool LOADING_STAGES = true;   // the step text on it
+    inline static bool PAUSE_SCREEN = true;     // the "you're watching" screen
+    /// How long a pause has to last first. The reference waits 5 s; this app
+    /// was asked for longer, so that a pause to answer the door is not met
+    /// with a page of metadata.
+    inline static int PAUSE_SCREEN_DELAY = 15;  // seconds
+
     // 低画质解码，剔除解码过程中的部分步骤，可以用来节省cpu
     inline static bool LOW_QUALITY = false;
     inline static bool SUBS_FALLBACK = true;

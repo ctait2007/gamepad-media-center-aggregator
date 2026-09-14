@@ -158,6 +158,7 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
             // resolved subtitle — a dozen or more, each one a network fetch on
             // mpv's own worker pool. See attachSubtitle() for what replaced it.
             this->mpvLoaded = true;
+            this->view->setLoadingStage("main/player/loading/buffering"_i18n);
             this->autoSelectSubtitle();
             break;
         }
@@ -345,6 +346,24 @@ void PlayerView::applyIdentity() {
     this->view->setSourceLine(src);
 }
 
+/// The artwork the startup and pause screens stand on. An EPISODE carries the
+/// show's backdrop under grandparentArt and, on most backends, nothing of its
+/// own worth showing full-screen — so the show's art wins when it is there.
+static std::string backdropOf(const plex::Item& item) {
+    if (!item.grandparentArt.empty()) return item.grandparentArt;
+    if (!item.art.empty()) return item.art;
+    return item.thumb;
+}
+
+void PlayerView::showStartupScreen() {
+    // The show's name, not the episode's — the screen is the wordmark of the
+    // thing you picked, and its logo says the same.
+    std::string title = !this->item.grandparentTitle.empty() ? this->item.grandparentTitle : this->item.title;
+    this->view->showLoadingScreen(backdropOf(this->item), this->item.clearLogo, title);
+    this->view->setLoadingStage("main/player/loading/preparing"_i18n);
+    this->view->setPauseItem(this->item, title, this->item.clearLogo);
+}
+
 void PlayerView::playMedia(const int64_t seekMs) {
     // Capture/automation guard: in GMCA_NAV_PIPE mode a stray "Play" from the
     // screenshot harness must never actually start playback — doing so pushes a
@@ -360,6 +379,7 @@ void PlayerView::playMedia(const int64_t seekMs) {
     // deliberate (re)start: allow the direct-play fallback to trigger again
     this->directPlayFallback = false;
     this->reloadRetries = 0;
+    this->showStartupScreen();
 
     // Fast path: the caller already resolved the exact source (Stremio source
     // picker passes the fully-resolved item + chosen index). Re-fetching would
@@ -388,6 +408,9 @@ void PlayerView::playMedia(const int64_t seekMs) {
         [ASYNC_TOKEN, seekMs](const media::Item& item) {
             ASYNC_RELEASE
             this->item = item;
+            // Now that the real metadata is in, the screen can show the real
+            // artwork — the fast path already had it, this is the slow one.
+            this->showStartupScreen();
 
             // caller-chosen source (Stremio picker) if it still resolves to an
             // accessible file; otherwise the first accessible version.
@@ -430,6 +453,7 @@ void PlayerView::startPlayback(const int64_t seekMs, bool forceDirect) {
     this->mpvLoaded = false;
     this->selectedSidecar = -1;
     this->autoSubTried = false;
+    this->view->setLoadingStage("main/player/loading/building"_i18n);
 
     media::PlaybackOptions opts;
     opts.seekMs = seekMs;
@@ -484,6 +508,7 @@ void PlayerView::startPlayback(const int64_t seekMs, bool forceDirect) {
                 // went) — and both made switching episode from the sheet look
                 // like the pick did nothing at all.
                 MPVCore::instance().command("set", "pause", "no");
+                this->view->setLoadingStage("main/player/loading/starting"_i18n);
             });
         } catch (const std::exception& ex) {
             std::string msg = ex.what();

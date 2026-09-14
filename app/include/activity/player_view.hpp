@@ -62,6 +62,10 @@ private:
     /// Swap the playing item for `ep` on the source at `mediaIndex`, in place —
     /// no second player.
     void switchTo(const plex::Item& ep, const std::vector<plex::Media>& sources, int mediaIndex);
+    /// Raise the startup screen with this item's artwork, and hand the pause
+    /// screen the same. Called on every deliberate (re)start, and again when
+    /// fresh metadata lands with better art than we opened with.
+    void showStartupScreen();
     /// Resolves external subtitle sidecars for the current item through the
     /// backend (Stremio addons), lazily and only when the played item changes.
     /// Plex/Jellyfin embed theirs in the Media streams, so this is a no-op there.

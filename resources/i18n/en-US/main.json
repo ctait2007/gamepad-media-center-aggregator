@@ -98,7 +98,17 @@
             "language": "Language",
             "name": "Name"
         },
-        "ends_at": "Ends at {}"
+        "ends_at": "Ends at {}",
+        "pause": {
+            "watching": "You're watching",
+            "cast": "Cast"
+        },
+        "loading": {
+            "preparing": "Preparing stream…",
+            "building": "Building player…",
+            "starting": "Starting stream…",
+            "buffering": "Buffering…"
+        }
     },
     "media": {
         "choose_source": "Choose a source",
@@ -374,6 +384,9 @@
             "hwdec": "Hardware decode",
             "force_directplay": "Force direct play",
             "osd_on_toggle": "Show OSD when paused",
+            "loading_screen": "Loading screen",
+            "loading_stages": "Show loading steps",
+            "pause_screen": "Pause screen",
             "touch_gesture": "Touch gesture for seeking step",
             "clip_point": "Show clip point of chapter",
             "transcodec": "Codec",

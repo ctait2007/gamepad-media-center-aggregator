@@ -491,28 +491,33 @@ void PlayerRail::relabel(PlayerCard* card, const std::string& name, const std::s
     }
 }
 
-PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom, bool anchorBottom) {
-    this->setAxis(brls::Axis::COLUMN);
-    this->setWidth(brls::Application::contentWidth);
-    this->setHeight(brls::Application::contentHeight);
-
-    // The scaffold's three layers, in its order: a horizontal gradient out of
-    // the left edge, a flat tint, then a vertical one down from the top.
+void addPlayerScrim(brls::Box* into) {
+    // The reference's PlayerOverlayScaffold draws three layers, in this order:
+    // a horizontal gradient out of the left edge, a flat tint, then a vertical
+    // one down from the top. Every overlay that sits over the video uses it.
     auto* horizontal = layer();
     horizontal->setBackground(brls::ViewBackground::HORIZONTAL_LINEAR);
     horizontal->setBackgroundStartColor(nvgRGBA(0, 0, 0, 224));
     horizontal->setBackgroundEndColor(nvgRGBA(0, 0, 0, 0));
-    this->addView(horizontal);
+    into->addView(horizontal);
 
     auto* tint = layer();
     tint->setBackgroundColor(nvgRGBA(0, 0, 0, 87));
-    this->addView(tint);
+    into->addView(tint);
 
     auto* vertical = layer();
     vertical->setBackground(brls::ViewBackground::VERTICAL_LINEAR);
     vertical->setBackgroundStartColor(nvgRGBA(0, 0, 0, 153));
     vertical->setBackgroundEndColor(nvgRGBA(0, 0, 0, 0));
-    this->addView(vertical);
+    into->addView(vertical);
+}
+
+PlayerOverlay::PlayerOverlay(float padLeft, float padTop, float padBottom, bool anchorBottom) {
+    this->setAxis(brls::Axis::COLUMN);
+    this->setWidth(brls::Application::contentWidth);
+    this->setHeight(brls::Application::contentHeight);
+
+    addPlayerScrim(this);
 
     this->column = new brls::Box();
     this->column->setAxis(brls::Axis::COLUMN);

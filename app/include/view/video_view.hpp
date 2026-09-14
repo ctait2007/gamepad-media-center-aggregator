@@ -8,6 +8,7 @@
 #include <utils/event.hpp>
 
 #include "view/player_button.hpp"
+#include "view/player_screens.hpp"
 
 class VideoProgressSlider;
 class SVGImage;
@@ -63,6 +64,18 @@ public:
     brls::VoidEvent* getSettingEvent() { return &this->settingEvent; }
 
     VideoProfile* getProfile() { return this->profile; }
+
+    /// ---- the two full-screen states (see view/player_screens.hpp) --------
+
+    /// Put the startup screen up with this item's artwork behind it. Called
+    /// when a source is chosen, torn down by the first frame that plays.
+    void showLoadingScreen(const std::string& backdropUrl, const std::string& logoUrl, const std::string& title);
+    /// The step the player is on. Dropped when the step text is turned off.
+    void setLoadingStage(const std::string& text);
+    void hideLoadingScreen();
+
+    /// The item the pause screen describes, and the logo to head it with.
+    void setPauseItem(const plex::Item& item, const std::string& showTitle, const std::string& logoUrl);
 
     void hideVideoProgressSlider();
     void hideVideoQuality();
@@ -148,6 +161,13 @@ private:
 
     void showLoading();
     void hideLoading(bool dimming = true);
+    /// Arm the pause screen's timer, or take it back down. Armed on every
+    /// pause and disarmed by anything that resumes, seeks or opens a panel.
+    void schedulePauseScreen();
+    void cancelPauseScreen();
+    /// True while the pause screen is up — the buttons mean something else
+    /// then (circle goes back to the OSD, cross resumes).
+    bool pauseScreenShown();
     bool toggleProfile();
     /// OSD
     void toggleOSD();
@@ -192,6 +212,15 @@ private:
 
     int64_t seekingRange = 0;
     size_t seekingIter = 0;
+
+    /// The startup and pause screens, owned here so they sit above the whole
+    /// OSD and take no focus from it.
+    LoadingScreen* loadingScreen = nullptr;
+    PauseScreen* pauseScreen = nullptr;
+    size_t pauseScreenIter = 0;
+    /// Gate on the pause screen: it is only for a pause the VIEWER made, after
+    /// something has actually played. The reference asks the same two things.
+    bool firstFrameSeen = false;
 
     MPVEvent::Subscription eventSubscribeID;
     brls::Rect oldRect = brls::Rect(-1, -1, -1, -1);

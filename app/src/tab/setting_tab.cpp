@@ -248,6 +248,21 @@ void SettingTab::onCreate() {
         conf.setItem(AppConfig::OSD_ON_TOGGLE, value);
     });
 
+    btnLoadingScreen->init("main/setting/playback/loading_screen"_i18n, MPVCore::LOADING_SCREEN, [&conf](bool value) {
+        MPVCore::LOADING_SCREEN = value;
+        conf.setItem(AppConfig::LOADING_SCREEN, value);
+    });
+
+    btnLoadingStages->init("main/setting/playback/loading_stages"_i18n, MPVCore::LOADING_STAGES, [&conf](bool value) {
+        MPVCore::LOADING_STAGES = value;
+        conf.setItem(AppConfig::LOADING_STAGES, value);
+    });
+
+    btnPauseScreen->init("main/setting/playback/pause_screen"_i18n, MPVCore::PAUSE_SCREEN, [&conf](bool value) {
+        MPVCore::PAUSE_SCREEN = value;
+        conf.setItem(AppConfig::PAUSE_SCREEN, value);
+    });
+
     btnTouchGesture->init("main/setting/playback/touch_gesture"_i18n, MPVCore::TOUCH_GESTURE, [&conf](bool value) {
         MPVCore::TOUCH_GESTURE = value;
         conf.setItem(AppConfig::TOUCH_GESTURE, value);

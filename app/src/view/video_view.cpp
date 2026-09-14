@@ -18,7 +18,6 @@ static int getSeekRange(int current) {
     // 10 s for the first jumps, not 5: a single press should move far enough
     // to be worth pressing. The tiers above it are unchanged — holding the
     // button still accelerates through a long file.
-    if (current < 60) return 10;
     if (current < 300) return 10;
     if (current < 600) return 20;
     if (current < 1200) return 60;
@@ -44,6 +43,14 @@ VideoView::VideoView() {
     this->registerAction(
         "hints/back"_i18n, brls::BUTTON_B,
         [this](brls::View* view) {
+            // Circle on the pause screen is "put that away", not "leave" —
+            // it hands you back the paused OSD. Checked before everything
+            // else, since the screen is up over all of it.
+            if (this->pauseScreenShown()) {
+                this->cancelPauseScreen();
+                this->showOSD(true);
+                return true;
+            }
             if (MPVCore::OSD_TV_MODE && this->isOsdShown) {
                 this->toggleOSD();
                 return true;
@@ -321,6 +328,14 @@ VideoView::VideoView() {
     // bitrate one (see registerVideoQuality); both were a surprise under the
     // thumb mid-film and neither is worth a dedicated button.
 
+    // The two full-screen states, added LAST so they draw over the whole OSD.
+    // Neither is focusable: the player's own actions keep working underneath,
+    // which is what lets circle and cross mean something on the pause screen.
+    this->loadingScreen = new LoadingScreen();
+    this->addView(this->loadingScreen);
+    this->pauseScreen = new PauseScreen();
+    this->addView(this->pauseScreen);
+
     // Paint the clock and a 0:00 / 0:00 straight away rather than leaving three
     // blank lines until mpv reports its first duration.
     this->updateTime(0, 0);
@@ -558,6 +573,12 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
         }
         profile->frame(ctx);
     }
+
+    // LAST, over everything above. draw() never chains to Box::draw — it
+    // frames the children it wants, in the order it wants them — so a view
+    // added to this box is invisible until it is named here.
+    if (loadingScreen->getVisibility() == brls::Visibility::VISIBLE) loadingScreen->frame(ctx);
+    if (pauseScreen->getVisibility() == brls::Visibility::VISIBLE) pauseScreen->frame(ctx);
 }
 
 void VideoView::invalidate() { View::invalidate(); }
@@ -595,6 +616,7 @@ void VideoView::registerMpvEvent() {
         // brls::Logger::info("mpv event => : {}", event);
         switch (event) {
         case MpvEventEnum::MPV_RESUME:
+            this->cancelPauseScreen();
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(true);
             }
@@ -605,6 +627,9 @@ void VideoView::registerMpvEvent() {
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(false);
             }
+            // AFTER showOSD, which cancels it — arming first would arm and
+            // disarm the timer in the same breath.
+            this->schedulePauseScreen();
             hideLoading(false);
             this->btnToggle->setIconPath(player_icon::PLAY);
             this->applySourceLine();
@@ -619,6 +644,11 @@ void VideoView::registerMpvEvent() {
             break;
         case MpvEventEnum::LOADING_END:
             this->hideLoading();
+            // Something is on the screen now, which is exactly what the
+            // startup screen was covering for. It is also the gate on the
+            // pause screen: nothing to describe before the first frame.
+            this->firstFrameSeen = true;
+            this->hideLoadingScreen();
             break;
         case MpvEventEnum::UPDATE_DURATION:
             if (this->seekingRange == 0) {
@@ -655,6 +685,10 @@ void VideoView::registerMpvEvent() {
             // Let an owner (PlayerView) try to recover first (e.g. fall back to
             // direct play). If it reports the error handled, show nothing.
             if (this->errorAction && this->errorAction(this)) break;
+            // Nothing is going to play: take the startup screen down so the
+            // dialog lands on the video rather than on a full-screen poster
+            // that is still promising the film is on its way.
+            this->hideLoadingScreen();
             // Otherwise surface the concrete mpv reason so bug reports are
             // actionable ("Playback error (mpv -13: unrecognized file format)")
             // instead of an opaque "Playback error".
@@ -708,6 +742,11 @@ void VideoView::toggleOSD() {
 }
 
 void VideoView::showOSD(bool autoHide) {
+    // ANY interaction takes the pause screen down — the reference's
+    // onUserInteraction does the same. Everything that wakes the bar (a seek,
+    // the volume, a button, cross) comes through here, so this is the one
+    // place that has to say it.
+    this->cancelPauseScreen();
     // Marked shown HERE and not only in frame(). onChildFocusGained bounces
     // focus back to the video whenever the OSD is not shown, so a handler that
     // revealed the OSD and gave focus to a control in the same tick had that
@@ -722,6 +761,62 @@ void VideoView::showOSD(bool autoHide) {
         this->osdLastShowTime = std::numeric_limits<std::time_t>::max();
         this->osdState = OSDState::ALWAYS_ON;
     }
+}
+
+/// ---- the two full-screen states ------------------------------------------
+
+void VideoView::showLoadingScreen(
+    const std::string& backdropUrl, const std::string& logoUrl, const std::string& title) {
+    if (!MPVCore::LOADING_SCREEN) return;
+    this->firstFrameSeen = false;
+    this->loadingScreen->setArtwork(backdropUrl, logoUrl, title);
+    this->loadingScreen->setStage("");
+    this->loadingScreen->show();
+    this->hideOSD();
+}
+
+void VideoView::setLoadingStage(const std::string& text) {
+    if (!this->loadingScreen->shown()) return;
+    // The step text is the part the reference makes optional; the screen
+    // itself stays either way.
+    this->loadingScreen->setStage(MPVCore::LOADING_STAGES ? text : "");
+}
+
+void VideoView::hideLoadingScreen() { this->loadingScreen->hide(); }
+
+void VideoView::setPauseItem(const plex::Item& item, const std::string& showTitle, const std::string& logoUrl) {
+    this->pauseScreen->setItem(item, showTitle, logoUrl);
+}
+
+bool VideoView::pauseScreenShown() { return this->pauseScreen && this->pauseScreen->shown(); }
+
+void VideoView::schedulePauseScreen() {
+    brls::cancelDelay(this->pauseScreenIter);
+    this->pauseScreenIter = 0;
+    if (!MPVCore::PAUSE_SCREEN || !this->firstFrameSeen) return;
+
+    this->pauseScreenIter = brls::delay(MPVCore::PAUSE_SCREEN_DELAY * 1000, [this]() {
+        this->pauseScreenIter = 0;
+        auto& mpv = MPVCore::instance();
+        if (!mpv.isPaused() || this->loadingScreen->shown()) return;
+        // Not over a panel. A panel is a pushed activity, so the focus is no
+        // longer anywhere under this view — which is the cheapest way to ask.
+        brls::View* focus = brls::Application::getCurrentFocus();
+        for (brls::View* v = focus; v; v = v->getParent())
+            if (v == this) {
+                this->hideOSD();
+                // Same wall clock the OSD shows, kept in step by updateTime.
+                this->pauseScreen->setClock(this->clockLabel->getFullText());
+                this->pauseScreen->show();
+                return;
+            }
+    });
+}
+
+void VideoView::cancelPauseScreen() {
+    brls::cancelDelay(this->pauseScreenIter);
+    this->pauseScreenIter = 0;
+    if (this->pauseScreen) this->pauseScreen->hide();
 }
 
 void VideoView::hideOSD() {

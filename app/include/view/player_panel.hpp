@@ -167,6 +167,11 @@ private:
 
 /// The full-screen wash. Content goes in the bottom-left column returned by
 /// content(); present() pushes it as its own translucent activity.
+/// Lay the reference's three-layer scrim (horizontal gradient, flat tint,
+/// vertical gradient) into `into`, as its PlayerOverlayScaffold draws it.
+/// Every overlay that sits over the video shares this, panels included.
+void addPlayerScrim(brls::Box* into);
+
 class PlayerOverlay : public brls::Box {
 public:
     /// @param padLeft/padBottom the reference gives each of its three overlays
