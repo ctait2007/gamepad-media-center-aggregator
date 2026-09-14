@@ -1245,7 +1245,10 @@ void AppConfig::initThemes() {
         // Every other panel keeps the 40 it had, its rail being narrower.
         brls::getStyle().addMetric(
             "main/content_padding_sides", brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080 ? 68 : 40);
-        brls::getStyle().addMetric("main/content_padding_top_bottom", 30);
+        // 44: the reference's screens start their title there (its 24dp safe
+        // area, less the leading its own label carries).
+        brls::getStyle().addMetric(
+            "main/content_padding_top_bottom", brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080 ? 44 : 30);
     }
 
     // UI redesign (UI_REDESIGN.md §3.2-3.3): bare and larger section titles

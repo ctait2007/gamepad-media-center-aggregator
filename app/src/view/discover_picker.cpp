@@ -32,7 +32,8 @@ DiscoverPicker::DiscoverPicker(const std::string& caption) : caption(caption) {
 
     this->setAxis(brls::Axis::ROW);
     this->setAlignItems(brls::AlignItems::CENTER);
-    this->setHeight(112);
+    // 100, as the reference draws it: a 12sp caption over its titleMedium.
+    this->setHeight(100);
     this->setPadding(0, 28, 0, 32);
     this->setCornerRadius(24);
     this->setHighlightCornerRadius(28);
