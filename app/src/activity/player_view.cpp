@@ -233,6 +233,7 @@ void PlayerView::setSeries(const std::string& showRatingKey) {
             }
             view->setList(values, index);
             this->episodes = std::move(r.Items);
+            this->updateNextEpisode();
             // The sheet draws each episode's still, title, air date and
             // synopsis, so it needs the items themselves — which live here.
             std::string show = this->item.grandparentTitle.empty() ? this->item.title : this->item.grandparentTitle;
@@ -275,6 +276,7 @@ bool PlayerView::playIndex(int index) {
     this->scrobbled = false;
     this->preferredVersion = -1;  // binge: auto-pick the best source for the new episode
     this->playMedia(0);
+    this->updateNextEpisode();
     view->setTitie(next.grandparentTitle.empty()
                        ? fmt::format("S{}E{} — {}", next.parentIndex, next.index, next.title)
                        : fmt::format("{} · S{}E{} — {}", next.grandparentTitle, next.parentIndex, next.index,
@@ -310,6 +312,18 @@ void PlayerView::switchTo(const plex::Item& ep, const std::vector<plex::Media>& 
     // Keep the Next button pointing at the episode after THIS one.
     for (size_t i = 0; i < this->episodes.size(); i++)
         if (this->episodes[i].ratingKey == ep.ratingKey) this->view->setPlayIndex((int)i);
+    this->updateNextEpisode();
+}
+
+/// Hand the player the episode after the one playing, for the "up next" card.
+/// Called every time the played item changes: the card is fed from the list
+/// the sheet uses, so it offers exactly what Next would play.
+void PlayerView::updateNextEpisode() {
+    for (size_t i = 0; i + 1 < this->episodes.size(); i++) {
+        if (this->episodes[i].ratingKey != this->itemId) continue;
+        this->view->setNextEpisode(this->episodes[i + 1]);
+        return;
+    }
 }
 
 /// NuvioTV splits the player's identity across three lines rather than one

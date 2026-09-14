@@ -161,6 +161,8 @@ public:
         LOADING_SCREEN,
         LOADING_STAGES,
         PAUSE_SCREEN,
+        /// "Up next" card at the end of an episode (layout_next_episode_card).
+        NEXT_EPISODE_CARD,
         PAUSE_SCREEN_DELAY,
         TOUCH_GESTURE,
         CLIP_POINT,

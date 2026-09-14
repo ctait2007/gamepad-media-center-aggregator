@@ -87,6 +87,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {LOADING_SCREEN, {"loading_screen"}},
     {LOADING_STAGES, {"loading_stages"}},
     {PAUSE_SCREEN, {"pause_screen"}},
+    {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {PAUSE_SCREEN_DELAY, {"pause_screen_delay"}},
     {TOUCH_GESTURE, {"touch_gesture"}},
     {CLIP_POINT, {"clip_point"}},
@@ -384,6 +385,7 @@ bool AppConfig::init() {
     MPVCore::LOADING_SCREEN = this->getItem(LOADING_SCREEN, true);
     MPVCore::LOADING_STAGES = this->getItem(LOADING_STAGES, true);
     MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
+    MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
     MPVCore::PAUSE_SCREEN_DELAY = this->getItem(PAUSE_SCREEN_DELAY, 15);
     MPVCore::TOUCH_GESTURE = this->getItem(TOUCH_GESTURE, true);
     MPVCore::CLIP_POINT = this->getItem(CLIP_POINT, true);

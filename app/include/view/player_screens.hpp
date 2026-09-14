@@ -8,10 +8,13 @@
       PauseScreen     PauseOverlay.kt + PlayerOverlayScaffold.kt — what you
                       are watching, spelled out, once a pause has lasted long
                       enough to mean the viewer has looked away.
+      NextEpisodeCard PostPlayOverlay.kt in its AutoPlay mode — the still,
+                      name and "Play" of the episode after this one, slid in
+                      from the bottom right as the current one runs out.
 
-    Both are plain child views of VideoView rather than pushed activities:
-    neither takes focus, which is what lets the player's own buttons keep
-    working underneath them.
+    All three are plain child views of VideoView rather than pushed
+    activities: none takes focus, which is what lets the player's own buttons
+    keep working underneath them.
 */
 
 #pragma once
@@ -73,4 +76,29 @@ private:
     brls::Label* summaryLabel = nullptr;
     brls::Label* castLabel = nullptr;
     brls::Box* castRow = nullptr;
+};
+
+/// "Up next": NuvioTV's PostPlayOverlay in AutoPlay mode. Comes up over the
+/// last of an episode and offers the next one. Not focusable — VideoView says
+/// what cross and circle mean while it is up, the same arrangement the pause
+/// screen uses — so the OSD underneath keeps working.
+class NextEpisodeCard : public brls::Box {
+public:
+    NextEpisodeCard();
+
+    /// The episode being offered. Empty title hides the card.
+    void setEpisode(const plex::Item& ep);
+
+    /// The card sits above the OSD when it is up and near the frame edge when
+    /// it is not, as the reference's bottom padding does.
+    void setOsdVisible(bool visible);
+
+    void show();
+    void hide();
+    bool shown() { return this->getVisibility() == brls::Visibility::VISIBLE; }
+
+private:
+    brls::Box* card = nullptr;
+    brls::Image* still = nullptr;
+    brls::Label* titleLabel = nullptr;
 };

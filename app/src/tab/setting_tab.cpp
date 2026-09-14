@@ -263,6 +263,12 @@ void SettingTab::onCreate() {
         conf.setItem(AppConfig::PAUSE_SCREEN, value);
     });
 
+    btnNextEpisode->init(
+        "main/setting/playback/next_episode_card"_i18n, MPVCore::NEXT_EPISODE_CARD, [&conf](bool value) {
+            MPVCore::NEXT_EPISODE_CARD = value;
+            conf.setItem(AppConfig::NEXT_EPISODE_CARD, value);
+        });
+
     btnTouchGesture->init("main/setting/playback/touch_gesture"_i18n, MPVCore::TOUCH_GESTURE, [&conf](bool value) {
         MPVCore::TOUCH_GESTURE = value;
         conf.setItem(AppConfig::TOUCH_GESTURE, value);

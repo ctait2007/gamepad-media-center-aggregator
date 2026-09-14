@@ -54,6 +54,8 @@ private:
     /// true when a fallback was started (so the error dialog is suppressed).
     bool tryDirectPlayFallback();
     bool playIndex(int index);
+    /// Feed VideoView the episode after the one playing (the "up next" card).
+    void updateNextEpisode();
     /// Picked from the episode sheet: present the SOURCE PICKER for that
     /// episode rather than starting it straight away. Auto-play is a feature
     /// this app has not been asked for yet, and switching episode is exactly

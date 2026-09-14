@@ -77,6 +77,11 @@ public:
     /// The item the pause screen describes, and the logo to head it with.
     void setPauseItem(const plex::Item& item, const std::string& showTitle, const std::string& logoUrl);
 
+    /// "Up next" — the reference's PostPlayOverlay in AutoPlay mode. Fed the
+    /// episode after this one by PlayerView; raised by tickNextEpisodeCard as
+    /// the current one runs out.
+    void setNextEpisode(const plex::Item& ep);
+
     void hideVideoProgressSlider();
     void hideVideoQuality();
     void registerVideoQuality(brls::ActionListener action);
@@ -170,6 +175,9 @@ private:
     /// True while the pause screen is up — the buttons mean something else
     /// then (circle goes back to the OSD, cross resumes).
     bool pauseScreenShown();
+
+    void tickNextEpisodeCard(double positionSec, double durationSec);
+    void dismissNextEpisodeCard();
     bool toggleProfile();
     /// OSD
     void toggleOSD();
@@ -219,6 +227,11 @@ private:
     /// OSD and take no focus from it.
     LoadingScreen* loadingScreen = nullptr;
     PauseScreen* pauseScreen = nullptr;
+    NextEpisodeCard* nextCard = nullptr;
+    /// The stream has reported a position away from its end at least once.
+    bool nextCardArmed = false;
+    /// Circle put the card away for this episode.
+    bool nextCardDismissed = false;
     /// When the current pause began, on the same clock as the OSD's own
     /// auto-hide. 0 = not waiting for anything.
     brls::Time pausedSince = 0;

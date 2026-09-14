@@ -46,6 +46,10 @@ VideoView::VideoView() {
             // Circle on the pause screen is "put that away", not "leave" —
             // it hands you back the paused OSD. Checked before everything
             // else, since the screen is up over all of it.
+            if (this->nextCard && this->nextCard->shown()) {
+                this->dismissNextEpisodeCard();
+                return true;
+            }
             if (this->pauseScreenShown()) {
                 this->cancelPauseScreen();
                 // Still paused, so the bar it hands back is pinned open too.
@@ -297,6 +301,13 @@ VideoView::VideoView() {
 
     this->registerActions(
         "main/player/toggle"_i18n, brls::BUTTON_A, KeyBind::getVideoPause(), [this](brls::View* view) {
+            // "Up next" is up: cross takes it, the way the reference's card
+            // answers select. Circle below puts it away instead.
+            if (this->nextCard && this->nextCard->shown()) {
+                this->dismissNextEpisodeCard();
+                this->playIndexEvent.fire(this->playIndex + 1);
+                return true;
+            }
             MPVCore::instance().togglePlay();
             if (MPVCore::OSD_ON_TOGGLE) {
                 this->showOSD(true);
@@ -336,6 +347,8 @@ VideoView::VideoView() {
     this->addView(this->loadingScreen);
     this->pauseScreen = new PauseScreen();
     this->addView(this->pauseScreen);
+    this->nextCard = new NextEpisodeCard();
+    this->addView(this->nextCard);
 
     // Paint the clock and a 0:00 / 0:00 straight away rather than leaving three
     // blank lines until mpv reports its first duration.
@@ -422,6 +435,11 @@ void VideoView::setList(const std::vector<std::string>& values, int index) {
 
 void VideoView::setPlayIndex(int index) {
     this->playIndex = index;
+    // New episode: the card owes it a fresh offer, and the arming has to see a
+    // position away from the end again before it will make one.
+    this->nextCardArmed = false;
+    this->nextCardDismissed = false;
+    if (this->nextCard) this->nextCard->hide();
     this->btnNext->setVisibility(
         index + 1 < this->playListSize ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
 }
@@ -512,6 +530,9 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     if (current < this->osdLastShowTime) {
         if (!this->isOsdShown) {
             this->isOsdShown = true;
+    // "Up next" rides above the controls when they are out, as the reference's
+    // 122 dp bottom padding does.
+    if (this->nextCard) this->nextCard->setOsdVisible(true);
         }
 
         osdTopBox->setVisibility(brls::Visibility::VISIBLE);
@@ -582,6 +603,7 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     // added to this box is invisible until it is named here.
     if (loadingScreen->getVisibility() == brls::Visibility::VISIBLE) loadingScreen->frame(ctx);
     if (pauseScreen->getVisibility() == brls::Visibility::VISIBLE) pauseScreen->frame(ctx);
+    if (nextCard->getVisibility() == brls::Visibility::VISIBLE) nextCard->frame(ctx);
 }
 
 void VideoView::invalidate() { View::invalidate(); }
@@ -670,6 +692,7 @@ void VideoView::registerMpvEvent() {
                 this->updateTime(mpv.video_progress, mpv.duration);
                 this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
             }
+            this->tickNextEpisodeCard(mpv.playback_time, mpv.duration);
             break;
         case MpvEventEnum::END_OF_FILE:
             // 播放结束
@@ -799,6 +822,56 @@ void VideoView::setPauseItem(const plex::Item& item, const std::string& showTitl
 
 bool VideoView::pauseScreenShown() { return this->pauseScreen && this->pauseScreen->shown(); }
 
+/// "Up next", on NuvioTV's rules (PlayerNextEpisodeRules).
+///
+/// The card comes up once the position crosses the threshold — the reference's
+/// PERCENTAGE mode at its own 99% default, which it clamps to 97..100 — and
+/// only after the stream has first reported a position clearly AWAY from the
+/// end (its isAwayFromEnd arming). Without that arming a file whose first
+/// position report lands at the duration (a resume at the very end, a seek
+/// that overshot) puts the card up the instant it opens.
+///
+/// The reference also reads outro markers from an intro database and fires at
+/// the outro start when the credits run to the end of the file. That database
+/// is behind a build-time key we do not have, so this is its own no-marker
+/// fallback path, which is the same code either way.
+void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
+    if (!this->nextCard) return;
+    if (!MPVCore::NEXT_EPISODE_CARD) return;
+
+    // Nothing to offer: a film, the last episode, or a list we were never given.
+    if (this->playIndex < 0 || this->playIndex + 1 >= this->playListSize) return;
+    if (durationSec <= 0 || this->nextCardDismissed) return;
+
+    constexpr double kThresholdPercent = 99.0;  // the reference's default
+    constexpr double kNearEndSec = 0.5;         // its NEAR_END_MS
+
+    bool past = positionSec / durationSec >= kThresholdPercent / 100.0;
+
+    if (!this->nextCardArmed) {
+        if (positionSec < durationSec - kNearEndSec && !past) this->nextCardArmed = true;
+        return;
+    }
+    // Seeking back out of the window takes the card away again.
+    if (!past) {
+        if (this->nextCard->shown()) this->nextCard->hide();
+        return;
+    }
+    if (this->nextCard->shown()) return;
+    // Anything full-screen owns the screen while it is up.
+    if (this->pauseScreenShown() || this->loadingScreen->shown()) return;
+
+    this->nextCard->setOsdVisible(this->isOsdShown);
+    this->nextCard->show();
+}
+
+void VideoView::setNextEpisode(const plex::Item& ep) { this->nextCard->setEpisode(ep); }
+
+void VideoView::dismissNextEpisodeCard() {
+    this->nextCardDismissed = true;
+    if (this->nextCard) this->nextCard->hide();
+}
+
 void VideoView::schedulePauseScreen() {
     this->pausedSince = 0;
     if (!MPVCore::PAUSE_SCREEN || !this->firstFrameSeen) return;
@@ -844,6 +917,7 @@ void VideoView::tickPauseScreen(brls::Time current) {
 }
 
 void VideoView::hideOSD() {
+    if (this->nextCard) this->nextCard->setOsdVisible(false);
     this->osdLastShowTime = 0;
     this->osdState = OSDState::HIDDEN;
 }

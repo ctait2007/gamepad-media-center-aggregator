@@ -8,6 +8,7 @@
 
 #include "view/player_screens.hpp"
 #include "view/player_panel.hpp"
+#include "view/svg_image.hpp"
 #include "utils/image.hpp"
 #include "utils/misc.hpp"
 
@@ -335,3 +336,115 @@ void PauseScreen::setClock(const std::string& text) { this->clockLabel->setText(
 void PauseScreen::show() { this->setVisibility(brls::Visibility::VISIBLE); }
 
 void PauseScreen::hide() { this->setVisibility(brls::Visibility::GONE); }
+
+// ---- NextEpisodeCard ----------------------------------------------------
+//
+// PostPlayOverlay.kt's AutoPlay card, at the reference's own numbers: 420 dp
+// wide with a 14 dp corner over 0xE3191919 and a hairline white border, a
+// 112x64 still with a 9 dp corner, "NEXT EPISODE" at 11 sp over the episode at
+// 14 sp semibold, and a bordered pill on the right. Bottom-right of the frame,
+// 26 dp in, 122 dp up while the controls are showing and 30 up when they are
+// not.
+
+namespace {
+constexpr float kNextCardWidth = 840, kNextCardRadius = 28;
+constexpr float kNextPadX = 20, kNextPadY = 18;
+constexpr float kNextStillWidth = 224, kNextStillHeight = 128, kNextStillRadius = 18;
+constexpr float kNextRight = 52, kNextBottomOsd = 244, kNextBottomBare = 60;
+}  // namespace
+
+NextEpisodeCard::NextEpisodeCard() {
+    this->setPositionType(brls::PositionType::ABSOLUTE);
+    this->setPositionTop(0);
+    this->setPositionLeft(0);
+    this->setWidth(brls::Application::contentWidth);
+    this->setHeight(brls::Application::contentHeight);
+    this->setVisibility(brls::Visibility::GONE);
+    // No scrim: this one sits over playing video, not over a stopped picture.
+
+    this->card = new brls::Box();
+    this->card->setPositionType(brls::PositionType::ABSOLUTE);
+    this->card->setPositionRight(kNextRight);
+    this->card->setPositionBottom(kNextBottomBare);
+    this->card->setWidth(kNextCardWidth);
+    this->card->setAxis(brls::Axis::ROW);
+    this->card->setAlignItems(brls::AlignItems::CENTER);
+    this->card->setCornerRadius(kNextCardRadius);
+    this->card->setBackgroundColor(nvgRGBA(0x19, 0x19, 0x19, 0xE3));
+    this->card->setBorderThickness(2);
+    this->card->setBorderColor(nvgRGBA(255, 255, 255, 41));  // white 16%
+    this->card->setPadding(kNextPadY, kNextPadX, kNextPadY, kNextPadX);
+    this->addView(this->card);
+
+    this->still = new brls::Image();
+    this->still->setWidth(kNextStillWidth);
+    this->still->setHeight(kNextStillHeight);
+    this->still->setCornerRadius(kNextStillRadius);
+    this->still->setScalingType(brls::ImageScalingType::FILL);
+    this->still->setMarginRight(20);
+    this->card->addView(this->still);
+
+    auto* column = new brls::Box();
+    column->setAxis(brls::Axis::COLUMN);
+    column->setJustifyContent(brls::JustifyContent::CENTER);
+    column->setGrow(1);
+    this->card->addView(column);
+
+    auto* kicker = label(22, nvgRGBA(255, 255, 255, 204));
+    kicker->setFontWeight("medium");
+    kicker->setText("main/player/up_next/label"_i18n);
+    column->addView(kicker);
+
+    this->titleLabel = label(28, nvgRGB(255, 255, 255));
+    this->titleLabel->setFontWeight("semibold");
+    this->titleLabel->setSingleLine(true);
+    this->titleLabel->setMarginTop(4);
+    // A Label needs a width before it will ellipsize rather than push the pill
+    // beside it off the card.
+    this->titleLabel->setWidth(kNextCardWidth - kNextPadX * 2 - kNextStillWidth - 20 - 260);
+    column->addView(this->titleLabel);
+
+    // The "Play" pill: a bordered capsule, as the reference draws it.
+    auto* pill = new brls::Box();
+    pill->setAxis(brls::Axis::ROW);
+    pill->setAlignItems(brls::AlignItems::CENTER);
+    pill->setHeight(56);
+    pill->setPadding(0, 20, 0, 20);
+    pill->setMarginLeft(16);
+    pill->setCornerRadius(28);
+    pill->setBorderThickness(2);
+    pill->setBorderColor(nvgRGBA(255, 255, 255, 51));  // white 20%
+    this->card->addView(pill);
+
+    auto* glyph = new SVGImage();
+    glyph->setWidth(28);
+    glyph->setHeight(28);
+    glyph->setMarginRight(6);
+    glyph->setImageFromSVGRes("icon/ico-play.svg");
+    pill->addView(glyph);
+
+    auto* play = label(24, nvgRGB(255, 255, 255));
+    play->setText("main/player/up_next/play"_i18n);
+    pill->addView(play);
+}
+
+void NextEpisodeCard::setEpisode(const plex::Item& ep) {
+    std::string line = fmt::format("S{} E{}", ep.parentIndex, ep.index);
+    if (!ep.title.empty()) line += "  •  " + ep.title;
+    this->titleLabel->setText(line);
+
+    this->still->clear();
+    const std::string& art = ep.thumb.empty() ? ep.parentThumb : ep.thumb;
+    // An episode with no still leaves the card its text rather than a gap the
+    // width of one — the reference always has artwork here, ours may not.
+    this->still->setVisibility(art.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+    if (!art.empty()) Image::load(this->still, art, (int)kNextStillWidth);
+}
+
+void NextEpisodeCard::setOsdVisible(bool visible) {
+    this->card->setPositionBottom(visible ? kNextBottomOsd : kNextBottomBare);
+}
+
+void NextEpisodeCard::show() { this->setVisibility(brls::Visibility::VISIBLE); }
+
+void NextEpisodeCard::hide() { this->setVisibility(brls::Visibility::GONE); }

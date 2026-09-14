@@ -109,6 +109,10 @@
             "building": "Building player…",
             "starting": "Starting stream…",
             "buffering": "Buffering…"
+        },
+        "up_next": {
+            "label": "NEXT EPISODE",
+            "play": "Play"
         }
     },
     "media": {
@@ -393,7 +397,8 @@
             "transcodec": "Codec",
             "audio_channels": "Audio Channels",
             "video_quality": "Video Quality",
-            "subsync": "Subtitle Sync"
+            "subsync": "Subtitle Sync",
+            "next_episode_card": "Show \"up next\" near the end of an episode"
         },
         "transcode": {
             "header": "Transcode"

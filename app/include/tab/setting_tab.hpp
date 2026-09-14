@@ -77,6 +77,7 @@ private:
     BRLS_BIND(brls::BooleanCell, btnLoadingScreen, "setting/player/loading_screen");
     BRLS_BIND(brls::BooleanCell, btnLoadingStages, "setting/player/loading_stages");
     BRLS_BIND(brls::BooleanCell, btnPauseScreen, "setting/player/pause_screen");
+    BRLS_BIND(brls::BooleanCell, btnNextEpisode, "setting/player/next_episode_card");
     BRLS_BIND(brls::BooleanCell, btnTouchGesture, "setting/player/touch_gesture");
     BRLS_BIND(brls::BooleanCell, btnTvOsdMode, "setting/player/tv_model");
     BRLS_BIND(brls::BooleanCell, btnClipPoint, "setting/player/clip_point");

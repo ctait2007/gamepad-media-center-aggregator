@@ -144,6 +144,10 @@ public:
     inline static bool LOADING_SCREEN = true;   // the startup screen at all
     inline static bool LOADING_STAGES = true;   // the step text on it
     inline static bool PAUSE_SCREEN = true;     // the "you're watching" screen
+    /// The "up next" card near the end of an episode (the reference's
+    /// PostPlayOverlay). ASSIGNED AT STARTUP from AppConfig, like the rest of
+    /// this block — a header initialiser does not survive the console build.
+    inline static bool NEXT_EPISODE_CARD = true;
     /// How long a pause has to last first, in seconds. The reference waits
     /// 5 s; this app was asked for longer, so that a pause to answer the door
     /// is not met with a page of metadata.
