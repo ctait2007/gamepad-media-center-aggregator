@@ -10,6 +10,7 @@
 #include "activity/player_view.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
+#include "api/http.hpp"
 #include "utils/dialog.hpp"
 #include "utils/misc.hpp"
 #include "utils/subtitle_cache.hpp"
@@ -691,6 +692,12 @@ bool PlayerView::tryDirectPlayFallback() {
         constexpr long kRetryDelayMs = 1500;
         if (this->reloadRetries >= kMaxReloadRetries) return false;
         this->reloadRetries++;
+        // The link we were handed did not play, so stop handing it back: the
+        // resolution is cached per source (HTTP::resolveRedirect) and a debrid
+        // CDN url that has expired would otherwise be reused by every retry.
+        // Dropped here, the next attempt asks the endpoint for a fresh one.
+        for (auto& part : this->stream.parts)
+            if (!part.key.empty()) HTTP::forgetResolved(part.key);
         int64_t pos = int64_t(mpv.playback_time) * 1000;  // read before reset() zeroes it
         brls::Logger::warning("PlayerView: stream returned nothing to play ({}) — retry {}/{} in {} ms",
             mpv.getError(), this->reloadRetries, kMaxReloadRetries, kRetryDelayMs);
