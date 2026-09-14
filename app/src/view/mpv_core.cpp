@@ -172,6 +172,21 @@ void MPVCore::init() {
     mpv_set_option_string(mpv, "watch-later-dir", fmt::format("{}/watch-later", confDir).c_str());
     mpv_set_option_string(mpv, "gpu-shader-cache-dir", fmt::format("{}/cache", confDir).c_str());
     mpv_set_option_string(mpv, "ytdl", "no");
+    // Reconnect on the two transient failures libavformat otherwise reports as
+    // plain end-of-stream. mpv already asks for reconnect=1 (a disconnect
+    // before EOF) and gives up after 7 s; it asks for neither of these, and
+    // both default off. A debrid link is a redirect to a CDN entitled to drop
+    // a TLS handshake or hand back a 502 under load, and when that happens
+    // libavformat just says EOF — mpv then ends the file having shown no
+    // frames, which is the "no audio or video data played" the player reports.
+    // Only 5xx and connect-level errors: a 403 or a 404 will not improve on a
+    // second ask, and retrying it just delays a real error.
+    //
+    // (No 4xx and no reconnect_streamed: the former is pointless as above, and
+    // the latter re-requests a non-seekable stream, which on a server without
+    // range support restarts it from zero mid-playback.)
+    mpv_set_option_string(mpv, "stream-lavf-o",
+        "reconnect_on_network_error=1,reconnect_on_http_error=5xx");
     mpv_set_option_string(mpv, "referrer", conf.getUrl().c_str());
     mpv_set_option_string(mpv, "osd-level", "0");
     mpv_set_option_string(mpv, "video-timing-offset", "0");  // 60fps
@@ -240,9 +255,15 @@ void MPVCore::init() {
         mpv_set_option_string(mpv, "terminal", "yes");
         //  mpv_set_option_string(mpv, "msg-level", "all=no");
         mpv_set_option_string(mpv, "msg-level", "all=v");
-    } else if (brls::Application::isDebuggingViewEnabled()) {
-        mpv_request_log_messages(mpv, "info");
     }
+    // ALWAYS take mpv's warnings and errors, not just under the debugging view.
+    // When a stream fails, mpv's own line is the only thing that says WHY —
+    // the HTTP status, the codec it could not open, "No video or audio streams
+    // selected." — and our end of it is a single opaque code ("mpv -16: no
+    // audio or video data played", which only means no frame was ever shown).
+    // Every one of those went in the bin, and each diagnosis cost a round trip
+    // to a real console. At warn the channel is silent during normal playback.
+    mpv_request_log_messages(mpv, brls::Application::isDebuggingViewEnabled() ? "info" : "warn");
 
 #if (defined(__APPLE__) || defined(__linux__) || defined(_WIN32)) && !defined(ANDROID)
     if (conf.getItem(AppConfig::SINGLE, false)) {
