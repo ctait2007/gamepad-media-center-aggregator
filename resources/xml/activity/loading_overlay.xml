@@ -29,7 +29,7 @@
             marginBottom="20" />
 
         <brls:Label
-            fontSize="17"
+            fontSize="28"
             horizontalAlign="center"
             text="@i18n/main/plex/connecting" />
 
@@ -38,7 +38,7 @@
         <brls:Label
             id="loading/hint"
             width="380"
-            fontSize="14"
+            fontSize="24"
             marginTop="12"
             textColor="@theme/font/grey"
             horizontalAlign="center"

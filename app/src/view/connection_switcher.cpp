@@ -301,7 +301,7 @@ public:
 
         this->lbl = new brls::Label();
         this->lbl->setText("main/server/add"_i18n);
-        this->lbl->setFontSize(15);
+        this->lbl->setFontSize(24);
         this->addView(this->lbl);
 
         this->applyVisual(false);
@@ -350,7 +350,7 @@ ConnectionSwitcher::ConnectionSwitcher() {
 
     auto* title = new brls::Label();
     title->setText("main/server/switch_title"_i18n);
-    title->setFontSize(34);
+    title->setFontSize(32);
     title->setMarginBottom(36);
     this->addView(title);
 

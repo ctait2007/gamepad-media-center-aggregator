@@ -161,7 +161,7 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
 
         auto* item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
-        item->setFontSize(18);
+        item->setFontSize(28);
         item->setLabel("main/tabs/suggest"_i18n);
         if (itemType == plex::mediaTypeShow) {
             this->tabFrame->addTab(item, [this]() { return new SuggestShow(this->itemId); });
@@ -176,14 +176,14 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
         if (itemType == plex::mediaTypeMovie && AppConfig::instance().backend().caps().collections) {
             item = new AutoSidebarItem();
             item->setTabStyle(AutoTabBarStyle::ACCENT);
-            item->setFontSize(18);
+            item->setFontSize(28);
             item->setLabel("main/media/collections"_i18n);
             this->tabFrame->addTab(item, [this]() { return new CollectionsTab(this->itemId); });
         }
 
         item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
-        item->setFontSize(18);
+        item->setFontSize(28);
         item->setLabel("main/tabs/genres"_i18n);
         this->tabFrame->addTab(item, [this]() { return new GenresTab(this->itemId, this->itemType); });
 
@@ -490,7 +490,7 @@ StremioCatalogs::StremioCatalogs(const std::string& sectionKey, const std::strin
         if (AppConfig::instance().isHubHidden(catKey)) continue;
         auto* item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
-        item->setFontSize(18);
+        item->setFontSize(28);
         item->setLabel(t.second);
         this->tabFrame->addTab(item, [catKey, type]() { return new CatalogGrid(catKey, type); });
     }
@@ -499,7 +499,7 @@ StremioCatalogs::StremioCatalogs(const std::string& sectionKey, const std::strin
         std::string key = sectionKey, type = sectionType;
         auto* item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
-        item->setFontSize(18);
+        item->setFontSize(28);
         item->setLabel("main/tabs/genres"_i18n);
         this->tabFrame->addTab(item, [key, type]() { return new GenresTab(key, type); });
     }

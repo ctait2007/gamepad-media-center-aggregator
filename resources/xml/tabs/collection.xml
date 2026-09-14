@@ -12,7 +12,7 @@
         sidebarPosition="top">
 
         <Tab label="@i18n/main/tabs/home"
-            fontSize="18">
+            fontSize="32">
             <!-- insets carried by the grid (padding inside the scroll):
                  the posters slide up to the edges of the area.
                  paddingTop 70: the tab bar (60) floats above the grid,

@@ -30,8 +30,8 @@
         grow="1"
         marginLeft="12"
         justifyContent="center">
-        <brls:Label id="queue/row/title" singleLine="true" fontSize="16" />
-        <brls:Label id="queue/row/artist" singleLine="true" fontSize="13" textColor="@theme/font/grey" />
+        <brls:Label id="queue/row/title" singleLine="true" fontSize="28" />
+        <brls:Label id="queue/row/artist" singleLine="true" fontSize="24" textColor="@theme/font/grey" />
     </brls:Box>
 
     <SVGImage
@@ -42,6 +42,6 @@
         visibility="gone"
         svg="@res/icon/ico-play.svg" />
 
-    <brls:Label id="queue/row/dur" singleLine="true" shrink="0" marginLeft="10" fontSize="13" textColor="@theme/font/grey" />
+    <brls:Label id="queue/row/dur" singleLine="true" shrink="0" marginLeft="10" fontSize="24" textColor="@theme/font/grey" />
 
 </brls:Box>

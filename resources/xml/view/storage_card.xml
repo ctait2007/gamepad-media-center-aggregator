@@ -3,47 +3,47 @@
      when the Downloads pill is the RemoteTab's default tab (see download_tab). -->
 <brls:Box
     axis="column"
-    cornerRadius="12"
+    cornerRadius="@style/app/card/corner_radius"
     backgroundColor="@theme/color/surface"
-    paddingTop="20"
-    paddingBottom="20"
-    paddingLeft="20"
-    paddingRight="20">
+    paddingTop="28"
+    paddingBottom="28"
+    paddingLeft="28"
+    paddingRight="28">
 
     <brls:Label
         text="@i18n/main/download/storage"
-        fontSize="20"
-        marginBottom="16" />
+        fontSize="32"
+        marginBottom="24" />
 
-    <!-- 12px track filled by the SegmentedBar (C++):
+    <!-- 16px track filled by the SegmentedBar (C++):
          [rest of disk | pleNx (gold) | free (dark gray)] -->
     <brls:Box
         id="downloads/storage/bar"
-        height="12"
-        marginBottom="14" />
+        height="16"
+        marginBottom="20" />
 
     <brls:Box alignItems="center">
         <brls:Rectangle
-            width="10"
-            height="10"
-            cornerRadius="5"
+            width="16"
+            height="16"
+            cornerRadius="8"
             color="@theme/color/app"
-            marginRight="8" />
+            marginRight="12" />
         <brls:Label
             id="downloads/storage/app"
-            fontSize="14" />
+            fontSize="24" />
 
         <brls:Box grow="1.0" />
 
         <brls:Rectangle
-            width="10"
-            height="10"
-            cornerRadius="5"
+            width="16"
+            height="16"
+            cornerRadius="8"
             color="@theme/color/pill"
-            marginRight="8" />
+            marginRight="12" />
         <brls:Label
             id="downloads/storage/free"
-            fontSize="14"
+            fontSize="24"
             textColor="@theme/font/grey" />
     </brls:Box>
 </brls:Box>

@@ -160,15 +160,15 @@ RecyclingGrid::RecyclingGrid() {
     // Empty/error states: icon + title + explanatory subtitle
     this->hintImage = new SVGImage();
     this->hintImage->detach();
-    this->hintImage->setDimensions(56, 56);
+    this->hintImage->setDimensions(112, 112);
     this->hintImage->setImageFromSVGRes("icon/ico-list.svg");
     this->hintLabel = new brls::Label();
     this->hintLabel->detach();
-    this->hintLabel->setFontSize(17);
+    this->hintLabel->setFontSize(32);   // titleMedium
     this->hintLabel->setHorizontalAlign(brls::HorizontalAlign::CENTER);
     this->hintSub = new brls::Label();
     this->hintSub->detach();
-    this->hintSub->setFontSize(14);
+    this->hintSub->setFontSize(24);     // labelMedium
     this->hintSub->setTextColor(brls::Application::getTheme().getColor("font/grey"));
     this->hintSub->setHorizontalAlign(brls::HorizontalAlign::CENTER);
 

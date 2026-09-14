@@ -64,20 +64,20 @@
          See scripts/patches/borealis-fixes.patch. -->
     <brls:Label
         id="tile/title"
-        fontSize="18"
+        fontSize="32"
         horizontalAlign="center"
         singleLine="true" />
 
     <brls:Label
         id="tile/type"
-        fontSize="12"
+        fontSize="24"
         marginTop="5"
         horizontalAlign="center"
         singleLine="true" />
 
     <brls:Label
         id="tile/detail"
-        fontSize="13"
+        fontSize="24"
         marginTop="3"
         horizontalAlign="center"
         singleLine="true"

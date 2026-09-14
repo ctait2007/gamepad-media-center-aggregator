@@ -39,17 +39,17 @@
 
         <brls:Label
             id="season/label/title"
-            fontSize="26" />
+            fontSize="28" />
 
         <brls:Label
             id="season/label/meta"
-            fontSize="15"
+            fontSize="24"
             marginTop="8"
             textColor="@theme/font/grey" />
 
         <TextBox
             id="season/label/overview"
-            fontSize="14"
+            fontSize="24"
             maxRows="4"
             marginTop="12"
             textColor="@theme/font/grey" />

@@ -25,7 +25,7 @@
                 paddingBottom="@style/main/content_padding_top_bottom">
                 <brls:Label
                     id="changelog/text"
-                    fontSize="18"
+                    fontSize="32"
                     lineHeight="1.35" />
             </brls:Box>
         </brls:ScrollingFrame>

@@ -2,23 +2,23 @@
      (gold) for the in-progress item, state badge + size on the right.
      Variants driven by DownloadCard::setItem (download_tab.cpp). -->
 <brls:Box
-    highlightCornerRadius="16"
-    cornerRadius="12"
+    highlightCornerRadius="@style/brls/highlight/corner_radius"
+    cornerRadius="@style/app/card/corner_radius"
     backgroundColor="@theme/color/surface"
-    paddingTop="13"
-    paddingBottom="13"
-    paddingLeft="14"
-    paddingRight="18"
+    paddingTop="20"
+    paddingBottom="20"
+    paddingLeft="24"
+    paddingRight="28"
     alignItems="center">
 
     <!-- cornerRadius mandatory: it is what clips the scalingType="fill" -->
     <brls:Image
         id="download/thumb"
-        width="76"
-        height="114"
-        marginRight="18"
+        width="112"
+        height="168"
+        marginRight="28"
         scalingType="fill"
-        cornerRadius="6"
+        cornerRadius="12"
         backgroundColor="@theme/color/grey_1"
         image="@res/img/video-card-bg.png" />
 
@@ -30,29 +30,29 @@
 
         <brls:Label
             id="download/name"
-            fontSize="17"
+            fontSize="32"
             singleLine="true" />
 
         <brls:Label
             id="download/detail"
-            fontSize="14"
-            marginTop="4"
+            fontSize="24"
+            marginTop="8"
             singleLine="true"
             textColor="@theme/font/grey" />
 
         <brls:Box
             id="download/progress/row"
             axis="column"
-            marginTop="14"
+            marginTop="24"
             visibility="gone">
-            <!-- 6px track filled by the SegmentedBar (C++): gold progress -->
+            <!-- 8px track filled by the SegmentedBar (C++): gold progress -->
             <brls:Box
                 id="download/progress/track"
-                height="6" />
+                height="8" />
             <brls:Label
                 id="download/progress/info"
-                fontSize="13"
-                marginTop="8"
+                fontSize="24"
+                marginTop="12"
                 textColor="@theme/font/grey" />
         </brls:Box>
     </brls:Box>
@@ -64,31 +64,31 @@
         axis="column"
         alignItems="flexEnd"
         justifyContent="center"
-        marginLeft="18">
+        marginLeft="28">
 
         <brls:Box
             id="download/badge"
-            cornerRadius="12"
-            height="24"
+            cornerRadius="20"
+            height="40"
             alignItems="center"
-            paddingLeft="10"
-            paddingRight="10"
+            paddingLeft="16"
+            paddingRight="16"
             backgroundColor="@theme/color/pill">
             <brls:Label
                 id="download/status"
-                fontSize="13" />
+                fontSize="24" />
         </brls:Box>
 
         <brls:Label
             id="download/percent"
-            fontSize="22"
+            fontSize="32"
             visibility="gone"
             textColor="@theme/color/app" />
 
         <brls:Label
             id="download/size"
-            fontSize="13"
-            marginTop="6"
+            fontSize="24"
+            marginTop="10"
             textColor="@theme/font/grey" />
     </brls:Box>
 </brls:Box>

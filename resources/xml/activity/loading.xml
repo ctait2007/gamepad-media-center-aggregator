@@ -23,7 +23,7 @@
             marginBottom="18" />
 
         <brls:Label
-            fontSize="16"
+            fontSize="28"
             textColor="@theme/font/grey"
             text="@i18n/main/plex/connecting" />
 

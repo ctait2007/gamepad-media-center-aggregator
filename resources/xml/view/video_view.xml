@@ -23,7 +23,7 @@
 
         <brls:Label
             id="video/osd/clock"
-            fontSize="26"
+            fontSize="28"
             fontWeight="semibold"
             textColor="#FFFFFFF5"
             horizontalAlign="right" />
@@ -95,8 +95,8 @@
             cornerRadius="4"
             backgroundColor="#303030A0"
             textColor="@theme/color/white"
-            fontSize="16"
-            height="16"
+            fontSize="28"
+            height="36"
             horizontalAlign="center"
             verticalAlign="center" />
     </brls:Box>

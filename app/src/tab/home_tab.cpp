@@ -287,7 +287,7 @@ void HomeTab::renderRows() {
     if (this->renderedIds.empty()) {
         auto* empty = new brls::Label();
         empty->setText("main/home/empty"_i18n);
-        empty->setFontSize(16);
+        empty->setFontSize(28);
         empty->setSingleLine(false);
         empty->setHorizontalAlign(brls::HorizontalAlign::CENTER);
         empty->setTextColor(brls::Application::getTheme().getColor("font/grey"));

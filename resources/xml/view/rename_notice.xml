@@ -25,7 +25,7 @@
         image="@res/icon/logo-ghost.png" />
 
     <brls:Label
-        fontSize="26"
+        fontSize="28"
         marginBottom="14"
         horizontalAlign="center"
         text="@i18n/main/rename/title" />
@@ -50,7 +50,7 @@
             height="auto">
 
             <brls:Label
-                fontSize="16"
+                fontSize="28"
                 lineHeight="1.4"
                 marginBottom="20"
                 horizontalAlign="center"
@@ -65,34 +65,34 @@
                 marginBottom="18">
 
                 <brls:Label
-                    fontSize="13"
+                    fontSize="24"
                     marginBottom="12"
                     textColor="@theme/color/app"
                     text="@i18n/main/rename/whats_new" />
 
                 <brls:Box axis="row" alignItems="center" marginBottom="10">
                     <brls:Box width="8" height="8" cornerRadius="4" marginRight="14" backgroundColor="@theme/color/app" />
-                    <brls:Label fontSize="16" text="@i18n/main/rename/feature_backends" />
+                    <brls:Label fontSize="28" text="@i18n/main/rename/feature_backends" />
                 </brls:Box>
 
                 <brls:Box axis="row" alignItems="center" marginBottom="10">
                     <brls:Box width="8" height="8" cornerRadius="4" marginRight="14" backgroundColor="@theme/color/app" />
-                    <brls:Label fontSize="16" text="@i18n/main/rename/feature_music" />
+                    <brls:Label fontSize="28" text="@i18n/main/rename/feature_music" />
                 </brls:Box>
 
                 <brls:Box axis="row" alignItems="center" marginBottom="10">
                     <brls:Box width="8" height="8" cornerRadius="4" marginRight="14" backgroundColor="@theme/color/app" />
-                    <brls:Label fontSize="16" text="@i18n/main/rename/feature_offline" />
+                    <brls:Label fontSize="28" text="@i18n/main/rename/feature_offline" />
                 </brls:Box>
 
                 <brls:Box axis="row" alignItems="center">
                     <brls:Box width="8" height="8" cornerRadius="4" marginRight="14" backgroundColor="@theme/color/app" />
-                    <brls:Label fontSize="16" text="@i18n/main/rename/feature_updates" />
+                    <brls:Label fontSize="28" text="@i18n/main/rename/feature_updates" />
                 </brls:Box>
             </brls:Box>
 
             <brls:Label
-                fontSize="14"
+                fontSize="24"
                 lineHeight="1.4"
                 horizontalAlign="center"
                 textColor="@theme/font/grey"

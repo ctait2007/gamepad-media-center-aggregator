@@ -32,8 +32,8 @@ void RemoteTab::onCreate() {
         const AppRemote r = remotes[i];
         item = new AutoSidebarItem();
         item->setTabStyle(AutoTabBarStyle::ACCENT);
-        // 18: same size as the library tabs (collection)
-        item->setFontSize(18);
+        // 28: same size as the library tabs (collection)
+        item->setFontSize(28);
         item->setLabel(r.name);
 
         // manage (edit/delete) from the pill as well as from the content
@@ -61,7 +61,7 @@ void RemoteTab::onCreate() {
                 box->setJustifyContent(brls::JustifyContent::CENTER);
                 box->setAlignItems(brls::AlignItems::CENTER);
                 auto* label = new brls::Label();
-                label->setFontSize(14);
+                label->setFontSize(24);
                 label->setTextColor(brls::Application::getTheme().getColor("font/grey"));
                 label->setText(error);
                 box->addView(label);
@@ -72,13 +72,13 @@ void RemoteTab::onCreate() {
 
     item = new AutoSidebarItem();
     item->setTabStyle(AutoTabBarStyle::ACCENT);
-    item->setFontSize(18);
+    item->setFontSize(28);
     item->setLabel("main/tabs/downloads"_i18n);
     this->tabFrame->addTab(item, []() { return new DownloadView(); });
 
     item = new AutoSidebarItem();
     item->setTabStyle(AutoTabBarStyle::ACCENT);
-    item->setFontSize(18);
+    item->setFontSize(28);
     item->setLabel("main/remote/local"_i18n);
     this->tabFrame->addTab(item, [this]() {
         // empty state: "Add a server" button under the placeholder

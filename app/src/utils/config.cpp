@@ -1261,6 +1261,11 @@ void AppConfig::initThemes() {
     // 32 = NuvioTV's titleMedium (16sp at its 2.0 density), the size it sets
     // its row headers in. The whole app's type scale is matched to that
     // Material3 scale doubled: label 20/24/28, body 24/28/32, title 28/32/40.
+    // Every settings row is a borealis Cell, whose title reads this metric.
+    // NuvioTV sets a settings row in its bodyLarge (16sp): 32 here, where the
+    // library's own default of 22 left the whole of Settings a size below
+    // everything around it.
+    brls::getStyle().addMetric("brls/sidebar/item_font_size", 32);
     brls::getStyle().addMetric("brls/header/font_size", 32);
     // Borealis pads a Header 11 above and below its text. The reference pads
     // nothing: the gap under a section title is the title's own margin, so

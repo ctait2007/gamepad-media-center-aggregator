@@ -95,14 +95,14 @@ public:
 
         this->label = new brls::Label();
         this->label->setText(e.label);
-        this->label->setFontSize(18);
+        this->label->setFontSize(32);
         this->label->setGrow(1.0f);
         this->addView(this->label);
 
         this->tag = new brls::Label();
         this->tag->setText(this->shown ? "main/setting/libraries/visible"_i18n
                                         : "main/setting/libraries/hidden"_i18n);
-        this->tag->setFontSize(14);
+        this->tag->setFontSize(24);
         this->addView(this->tag);
 
         bool grabbed = mgr->isGrabbed(index);
@@ -213,7 +213,7 @@ void LibraryManager::rebuild() {
     if (this->entries.empty()) {
         auto* empty = new brls::Label();
         empty->setText("main/setting/libraries/empty"_i18n);
-        empty->setFontSize(16);
+        empty->setFontSize(28);
         empty->setTextColor(brls::Application::getTheme().getColor("font/grey"));
         empty->setMarginTop(40);
         this->rowsBox->addView(empty);

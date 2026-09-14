@@ -30,7 +30,7 @@
                 image="@res/icon/icon.png" />
 
             <brls:Label
-                fontSize="16"
+                fontSize="28"
                 textColor="@theme/font/grey"
                 text="@i18n/main/server/choose_type" />
         </brls:Box>

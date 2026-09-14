@@ -26,12 +26,12 @@
 
         <brls:Label
             id="server/name"
-            fontSize="25" />
+            fontSize="24" />
 
         <brls:Label
             id="server/url"
             marginLeft="4"
-            fontSize="15"
+            fontSize="24"
             singleLine="true"
             marginTop="10"
             marginBottom="10"

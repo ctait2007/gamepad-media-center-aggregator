@@ -29,6 +29,6 @@
         <brls:Label
             wireframe="false"
             id="user/name"
-            fontSize="18" />
+            fontSize="32" />
     </brls:Box>
 </brls:Box>

@@ -11,12 +11,12 @@
         marginBottom="20px">
         <brls:Label
             id="setting/about/title"
-            fontSize="35"
+            fontSize="32"
             marginRight="10"
             lineHeight="1" />
         <brls:Label
             id="setting/about/version"
-            fontSize="15"
+            fontSize="24"
             marginRight="20"
             lineHeight="1"
             textColor="@theme/font/grey" />

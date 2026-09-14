@@ -35,7 +35,7 @@
         id="track/row/index"
         width="40"
         marginLeft="14"
-        fontSize="16"
+        fontSize="28"
         horizontalAlign="center"
         textColor="@theme/font/grey" />
 
@@ -47,13 +47,13 @@
         <brls:Label
             id="video/card/label/title"
             singleLine="true"
-            fontSize="17" />
+            fontSize="28" />
     </brls:Box>
 
     <brls:Label
         id="video/card/label/ext"
         marginLeft="10"
-        fontSize="15"
+        fontSize="24"
         textColor="@theme/font/grey" />
 
 </brls:Box>

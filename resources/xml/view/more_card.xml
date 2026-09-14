@@ -1,16 +1,17 @@
 <brls:Box
-    highlightCornerRadius="16"
+    highlightCornerRadius="@style/brls/highlight/corner_radius"
     axis="column"
     width="auto"
     height="auto">
-    <!-- same skeleton as video_card.xml (2:3 poster area + 55 label block)
-         to align pixel by pixel with the row's covers -->
+    <!-- same skeleton as video_card.xml (2:3 poster area + the label block,
+         both off the same metrics) so it aligns pixel by pixel with the row's
+         covers -->
     <brls:Box
         id="more/card/box"
         axis="column"
         focusable="true"
-        highlightCornerRadius="16"
-        cornerRadius="12"
+        highlightCornerRadius="@style/brls/highlight/corner_radius"
+        cornerRadius="@style/app/card/corner_radius"
         backgroundColor="@theme/color/grey_1"
         alignItems="center"
         justifyContent="center"
@@ -25,19 +26,21 @@
 
     <brls:Box
         axis="column"
-        marginTop="10"
-        justifyContent="spaceEvenly"
-        alignItems="center">
+        height="@style/app/card/labels"
+        paddingTop="@style/app/card/label/top"
+        paddingLeft="8"
+        paddingRight="8"
+        alignItems="flexStart">
         <brls:Label
             singleLine="true"
             id="more/card/label"
-            height="25"
-            fontSize="18"
+            height="@style/app/card/label/title_height"
+            fontSize="@style/app/card/label/title_size"
             text="@i18n/main/media/see_all" />
         <brls:Label
             singleLine="true"
-            fontSize="12"
-            height="20" />
+            fontSize="@style/app/card/label/sub_size"
+            height="@style/app/card/label/sub_height" />
     </brls:Box>
 
 </brls:Box>

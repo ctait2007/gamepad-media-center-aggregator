@@ -40,11 +40,11 @@
         <brls:Label
             id="mini/title"
             singleLine="true"
-            fontSize="16" />
+            fontSize="28" />
         <brls:Label
             id="mini/artist"
             singleLine="true"
-            fontSize="13"
+            fontSize="24"
             marginTop="2"
             textColor="@theme/font/grey" />
     </brls:Box>

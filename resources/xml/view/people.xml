@@ -31,51 +31,51 @@
                 <brls:Box
                     axis="column"
                     grow="1.0"
-                    marginLeft="34"
+                    marginLeft="48"
                     justifyContent="center">
 
                     <brls:Label
                         id="people/label/name"
-                        fontSize="34" />
+                        fontSize="48" />
 
                     <brls:Label
                         id="people/label/role"
-                        fontSize="18"
-                        marginTop="8"
+                        fontSize="28"
+                        marginTop="12"
                         visibility="gone"
                         textColor="@theme/font/grey" />
 
                     <brls:Box
                         id="people/box/counts"
-                        marginTop="18">
+                        marginTop="24">
 
                         <brls:Box
                             id="people/pill/movies"
                             visibility="gone"
-                            cornerRadius="14"
-                            height="28"
-                            paddingLeft="14"
-                            paddingRight="14"
-                            marginRight="10"
+                            cornerRadius="22"
+                            height="44"
+                            paddingLeft="20"
+                            paddingRight="20"
+                            marginRight="16"
                             alignItems="center"
                             backgroundColor="@theme/color/pill">
                             <brls:Label
                                 id="people/label/movies"
-                                fontSize="15" />
+                                fontSize="24" />
                         </brls:Box>
 
                         <brls:Box
                             id="people/pill/shows"
                             visibility="gone"
-                            cornerRadius="14"
-                            height="28"
-                            paddingLeft="14"
-                            paddingRight="14"
+                            cornerRadius="22"
+                            height="44"
+                            paddingLeft="20"
+                            paddingRight="20"
                             alignItems="center"
                             backgroundColor="@theme/color/pill">
                             <brls:Label
                                 id="people/label/shows"
-                                fontSize="15" />
+                                fontSize="24" />
                         </brls:Box>
 
                     </brls:Box>

@@ -18,7 +18,7 @@
             image="@res/icon/icon.png" />
 
         <brls:Label
-            fontSize="16"
+            fontSize="28"
             marginBottom="30"
             textColor="@theme/font/grey"
             text="@i18n/main/plex/title" />
@@ -42,7 +42,7 @@
 
             <brls:Label
                 id="plex/label/status"
-                fontSize="15"
+                fontSize="24"
                 textColor="@theme/font/grey"
                 text="@i18n/main/plex/generating" />
         </brls:Box>
@@ -53,19 +53,19 @@
             marginBottom="26">
 
             <brls:Label
-                fontSize="15"
+                fontSize="24"
                 marginBottom="6"
                 textColor="@theme/font/grey"
                 text="@i18n/main/plex/step1" />
 
             <brls:Label
-                fontSize="15"
+                fontSize="24"
                 marginBottom="6"
                 textColor="@theme/font/grey"
                 text="@i18n/main/plex/step2" />
 
             <brls:Label
-                fontSize="15"
+                fontSize="24"
                 textColor="@theme/font/grey"
                 text="@i18n/main/plex/step3" />
         </brls:Box>

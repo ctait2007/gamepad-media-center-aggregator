@@ -13,7 +13,7 @@
 
     <brls:Label
         id="update/title"
-        fontSize="22"
+        fontSize="24"
         marginBottom="16" />
 
     <brls:ScrollingFrame
@@ -28,7 +28,7 @@
             alignItems="stretch">
             <brls:Label
                 id="update/body"
-                fontSize="16"
+                fontSize="28"
                 textColor="@theme/font/grey"
                 lineHeight="1.35" />
         </brls:Box>

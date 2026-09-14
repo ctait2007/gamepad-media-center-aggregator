@@ -23,7 +23,7 @@
                 image="@res/icon/icon.png" />
 
             <brls:Label
-                fontSize="30"
+                fontSize="32"
                 marginBottom="8"
                 text="@i18n/main/hints/title" />
 
@@ -32,7 +32,7 @@
                  Labels it is horizontalAlign (label.cpp:259). -->
             <brls:Label
                 id="hint/text"
-                fontSize="16"
+                fontSize="28"
                 marginBottom="30"
                 textColor="@theme/font/grey"
                 horizontalAlign="center"
@@ -56,7 +56,7 @@
                     text="@i18n/main/hints/install_title" />
 
                 <brls:Label
-                    fontSize="15"
+                    fontSize="24"
                     marginBottom="16"
                     textColor="@theme/font/grey"
                     text="@i18n/main/hints/install_text" />
@@ -84,7 +84,7 @@
                     text="@i18n/main/hints/takeover_title" />
 
                 <brls:Label
-                    fontSize="15"
+                    fontSize="24"
                     textColor="@theme/font/grey"
                     text="@i18n/main/hints/takeover_text" />
             </brls:Box>

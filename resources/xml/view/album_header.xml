@@ -29,11 +29,11 @@
 
         <brls:Label
             id="album/label/title"
-            fontSize="26" />
+            fontSize="28" />
 
         <brls:Label
             id="album/label/meta"
-            fontSize="15"
+            fontSize="24"
             marginTop="8"
             textColor="@theme/font/grey" />
 

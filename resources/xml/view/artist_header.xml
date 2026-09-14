@@ -5,11 +5,11 @@
 
     <brls:Label
         id="grid/header/title"
-        fontSize="30" />
+        fontSize="32" />
 
     <brls:Label
         id="grid/header/meta"
-        fontSize="15"
+        fontSize="24"
         marginTop="6"
         textColor="@theme/font/grey" />
 

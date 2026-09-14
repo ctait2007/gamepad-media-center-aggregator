@@ -27,7 +27,7 @@
         id="offline/empty/sub"
         text="@i18n/main/download/offline_sub"
         width="460"
-        fontSize="16"
+        fontSize="28"
         horizontalAlign="center"
         textColor="@theme/font/grey"
         marginBottom="28" />

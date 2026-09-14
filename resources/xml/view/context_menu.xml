@@ -26,13 +26,13 @@
 
         <brls:Label
             id="menu/title"
-            fontSize="21"
+            fontSize="24"
             marginLeft="10"
             marginBottom="2" />
 
         <brls:Label
             id="menu/subtitle"
-            fontSize="14"
+            fontSize="24"
             marginLeft="10"
             textColor="@theme/font/grey"
             marginBottom="14" />

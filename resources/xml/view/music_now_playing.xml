@@ -36,14 +36,14 @@
             marginTop="28"
             singleLine="true"
             horizontalAlign="center"
-            fontSize="26" />
+            fontSize="28" />
 
         <brls:Label
             id="musicnp/artist"
             marginTop="8"
             singleLine="true"
             horizontalAlign="center"
-            fontSize="17"
+            fontSize="28"
             textColor="@theme/font/grey" />
 
         <brls:Box
@@ -60,8 +60,8 @@
                 width="100%"
                 marginTop="6"
                 justifyContent="spaceBetween">
-                <brls:Label id="musicnp/left" fontSize="14" text="--:--" textColor="@theme/font/grey" />
-                <brls:Label id="musicnp/right" fontSize="14" text="--:--" textColor="@theme/font/grey" />
+                <brls:Label id="musicnp/left" fontSize="24" text="--:--" textColor="@theme/font/grey" />
+                <brls:Label id="musicnp/right" fontSize="24" text="--:--" textColor="@theme/font/grey" />
             </brls:Box>
         </brls:Box>
 
@@ -149,7 +149,7 @@
         <brls:Label
             marginLeft="6"
             marginBottom="14"
-            fontSize="22"
+            fontSize="24"
             text="@i18n/main/music/queue"/>
         <RecyclingGrid
             id="musicnp/queue"

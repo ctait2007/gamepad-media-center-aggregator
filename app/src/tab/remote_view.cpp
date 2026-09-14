@@ -482,14 +482,14 @@ UmsView::UmsView(std::function<void()> onAddServer) : RemoteView(std::make_share
     this->emptyBox->addView(hintIcon);
 
     auto* hintTitle = new brls::Label();
-    hintTitle->setFontSize(17);
+    hintTitle->setFontSize(32);
     hintTitle->setMarginTop(12);
     hintTitle->setHorizontalAlign(brls::HorizontalAlign::CENTER);
     hintTitle->setText("main/remote/empty_title"_i18n);
     this->emptyBox->addView(hintTitle);
 
     auto* hintSub = new brls::Label();
-    hintSub->setFontSize(14);
+    hintSub->setFontSize(24);
     hintSub->setMarginTop(6);
     hintSub->setTextColor(brls::Application::getTheme().getColor("font/grey"));
     hintSub->setHorizontalAlign(brls::HorizontalAlign::CENTER);

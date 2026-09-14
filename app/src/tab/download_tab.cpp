@@ -177,21 +177,21 @@ public:
         this->setAlignItems(brls::AlignItems::CENTER);
 
         auto* icon = new SVGImage();
-        icon->setDimensions(56, 56);
+        icon->setDimensions(112, 112);
         icon->setImageFromSVGRes("icon/ico-download.svg");
         this->addView(icon);
 
         auto* title = new brls::Label();
-        title->setFontSize(17);
-        title->setMarginTop(12);
+        title->setFontSize(32);
+        title->setMarginTop(24);
         title->setHorizontalAlign(brls::HorizontalAlign::CENTER);
         title->setText("main/download/no_downloads"_i18n);
         this->addView(title);
 
         auto* sub = new brls::Label();
-        sub->setFontSize(14);
-        sub->setMarginTop(6);
-        sub->setWidth(460);
+        sub->setFontSize(24);
+        sub->setMarginTop(12);
+        sub->setWidth(760);
         sub->setTextColor(brls::Application::getTheme().getColor("font/grey"));
         sub->setHorizontalAlign(brls::HorizontalAlign::CENTER);
         sub->setText("main/download/empty_sub"_i18n);

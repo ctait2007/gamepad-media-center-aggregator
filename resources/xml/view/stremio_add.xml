@@ -30,7 +30,7 @@
 
             <brls:Label
                 id="stremio/add/header"
-                fontSize="16"
+                fontSize="28"
                 textColor="@theme/font/grey"
                 text="" />
         </brls:Box>
@@ -67,7 +67,7 @@
                 width="100%"
                 height="auto"
                 marginTop="16"
-                fontSize="15"
+                fontSize="24"
                 horizontalAlign="center"
                 textColor="@theme/font/grey"
                 text="" />
