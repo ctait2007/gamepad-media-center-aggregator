@@ -192,6 +192,14 @@ void MPVCore::init() {
     mpv_set_option_string(mpv, "video-timing-offset", "0");  // 60fps
     mpv_set_option_string(mpv, "reset-on-next-file", "speed,pause");
     mpv_set_option_string(mpv, "subs-fallback", SUBS_FALLBACK ? "yes" : "no");
+    // SUBTITLE FACE. mpv's own defaults are a 55 px face with a 3 px outline,
+    // which on a TV at this distance is a heavy black-edged wall of text. The
+    // reference asks libass for an outline of 1 on everything that is not
+    // ASS/SSA (NuvioMpvSurfaceView.applySubtitleStyle), and a slightly smaller
+    // face reads better beside it. Both stay adjustable from the subtitle
+    // panel, whose steppers start from these.
+    mpv_set_option_string(mpv, "sub-font-size", "48");
+    mpv_set_option_string(mpv, "sub-border-size", "1");
     mpv_set_option_string(mpv, "vo", MPVCore::VO.c_str());
 #if defined(__PS4__) || defined(__PSV__) || defined(TRIMUI)
     mpv_set_option_string(mpv, "audio-channels", "stereo");

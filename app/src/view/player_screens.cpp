@@ -25,7 +25,11 @@ constexpr float kStageOffset = 188;
 
 // PauseOverlay.kt's content padding (start/end huge, top 40, bottom 120) and
 // the gaps between its blocks (spacing.md / sm / md / lg, then 20 and md).
-constexpr float kPausePadX = 112, kPausePadTop = 80, kPausePadBottom = 240;
+// The reference's content padding is start/end huge, top 40, bottom 120 dp.
+// The bottom is the one number that is not its own: at 120 dp a short block —
+// a film with two lines of synopsis and no episode title — sits right down on
+// the edge of the frame, which on a TV is the first thing overscan eats.
+constexpr float kPausePadX = 112, kPausePadTop = 80, kPausePadBottom = 320;
 constexpr float kPauseLogoHeight = 192;
 
 /// A full-screen absolutely-positioned layer, the unit both screens stack.

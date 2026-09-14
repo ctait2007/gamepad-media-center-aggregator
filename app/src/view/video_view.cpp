@@ -48,7 +48,8 @@ VideoView::VideoView() {
             // else, since the screen is up over all of it.
             if (this->pauseScreenShown()) {
                 this->cancelPauseScreen();
-                this->showOSD(true);
+                // Still paused, so the bar it hands back is pinned open too.
+                this->showOSD(false);
                 return true;
             }
             if (MPVCore::OSD_TV_MODE && this->isOsdShown) {
@@ -574,6 +575,8 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
         profile->frame(ctx);
     }
 
+    this->tickPauseScreen(current);
+
     // LAST, over everything above. draw() never chains to Box::draw — it
     // frames the children it wants, in the order it wants them — so a view
     // added to this box is invisible until it is named here.
@@ -617,14 +620,20 @@ void VideoView::registerMpvEvent() {
         switch (event) {
         case MpvEventEnum::MPV_RESUME:
             this->cancelPauseScreen();
-            if (MPVCore::OSD_ON_TOGGLE) {
+            // Back to timing out now the picture is moving again — including
+            // an OSD that was pinned open by the pause it just ended.
+            if (MPVCore::OSD_ON_TOGGLE || this->osdState == OSDState::ALWAYS_ON) {
                 this->showOSD(true);
             }
             this->btnToggle->setIconPath(player_icon::PAUSE);
             this->applySourceLine();
             break;
         case MpvEventEnum::MPV_PAUSE:
-            if (MPVCore::OSD_ON_TOGGLE) {
+            // PINNED, not on the 5 s timer: a paused player should keep saying
+            // where it is paused. An OSD that is already up gets pinned even
+            // when the "show the OSD on play/pause" setting is off — that
+            // setting is about the bar APPEARING, not about it staying.
+            if (MPVCore::OSD_ON_TOGGLE || this->isOsdShown) {
                 this->showOSD(false);
             }
             // AFTER showOSD, which cancels it — arming first would arm and
@@ -791,32 +800,38 @@ void VideoView::setPauseItem(const plex::Item& item, const std::string& showTitl
 bool VideoView::pauseScreenShown() { return this->pauseScreen && this->pauseScreen->shown(); }
 
 void VideoView::schedulePauseScreen() {
-    brls::cancelDelay(this->pauseScreenIter);
-    this->pauseScreenIter = 0;
+    this->pauseScreenDueTime = 0;
     if (!MPVCore::PAUSE_SCREEN || !this->firstFrameSeen) return;
-
-    this->pauseScreenIter = brls::delay(MPVCore::PAUSE_SCREEN_DELAY * 1000, [this]() {
-        this->pauseScreenIter = 0;
-        auto& mpv = MPVCore::instance();
-        if (!mpv.isPaused() || this->loadingScreen->shown()) return;
-        // Not over a panel. A panel is a pushed activity, so the focus is no
-        // longer anywhere under this view — which is the cheapest way to ask.
-        brls::View* focus = brls::Application::getCurrentFocus();
-        for (brls::View* v = focus; v; v = v->getParent())
-            if (v == this) {
-                this->hideOSD();
-                // Same wall clock the OSD shows, kept in step by updateTime.
-                this->pauseScreen->setClock(this->clockLabel->getFullText());
-                this->pauseScreen->show();
-                return;
-            }
-    });
+    // A deadline read in draw(), the way the OSD's own auto-hide works, rather
+    // than a queued brls::delay: that queue fired the callback immediately on
+    // the console, so the screen arrived the instant playback paused instead
+    // of after the wait that is the whole point of it.
+    this->pauseScreenDueTime = brls::getCPUTimeUsec() + (brls::Time)MPVCore::PAUSE_SCREEN_DELAY * 1000000;
 }
 
 void VideoView::cancelPauseScreen() {
-    brls::cancelDelay(this->pauseScreenIter);
-    this->pauseScreenIter = 0;
+    this->pauseScreenDueTime = 0;
     if (this->pauseScreen) this->pauseScreen->hide();
+}
+
+/// Called once a frame from draw(). Shows the screen when the wait is up and
+/// nothing has come along in the meantime that should keep it away.
+void VideoView::tickPauseScreen(brls::Time current) {
+    if (!this->pauseScreenDueTime || current < this->pauseScreenDueTime) return;
+    this->pauseScreenDueTime = 0;
+
+    if (!MPVCore::instance().isPaused() || this->loadingScreen->shown()) return;
+    // Not over a panel. A panel is a pushed activity, so the focus is no
+    // longer anywhere under this view — which is the cheapest way to ask.
+    brls::View* focus = brls::Application::getCurrentFocus();
+    for (brls::View* v = focus; v; v = v->getParent()) {
+        if (v != this) continue;
+        this->hideOSD();
+        // Same wall clock the OSD shows, kept in step by updateTime.
+        this->pauseScreen->setClock(this->clockLabel->getFullText());
+        this->pauseScreen->show();
+        return;
+    }
 }
 
 void VideoView::hideOSD() {
