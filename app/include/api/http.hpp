@@ -72,7 +72,15 @@ public:
     /// For a redirector that is also rate-limited — a debrid "give me a link"
     /// endpoint — this is the difference between the player asking it once and
     /// asking it again for every reconnect and every byte range.
-    static std::string resolveRedirect(const std::string& url, long timeoutMs = 15000);
+    /// `rateLimited` (optional) is set when the endpoint answered 429 and kept
+    /// answering it through the backoff, so the caller can say so rather than
+    /// reporting whatever the player makes of a 30-byte "slow down" body.
+    static std::string resolveRedirect(
+        const std::string& url, long timeoutMs = 15000, bool* rateLimited = nullptr);
+
+    /// Drop a cached resolution (or all of them, with an empty url) — for a link
+    /// that stopped working, so the next play asks the endpoint again.
+    static void forgetResolved(const std::string& url = "");
     void _get(const std::string& url, std::ostream* out);
     bool getinfo(char** arg);
     int propfind(const std::string& url, std::ostream* out);

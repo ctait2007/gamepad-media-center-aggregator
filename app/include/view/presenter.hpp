@@ -18,6 +18,12 @@ public:
 
     virtual void doRequest() = 0;
 
+    /// What closing the player means for this screen. A full re-fetch by
+    /// default, which is right for a page whose whole content is about the
+    /// thing that was just played; Home overrides it, because NuvioTV does not
+    /// reload its catalogs on the way back from playback.
+    virtual void onVideoClose() { this->doRequest(); }
+
 protected:
     MPVCustomEvent::Subscription customEventSubscribeID;
 };

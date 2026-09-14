@@ -43,6 +43,8 @@ brls::View* HomeTab::create() { return new HomeTab(); }
 /// so a user-chosen position applies to Continue Watching exactly like any
 /// other row instead of it always being pinned first.
 void HomeTab::doRequest() {
+    this->lastCatalogFetch = brls::getCPUTimeUsec();
+
     // drop any previous offline empty overlay -> back to the scrollable list
     if (this->offlineEmpty) {
         this->removeView(this->offlineEmpty);
@@ -140,10 +142,35 @@ void HomeTab::doRequest() {
 void HomeTab::willAppear(bool resetState) {
     brls::Box::willAppear(resetState);
     if (NetworkState::isOffline() || this->loading) return;
-    if (this->resumeRow)
+    if (this->resumeRow) {
         this->refreshResumeRow();
-    else
+        this->refreshCatalogsIfStale();
+    } else {
         this->doRequest();
+    }
+}
+
+/// Closing the player used to fall through Presenter's VIDEO_CLOSE straight
+/// into doRequest(), so every "back out of a show" rebuilt every row on the
+/// screen. The reference does not: its catalogs live in the view model and
+/// survive the trip, and only Continue Watching has anything new to say.
+void HomeTab::onVideoClose() {
+    if (NetworkState::isOffline() || this->loading) return;
+    if (this->resumeRow) {
+        this->refreshResumeRow();
+        this->refreshCatalogsIfStale();
+    } else {
+        this->doRequest();
+    }
+}
+
+void HomeTab::refreshCatalogsIfStale() {
+    // 15 minutes, as the reference's HOME_CATALOG_REFRESH_TTL_MS. Anything
+    // sooner and the rows are as fresh as they were when the user left them.
+    constexpr int64_t kCatalogTTLus = 15LL * 60 * 1000000;
+    if (this->lastCatalogFetch && brls::getCPUTimeUsec() - this->lastCatalogFetch < kCatalogTTLus) return;
+    brls::Logger::debug("HomeTab: catalogs are stale, pulling them again");
+    this->doRequest();
 }
 
 void HomeTab::fetchResume() {

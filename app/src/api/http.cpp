@@ -3,6 +3,10 @@
 #include <borealis/core/logger.hpp>
 #include <curl/curl.h>
 #include <mutex>
+#include <chrono>
+#include <thread>
+#include <unordered_map>
+#include <algorithm>
 #if defined(BOREALIS_USE_GXM)
 #include <mbedtls/platform.h>
 #include <psp2/gxm.h>
@@ -260,26 +264,126 @@ int HTTP::perform(std::ostream* body) {
     return status_code;
 }
 
-std::string HTTP::resolveRedirect(const std::string& url, long timeoutMs) {
+namespace {
+
+/// A resolved debrid link, and when we stop trusting it.
+struct ResolvedLink {
+    std::string url;
+    int64_t expiresAt;  // ms, steady clock
+};
+
+std::mutex g_resolveMutex;
+std::unordered_map<std::string, ResolvedLink> g_resolveCache;
+
+/// Debrid CDN links outlive a playback comfortably; 15 minutes is short enough
+/// that a link which HAS expired is re-requested rather than handed to the
+/// player, and long enough that a stop/start, a retry after an error, or the
+/// next episode never asks the endpoint again.
+constexpr int64_t kResolveTTLms = 15 * 60 * 1000;
+
+int64_t steadyNowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
+}  // namespace
+
+void HTTP::forgetResolved(const std::string& url) {
+    std::lock_guard<std::mutex> lk(g_resolveMutex);
+    if (url.empty())
+        g_resolveCache.clear();
+    else
+        g_resolveCache.erase(url);
+}
+
+std::string HTTP::resolveRedirect(const std::string& url, long timeoutMs, bool* rateLimited) {
+    if (rateLimited) *rateLimited = false;
     if (url.rfind("http", 0) != 0) return url;  // file://, and anything else mpv opens directly
-    try {
+
+    // ASK THE ENDPOINT ONCE PER LINK, NOT ONCE PER ATTEMPT. NuvioTV keeps the
+    // resolved uri on its playback session (ParallelRangeDataSource's
+    // ChunkSession::resolvedUri) and every later range goes there; ours used to
+    // re-request on every play, every retry and every restart after an error,
+    // which is what spends a debrid account's request budget and earns the 429
+    // in the first place.
+    {
+        std::lock_guard<std::mutex> lk(g_resolveMutex);
+        auto it = g_resolveCache.find(url);
+        if (it != g_resolveCache.end()) {
+            if (it->second.expiresAt > steadyNowMs()) {
+                brls::Logger::info("http: reusing the link already resolved for this source");
+                return it->second.url;
+            }
+            g_resolveCache.erase(it);
+        }
+    }
+
+    // AND WHEN IT SAYS 429, WAIT. The reference backs a rate-limited request
+    // off 500ms, doubling, each wait capped at 3s and the whole episode at 15s
+    // (ParallelRangeDataSource's RATE_LIMIT_* constants), and lets a
+    // Retry-After header override the guess. Hammering it at 1500ms, which is
+    // what the player's own retry does, only extends the lockout.
+    constexpr long kBackoffBaseMs = 500;
+    constexpr long kBackoffCycleCapMs = 3000;
+    constexpr long kWaitHardCapMs = 15000;
+    constexpr int kAttempts = 4;
+
+    long waitedMs = 0;
+    long backoffMs = kBackoffBaseMs;
+
+    for (int attempt = 0; attempt < kAttempts; attempt++) {
         HTTP s;
         set_option(s, Timeout{timeoutMs, timeoutMs / 2});
         // One byte, not a HEAD: a redirector that only implements GET answers
         // this and nothing else, and the body is thrown away either way.
         curl_easy_setopt(s.easy, CURLOPT_RANGE, "0-0");
         std::ostringstream sink;
-        s._get(url, &sink);
-        char* effective = nullptr;
-        if (curl_easy_getinfo(s.easy, CURLINFO_EFFECTIVE_URL, &effective) == CURLE_OK && effective && *effective) {
-            std::string resolved = effective;
-            if (resolved != url) brls::Logger::info("http: resolved a redirect before handing it to the player");
-            return resolved;
+        std::string failure;
+        try {
+            s._get(url, &sink);
+            char* effective = nullptr;
+            if (curl_easy_getinfo(s.easy, CURLINFO_EFFECTIVE_URL, &effective) == CURLE_OK && effective &&
+                *effective) {
+                std::string resolved = effective;
+                if (resolved != url) {
+                    brls::Logger::info("http: resolved a redirect before handing it to the player");
+                    std::lock_guard<std::mutex> lk(g_resolveMutex);
+                    g_resolveCache[url] = {resolved, steadyNowMs() + kResolveTTLms};
+                }
+                return resolved;
+            }
+            return url;
+        } catch (const std::exception& ex) {
+            failure = ex.what();
         }
-    } catch (const std::exception& ex) {
-        // Rate-limited, offline, or a server that will not answer a range
-        // request: hand back what we were given and let the player try it.
-        brls::Logger::warning("http: could not resolve {}: {}", url, ex.what());
+
+        long status = 0;
+        curl_easy_getinfo(s.easy, CURLINFO_RESPONSE_CODE, &status);
+        if (status != 429) {
+            // Offline, or a server that will not answer a range request: hand
+            // back what we were given and let the player try it.
+            brls::Logger::warning("http: could not resolve {}: {}", url, failure);
+            return url;
+        }
+        if (rateLimited) *rateLimited = true;
+
+        long sleepMs = backoffMs;
+#ifdef CURLINFO_RETRY_AFTER
+        curl_off_t retryAfter = 0;
+        if (curl_easy_getinfo(s.easy, CURLINFO_RETRY_AFTER, &retryAfter) == CURLE_OK && retryAfter > 0)
+            sleepMs = (long)std::min<curl_off_t>(retryAfter * 1000, kWaitHardCapMs);
+#endif
+        sleepMs = std::min(sleepMs, kBackoffCycleCapMs);
+        if (attempt + 1 >= kAttempts || waitedMs + sleepMs > kWaitHardCapMs) {
+            brls::Logger::warning("http: {} is rate-limiting us and did not let up in {} ms", url, waitedMs);
+            return url;
+        }
+        brls::Logger::warning("http: rate-limited resolving the source, waiting {} ms ({}/{})", sleepMs,
+            attempt + 1, kAttempts - 1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+        waitedMs += sleepMs;
+        backoffMs = std::min(backoffMs * 2, kBackoffCycleCapMs);
     }
     return url;
 }

@@ -24,6 +24,13 @@ public:
 
     void doRequest() override;
 
+    /// Coming back from the player does NOT reload the catalogs. NuvioTV keeps
+    /// its rows in the view model across navigation and only looks at them
+    /// again when they are older than 15 minutes
+    /// (HomeViewModel::refreshHomeCatalogsIfStale); the rest of the time all
+    /// that changes is Continue Watching, so that is all we re-pull.
+    void onVideoClose() override;
+
     void willAppear(bool resetState = false) override;
 
     static brls::View* create();
@@ -98,6 +105,9 @@ private:
     void insertResumeRow(const RowData& row);
     RecylingVideo* buildRow(const RowData& row);
     void refreshResumeRow();
+    /// The catalogs, but only if they have gone stale (the reference's
+    /// HOME_CATALOG_REFRESH_TTL_MS). Triangle still forces a full refresh.
+    void refreshCatalogsIfStale();
     void tryRestoreFocus();
 
     // set when a refresh destroys the focused row (e.g. after closing the
@@ -121,6 +131,8 @@ private:
     // without this guard willAppear() would fire a second doRequest() that
     // races the first and double-adds every row (build report: rows "loop")
     bool loading = false;
+    /// When doRequest() last pulled the catalogs (brls::getCPUTimeUsec()).
+    int64_t lastCatalogFetch = 0;
     // true once renderRows() has actually run for the current doRequest()
     // cycle — guards against the fallback timeout (below) and the real
     // fetchResume()/fetchHubs() completion both trying to render
