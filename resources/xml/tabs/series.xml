@@ -325,23 +325,25 @@
                 id="series/episodes" />
 
             <brls:Header
-                marginBottom="6"
+                marginBottom="28"
                 marginLeft="@style/main/content_padding_sides"
                 marginRight="@style/main/content_padding_sides"
                 id="series/label/people"
                 title="@i18n/main/media/cast" />
 
+            <!-- CastSection: a 100dp circle in a 150dp slot, so 200 of
+                 portrait every 300, and 88 of name + character under it. -->
             <HRecyclerFrame
-                height="250"
-                itemWidth="140"
-                itemSpace="18"
+                height="288"
+                itemWidth="200"
+                itemSpace="100"
                 marginBottom="28"
                 paddingLeft="@style/main/content_padding_sides"
                 paddingRight="@style/main/content_padding_sides"
                 id="series/people" />
 
             <brls:Header
-                marginBottom="6"
+                marginBottom="28"
                 marginLeft="@style/main/content_padding_sides"
                 marginRight="@style/main/content_padding_sides"
                 id="series/label/special"

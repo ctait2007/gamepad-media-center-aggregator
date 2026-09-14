@@ -11,6 +11,28 @@ void BaseCardCell::applyPosterLabels() {
     if (auto* labels = this->getView("video/card/labels")) labels->setVisibility(brls::Visibility::GONE);
 }
 
+void BaseCardCell::applyCastStyle(float diameter) {
+    this->setLabelsVisible(true);
+    if (auto* pic = this->getView("video/card/pic_box")) {
+        pic->setCornerRadius(diameter / 2);
+        pic->setHighlightCornerRadius(diameter / 2);
+    }
+    this->picture->setCornerRadius(diameter / 2);
+    // 20 above the name, a 12sp line for it, 8, then a 10sp line: the gaps
+    // and sizes CastSection stacks under its portrait.
+    if (auto* labels = dynamic_cast<brls::Box*>(this->getView("video/card/labels"))) {
+        labels->setHeight(88);
+        labels->setPadding(20, 0, 0, 0);
+    }
+    brls::Theme theme = brls::Application::getTheme();
+    this->labelTitle->setFontSize(24);
+    this->labelTitle->setHeight(32);
+    this->labelTitle->setTextColor(theme["font/grey"]);
+    this->labelExt->setFontSize(20);
+    this->labelExt->setHeight(28);
+    this->labelExt->setTextColor(theme["font/tertiary"]);
+}
+
 void BaseCardCell::setLabelsVisible(bool visible) {
     if (auto* labels = this->getView("video/card/labels"))
         labels->setVisibility(visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);

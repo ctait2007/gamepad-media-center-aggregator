@@ -48,6 +48,13 @@ public:
     /// reference's CastSection does.
     void setLabelsVisible(bool visible);
 
+    /// Restyle the card as NuvioTV's CastSection portrait: a circular photo
+    /// of `diameter`, the actor's name under it in its labelMedium and the
+    /// character in labelSmall, both dimmed. The poster labels above are a
+    /// different pair of styles entirely, so they are overridden here rather
+    /// than folded into the card's own metrics.
+    void applyCastStyle(float diameter);
+
     /// Enables the focus "play" overlay — only for cards that START playback on
     /// select (continue-watching, episodes, clips). Opening a detail page does
     /// not get it. The orange wash colour is applied here (theme accent, low
@@ -120,9 +127,11 @@ private:
 
 class MediaCardCell : public BaseCardCell {
 public:
+    /// Cast portraits only (the one place this cell is used): 100dp across,
+    /// as the reference sizes them.
     MediaCardCell() {
         this->inflateFromXMLRes("xml/view/video_card.xml");
-        this->applyPosterLabels();
+        this->applyCastStyle(200);
     }
 
     static MediaCardCell* create() { return new MediaCardCell(); }
