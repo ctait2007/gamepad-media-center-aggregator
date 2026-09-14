@@ -31,12 +31,13 @@ PillButton::PillButton(const std::string& text, bool active, std::function<void(
         this->label->setFontWeight("medium");
     } else {
         // NuvioTV's season chip: titleMedium text (16sp at its 2.0 density =
-        // 32px here) in a fully-rounded capsule with generous padding.
-        this->setHeight(62);
-        this->setPadding(0, 30, 0, 30);
-        this->setMarginRight(14);
-        this->setCornerRadius(31);
-        this->setHighlightCornerRadius(35);
+        // 32px here) padded 10dp above and below and 20dp either side, in a
+        // capsule, 12dp from the next. Measured off the reference: 71 tall.
+        this->setHeight(70);
+        this->setPadding(0, 40, 0, 40);
+        this->setMarginRight(24);
+        this->setCornerRadius(35);
+        this->setHighlightCornerRadius(39);
         this->label->setFontSize(32);
         this->label->setFontWeight("medium");
     }

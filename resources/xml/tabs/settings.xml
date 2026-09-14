@@ -14,7 +14,7 @@
     <brls:Box
         grow="1"
         axis="row"
-        cornerRadius="40"
+        cornerRadius="56"
         borderThickness="2"
         borderColor="#FFFFFF14"
         backgroundColor="#FFFFFF08"
@@ -26,7 +26,7 @@
         <!-- left: the category rail -->
         <brls:Box
             axis="column"
-            width="470">
+            width="458">
             <brls:ScrollingFrame
                 id="setting/nav_scroll"
                 grow="1"
@@ -37,7 +37,7 @@
                     width="100%"
                     height="auto"
                     paddingLeft="8"
-                    paddingRight="20"
+                    paddingRight="8"
                     paddingTop="8"
                     paddingBottom="8" />
             </brls:ScrollingFrame>
@@ -47,16 +47,16 @@
         <brls:Box
             axis="column"
             grow="1"
-            marginLeft="40">
+            marginLeft="24">
 
             <brls:Label
                 id="setting/page/title"
-                fontSize="56"
-                fontWeight="bold"
+                fontSize="48"
+                fontWeight="semibold"
                 singleLine="true" />
             <brls:Label
                 id="setting/page/subtitle"
-                fontSize="30"
+                fontSize="28"
                 marginTop="4"
                 singleLine="true"
                 textColor="@theme/font/grey" />

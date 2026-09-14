@@ -45,11 +45,13 @@ SettingsNavItem::SettingsNavItem(
 
     this->setAxis(brls::Axis::ROW);
     this->setAlignItems(brls::AlignItems::CENTER);
-    this->setHeight(96);
-    this->setPadding(0, 32, 0, 36);
-    this->setMarginBottom(20);
-    this->setCornerRadius(48);
-    this->setHighlightCornerRadius(52);
+    // SettingsScreen's rail entry, measured off the reference: a 440 x 100
+    // capsule every 140, with the glyph inset 42 from its left edge.
+    this->setHeight(100);
+    this->setPadding(0, 32, 0, 42);
+    this->setMarginBottom(40);
+    this->setCornerRadius(50);
+    this->setHighlightCornerRadius(54);
     this->setFocusable(true);
     // Keep the pill's own fill (and the selected outline) under the halo:
     // borealis would otherwise paint brls/highlight/background over both.

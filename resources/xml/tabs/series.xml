@@ -174,7 +174,8 @@
                             fontWeight="medium"
                             singleLine="true"
                             visibility="gone"
-                            marginBottom="16" />
+                            textColor="@theme/font/grey"
+                            marginBottom="24" />
 
                         <TextBox
                             id="series/label/overview"
