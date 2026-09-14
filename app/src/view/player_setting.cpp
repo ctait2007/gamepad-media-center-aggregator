@@ -16,7 +16,7 @@ using namespace brls::literals;
 /// Translucent, so the subtitles it is aligning stay visible underneath.
 class SubsyncOverlay : public brls::Box {
 public:
-    SubsyncOverlay() {
+    explicit SubsyncOverlay(std::function<void(double)> onClose) : onClose(std::move(onClose)) {
         this->setAxis(brls::Axis::COLUMN);
         this->setJustifyContent(brls::JustifyContent::CENTER);
         this->setAlignItems(brls::AlignItems::CENTER);
@@ -63,10 +63,16 @@ public:
         card->addView(head);
 
         // track: a flat rail, five ticks along it, and the thumb over the top
-        auto* slider = new brls::Box();
+        this->slider = new brls::Box();
+        auto* slider = this->slider;
         slider->setWidth(brls::Application::contentWidth * 0.6f - 104);
         slider->setHeight(48);
         slider->setMarginTop(36);
+        // Focusable, so the track and Reset are two places to be rather than
+        // one silent surface with hidden keys — the reference moves focus
+        // between them the same way.
+        slider->setFocusable(true);
+        slider->setHideHighlightBackground(true);
 
         auto* track = new brls::Box();
         track->setPositionType(brls::PositionType::ABSOLUTE);
@@ -102,6 +108,8 @@ public:
 
         // reset
         this->resetCard = new brls::Box();
+        this->resetCard->setFocusable(true);
+        this->resetCard->setHideHighlightBackground(true);
         this->resetCard->setJustifyContent(brls::JustifyContent::CENTER);
         this->resetCard->setAlignItems(brls::AlignItems::CENTER);
         this->resetCard->setMarginTop(32);
@@ -133,50 +141,67 @@ public:
         this->delay = MPVCore::instance().getOptionDouble("sub-delay");
         this->refresh();
 
-        this->registerAction(
-            "main/player/panel/sub_delay"_i18n, brls::BUTTON_NAV_LEFT,
+        slider->registerAction(
+            "\uE08F", brls::BUTTON_NAV_LEFT,
             [this](brls::View*) {
                 this->nudge(-kStep);
                 return true;
             },
             true, true);
-        this->registerAction(
-            "", brls::BUTTON_NAV_RIGHT,
+        slider->registerAction(
+            "\uE08E", brls::BUTTON_NAV_RIGHT,
             [this](brls::View*) {
                 this->nudge(kStep);
                 return true;
             },
             true, true);
-        this->registerAction("main/player/panel/sub_delay_reset"_i18n, brls::BUTTON_A, [this](brls::View*) {
+        slider->setCustomNavigationRoute(brls::FocusDirection::DOWN, this->resetCard);
+        this->resetCard->setCustomNavigationRoute(brls::FocusDirection::UP, slider);
+        this->resetCard->registerClickAction([this](brls::View*) {
             this->delay = 0;
-            MPVCore::instance().setOption("sub-delay", "0");
-            this->refresh();
+            this->apply();
             return true;
         });
-        this->registerAction("hints/back"_i18n, brls::BUTTON_B, [](brls::View*) {
+        this->resetCard->setActionAvailable(brls::BUTTON_A, true);
+
+        this->registerAction("hints/back"_i18n, brls::BUTTON_B, [this](brls::View*) {
+            // Commit on the way out as well as on every nudge, so what the bar
+            // says is what mpv has however the overlay was left.
+            this->apply();
+            if (this->onClose) this->onClose(this->delay);
             brls::Application::popActivity();
             return true;
         });
     }
 
     bool isTranslucent() override { return true; }
-    brls::View* getDefaultFocus() override { return this; }
+    brls::View* getDefaultFocus() override { return this->slider ? this->slider : (brls::View*)this; }
 
 private:
     // The reference's own range and step (SubtitleDelayConfig.kt).
     static constexpr double kMin = -180.0, kMax = 180.0, kStep = 0.1;
     static constexpr float kThumbWidth = 44;
 
+    std::function<void(double)> onClose;
     brls::Label* value = nullptr;
     brls::Box* thumb = nullptr;
+    brls::Box* slider = nullptr;
     brls::Box* resetCard = nullptr;
     float trackWidth = 0;
     double delay = 0;
 
     void nudge(double d) {
         this->delay = std::clamp(this->delay + d, kMin, kMax);
-        MPVCore::instance().setOption("sub-delay", fmt::format("{:.1f}", this->delay));
+        this->apply();
+    }
+    /// Push the value to mpv and read back what it made of it — the read is
+    /// the only way to tell a write mpv took from one it quietly refused.
+    void apply() {
+        auto& mpv = MPVCore::instance();
+        mpv.setOption("sub-delay", fmt::format("{:.1f}", this->delay));
         this->refresh();
+        brls::Logger::debug("subtitles: sub-delay set to {:.1f}, mpv reports '{}'", this->delay,
+            mpv.getString("sub-delay"));
     }
     void refresh() {
         this->value->setText(fmt::format("{:+.1f} s", this->delay));
@@ -316,8 +341,8 @@ PlayerSetting::PlayerSetting() {
 
 PlayerSetting::~PlayerSetting() { brls::Logger::debug("PlayerSetting: delete"); }
 
-void PlayerSetting::showSubsync() {
-    brls::Application::pushActivity(new brls::Activity(new SubsyncOverlay()));
+void PlayerSetting::showSubsync(std::function<void(double)> onClose) {
+    brls::Application::pushActivity(new brls::Activity(new SubsyncOverlay(std::move(onClose))));
 }
 
 void PlayerSetting::showAudioMenu(const plex::Media* src) {
@@ -443,7 +468,7 @@ void PlayerSetting::showSubtitleMenu(const plex::Media* src) {
             // open the live sync overlay, deferred so this dropdown finishes
             // closing first (otherwise its pop would immediately eat the
             // overlay we just pushed — "nothing happens")
-            brls::sync([]() { brls::Application::pushActivity(new brls::Activity(new SubsyncOverlay())); });
+            brls::sync([]() { PlayerSetting::showSubsync(); });
         },
         current);
     brls::Application::pushActivity(new brls::Activity(dropdown));

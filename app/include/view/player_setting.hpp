@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include <borealis.hpp>
 #include <api/plex/types.hpp>
 
@@ -32,7 +34,9 @@ public:
     /// The live subtitle-sync overlay, pushed on its own. The class behind it
     /// is file-local to player_setting.cpp; the Subtitles panel needs to reach
     /// it, and this is cheaper than moving the whole overlay out.
-    static void showSubsync();
+    /// The subtitle-delay overlay. `onClose` is handed the delay it was left
+    /// at, so the row that opened it can stop showing the old one.
+    static void showSubsync(std::function<void(double)> onClose = nullptr);
 
     enum class Equalizer {
         BRIGHTNESS,

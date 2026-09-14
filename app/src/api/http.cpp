@@ -260,6 +260,30 @@ int HTTP::perform(std::ostream* body) {
     return status_code;
 }
 
+std::string HTTP::resolveRedirect(const std::string& url, long timeoutMs) {
+    if (url.rfind("http", 0) != 0) return url;  // file://, and anything else mpv opens directly
+    try {
+        HTTP s;
+        set_option(s, Timeout{timeoutMs, timeoutMs / 2});
+        // One byte, not a HEAD: a redirector that only implements GET answers
+        // this and nothing else, and the body is thrown away either way.
+        curl_easy_setopt(s.easy, CURLOPT_RANGE, "0-0");
+        std::ostringstream sink;
+        s._get(url, &sink);
+        char* effective = nullptr;
+        if (curl_easy_getinfo(s.easy, CURLINFO_EFFECTIVE_URL, &effective) == CURLE_OK && effective && *effective) {
+            std::string resolved = effective;
+            if (resolved != url) brls::Logger::info("http: resolved a redirect before handing it to the player");
+            return resolved;
+        }
+    } catch (const std::exception& ex) {
+        // Rate-limited, offline, or a server that will not answer a range
+        // request: hand back what we were given and let the player try it.
+        brls::Logger::warning("http: could not resolve {}: {}", url, ex.what());
+    }
+    return url;
+}
+
 std::string HTTP::encode_form(const Form& form) {
     std::ostringstream ss;
     char* escaped;

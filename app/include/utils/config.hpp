@@ -161,6 +161,7 @@ public:
         LOADING_SCREEN,
         LOADING_STAGES,
         PAUSE_SCREEN,
+        PAUSE_SCREEN_DELAY,
         TOUCH_GESTURE,
         CLIP_POINT,
         SYNC_SETTING,

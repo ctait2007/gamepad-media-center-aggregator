@@ -360,9 +360,17 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
 
     // Delay is not a stepper in the reference either: it opens the live sync
     // overlay, where the timing is nudged against the picture.
-    styleRail->addSetting("main/player/panel/sub_delay"_i18n,
-        fmt::format("{:+.1f} s", mpv.getOptionDouble("sub-delay")),
-        []() { brls::sync([]() { PlayerSetting::showSubsync(); }); });
+    auto delayCard = std::make_shared<PlayerCard*>(nullptr);
+    *delayCard = styleRail->addSetting("main/player/panel/sub_delay"_i18n,
+        fmt::format("{:+.1f} s", mpv.getOptionDouble("sub-delay")), [delayCard]() {
+            brls::sync([delayCard]() {
+                // The row keeps showing whatever the overlay was left at,
+                // rather than the value it had when the panel opened.
+                PlayerSetting::showSubsync([delayCard](double delay) {
+                    if (*delayCard) (*delayCard)->setTrailingText(fmt::format("{:+.1f} s", delay));
+                });
+            });
+        });
 
     // EVERY stepper below holds its own value.
     //
@@ -394,9 +402,11 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
     auto bold = std::make_shared<bool>(core.getString("sub-bold") == "yes");
     *boldCard = styleRail->addSetting("main/player/panel/sub_bold"_i18n,
         *bold ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n, [boldCard, bold]() {
+            auto& m = MPVCore::instance();
             *bold = !*bold;
-            MPVCore::instance().setOption("sub-bold", *bold ? "yes" : "no");
+            m.setOption("sub-bold", *bold ? "yes" : "no");
             (*boldCard)->setTrailingText(*bold ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n);
+            brls::Logger::debug("subtitles: sub-bold set to {}, mpv reports '{}'", *bold, m.getString("sub-bold"));
         });
 
     auto outline = std::make_shared<double>(core.getOptionDouble("sub-border-size", 1.0));
@@ -426,7 +436,7 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
         };
     };
     *setPos = styleRail->addStepper(
-        "main/player/panel/sub_offset"_i18n, posText(), bumpPos(-5), bumpPos(5));
+        "main/player/panel/sub_offset"_i18n, posText(), bumpPos(-1), bumpPos(1));
 
     row->addView(styleRail);
     overlay->content()->addView(row);

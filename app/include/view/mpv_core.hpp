@@ -144,9 +144,16 @@ public:
     inline static bool LOADING_SCREEN = true;   // the startup screen at all
     inline static bool LOADING_STAGES = true;   // the step text on it
     inline static bool PAUSE_SCREEN = true;     // the "you're watching" screen
-    /// How long a pause has to last first. The reference waits 5 s; this app
-    /// was asked for longer, so that a pause to answer the door is not met
-    /// with a page of metadata.
+    /// How long a pause has to last first, in seconds. The reference waits
+    /// 5 s; this app was asked for longer, so that a pause to answer the door
+    /// is not met with a page of metadata.
+    ///
+    /// ASSIGNED AT STARTUP from AppConfig, like every other static here, and
+    /// not left to this initializer: on the console build the initializer does
+    /// not survive — the value read 0 there, which is why the pause screen
+    /// arrived the instant playback paused however the wait was implemented.
+    /// Every other static in this block is written by AppConfig::load(), which
+    /// is why this was the only one to show it.
     inline static int PAUSE_SCREEN_DELAY = 15;  // seconds
 
     // 低画质解码，剔除解码过程中的部分步骤，可以用来节省cpu

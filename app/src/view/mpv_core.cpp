@@ -17,24 +17,33 @@ static inline void check_error(int status) {
 /// is there yet — see the note at the call site. Streamed by hand rather than
 /// via fs::copy_file: the resource lives on the console's read-only app mount,
 /// and a plain read/write works the same on every filesystem backend here.
-static void ensureSubtitleFont(const std::string& confDir) {
-    std::string dest = confDir + "/subfont.ttf";
+static void seedFont(const std::string& from, const std::string& dest) {
     std::error_code ec;
     if (fs::exists(dest, ec)) return;
-    fs::create_directories(confDir, ec);
 
-    std::ifstream in(BRLS_ASSET("font/inter.ttf"), std::ios::binary);
+    std::ifstream in(from, std::ios::binary);
     if (!in) {
-        brls::Logger::warning("mpv: no bundled font to seed {} with — subtitles will not draw", dest);
+        brls::Logger::warning("mpv: no bundled font at {} to seed {} with", from, dest);
         return;
     }
     std::ofstream out(dest, std::ios::binary | std::ios::trunc);
     if (!out) {
-        brls::Logger::warning("mpv: cannot write {} — subtitles will not draw", dest);
+        brls::Logger::warning("mpv: cannot write {}", dest);
         return;
     }
     out << in.rdbuf();
-    brls::Logger::info("mpv: seeded the subtitle font at {}", dest);
+    brls::Logger::info("mpv: seeded a subtitle font at {}", dest);
+}
+
+static void ensureSubtitleFont(const std::string& confDir) {
+    std::error_code ec;
+    fs::create_directories(confDir, ec);
+    // subfont.ttf is the name mpv looks for as its last-resort face.
+    seedFont(BRLS_ASSET("font/inter.ttf"), confDir + "/subfont.ttf");
+    // And the BOLD cut beside it: sub-fonts-dir points at this directory, so
+    // libass indexes whatever is in it by family and weight. Without a bold
+    // face to find, turning Bold on has nothing to switch to.
+    seedFont(BRLS_ASSET("font/inter_bold.ttf"), confDir + "/subfont_bold.ttf");
 }
 
 #ifndef MPV_SW_RENDER

@@ -64,6 +64,15 @@ public:
     ~HTTP();
 
     static std::string encode_form(const Form& form);
+
+    /// Follow a url's redirects and return where they land, WITHOUT pulling
+    /// the body down (one ranged byte). Returns `url` unchanged on any
+    /// failure, so a caller can always use the result.
+    ///
+    /// For a redirector that is also rate-limited — a debrid "give me a link"
+    /// endpoint — this is the difference between the player asking it once and
+    /// asking it again for every reconnect and every byte range.
+    static std::string resolveRedirect(const std::string& url, long timeoutMs = 15000);
     void _get(const std::string& url, std::ostream* out);
     bool getinfo(char** arg);
     int propfind(const std::string& url, std::ostream* out);

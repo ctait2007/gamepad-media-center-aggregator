@@ -1208,6 +1208,19 @@ media::PlaybackSource StremioBackend::resolvePlayback(
     // dialog. We never throw: a cross-TU throw on the borealis async task loop
     // (which does not wrap tasks in try/catch) would abort the app.
     if (version.parts.empty() || version.parts.front().key.empty()) return {};
+
+    // FOLLOW THE REDIRECT ONCE, HERE. A debrid link is a request to a
+    // rate-limited endpoint ("give me a download for this file") that answers
+    // with a redirect to a CDN. Handing that endpoint's url to the player
+    // means the player goes back to it for every reconnect and every byte
+    // range it wants — and TorBox starts answering 429 Too Many Requests with
+    // a 30-byte body, which libavformat reports as a 30-byte file that it then
+    // fails to seek inside. That is the "no audio or video data played" and
+    // the "loading failed" both, and no amount of retrying fixes it because
+    // the retries are what cause it. Resolved here, the player talks to the
+    // CDN and the endpoint is asked exactly once.
+    std::string url = HTTP::resolveRedirect(version.parts.front().key);
+
     std::string extra = "network-timeout=" + std::to_string(HTTP::TIMEOUT / 100);
     // RESUME. There is no server to hand the offset to here — an addon/debrid
     // link is a plain file — so the seek is mpv's, exactly as Plex and Jellyfin
@@ -1215,7 +1228,7 @@ media::PlaybackSource StremioBackend::resolvePlayback(
     // Continue Watching or from the detail page, silently started at zero.
     if (opts.seekMs > 0) extra += ",start=" + misc::sec2Time(opts.seekMs / 1000);
     if (HTTP::PROXY_STATUS) extra += ",http-proxy=\"" + HTTP::PROXY + "\"";
-    return {version.parts.front().key, extra, false, "directplay"};
+    return {url, extra, false, "directplay"};
 }
 
 std::string StremioBackend::subtitleSidecarUrl(const std::string& streamKey) const {
