@@ -904,6 +904,20 @@ void SettingTab::onCreate() {
         conf.getItem(AppConfig::LAYOUT_HIDE_UNRELEASED, false),
         [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_HIDE_UNRELEASED, value); });
 
+    // homeImdbRatingsVisibility, as a switch rather than its two-value enum:
+    // the reference only ever offers SHOW_ALL and HIDE_ALL from this row.
+    btnShowRatings->init("main/setting/layout/show_ratings"_i18n,
+        conf.getItem(AppConfig::LAYOUT_SHOW_RATINGS, true),
+        [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_SHOW_RATINGS, value); });
+
+    // modernHeroFullScreenBackdropEnabled. Off there, and read as the home
+    // screen is built, so it lands on the next launch.
+    btnFullscreenHero->init("main/setting/layout/fullscreen_hero"_i18n,
+        conf.getItem(AppConfig::LAYOUT_FULLSCREEN_HERO, false), [&conf](bool value) {
+            conf.setItem(AppConfig::LAYOUT_FULLSCREEN_HERO, value);
+            Dialog::quitApp();
+        });
+
     // Two more of the reference's Layout toggles, both on as it has them.
     btnFullReleaseDate->init("main/setting/layout/full_release_date"_i18n,
         conf.getItem(AppConfig::LAYOUT_FULL_RELEASE_DATE, true),

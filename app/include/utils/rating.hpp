@@ -7,11 +7,14 @@
 #include <string>
 
 #include "view/svg_image.hpp"
+#include "utils/config.hpp"
 
 /// Plex exposes a rating "source" per item — ratingImage (critic) and
 /// audienceRatingImage (audience) — as opaque URIs (imdb://…,
 /// rottentomatoes://image.rating.ripe, …). This maps them to the official
 /// icon + a display value, mirroring the plezy reference (rating_utils.dart).
+
+
 namespace rating {
 
 /// Reference icon height (pt). The width is derived from the icon aspect:
@@ -58,6 +61,9 @@ inline std::optional<RatingInfo> parseRatingImage(const std::string& uri, double
 /// aspect), keeping the glyph undistorted.
 inline void applyPill(SVGImage* icon, brls::Label* label, const std::string& uri, double value) {
     brls::View* box = label->getParent();
+    // homeImdbRatingsVisibility.HIDE_ALL: every pill goes, everywhere the
+    // reference hides them.
+    if (!AppConfig::instance().getItem(AppConfig::LAYOUT_SHOW_RATINGS, true)) value = 0.0;
     if (value <= 0.0) {
         box->setVisibility(brls::Visibility::GONE);
         return;

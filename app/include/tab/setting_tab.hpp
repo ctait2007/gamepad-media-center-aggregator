@@ -79,6 +79,8 @@ private:
     BRLS_BIND(brls::BooleanCell, btnPauseScreen, "setting/player/pause_screen");
     BRLS_BIND(brls::BooleanCell, btnNextEpisode, "setting/player/next_episode_card");
     BRLS_BIND(brls::BooleanCell, btnHideUnreleased, "setting/layout/hide_unreleased");
+    BRLS_BIND(brls::BooleanCell, btnShowRatings, "setting/layout/show_ratings");
+    BRLS_BIND(brls::BooleanCell, btnFullscreenHero, "setting/layout/fullscreen_hero");
     BRLS_BIND(brls::BooleanCell, btnFullReleaseDate, "setting/layout/full_release_date");
     BRLS_BIND(brls::BooleanCell, btnCwEpisodeThumbs, "setting/layout/cw_episode_thumbs");
     BRLS_BIND(brls::SelectorCell, selectorCardWidth, "setting/layout/card_width");

@@ -149,6 +149,10 @@
                             <brls:BooleanCell
                                 id="setting/layout/hide_unreleased" />
                             <brls:BooleanCell
+                                id="setting/layout/show_ratings" />
+                            <brls:BooleanCell
+                                id="setting/layout/fullscreen_hero" />
+                            <brls:BooleanCell
                                 id="setting/layout/full_release_date" />
                             <brls:BooleanCell
                                 id="setting/layout/cw_episode_thumbs" />

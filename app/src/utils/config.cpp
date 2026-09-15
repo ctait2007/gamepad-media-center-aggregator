@@ -99,6 +99,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
     {LAYOUT_FULL_RELEASE_DATE, {"layout_full_release_date"}},
+    {LAYOUT_SHOW_RATINGS, {"layout_show_ratings"}},
+    {LAYOUT_FULLSCREEN_HERO, {"layout_fullscreen_hero"}},
     {LAYOUT_CW_EPISODE_THUMBS, {"layout_cw_episode_thumbs"}},
     {PLAYER_AUDIO_LANG, {"player_audio_lang", {"default", "device"}}},
     {SKIP_INTRO_ENABLED, {"skip_intro_enabled"}},

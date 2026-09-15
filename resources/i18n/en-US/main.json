@@ -366,6 +366,8 @@
             "stream_addon_logo": "Addon logo on sources",
             "episode_overlay_art": "Episode artwork behind the options menu",
             "hide_unreleased": "Hide unreleased content",
+            "show_ratings": "Show ratings",
+            "fullscreen_hero": "Fullscreen hero backdrop (restart required)",
             "full_release_date": "Show full release date",
             "cw_episode_thumbs": "Episode stills in Continue Watching",
             "card_width": "Poster width (restart required)",

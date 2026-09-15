@@ -80,6 +80,13 @@ its screenshots; where we deviate from it, the entry says so.
 - **Layout: hide unreleased content**, **show full release date**, and
   **episode stills in Continue Watching** — three more of its Layout toggles,
   at its defaults.
+- **Layout: show ratings** (`homeImdbRatingsVisibility`, shown as it is there).
+  Off, the rating goes from the home hero and from every pill on a detail page.
+- **Layout: fullscreen hero backdrop**
+  (`modernHeroFullScreenBackdropEnabled`, off as it is there). The home
+  backdrop leaves its top-right corner and fills the screen; the fade that
+  hides the corner version's left seam goes with it, there being no seam left.
+  Takes effect on the next launch.
 - **Advanced: fast horizontal navigation**, under its own "Performance &
   navigation" heading. NuvioTV throttles held-d-pad repeats per axis —
   112 ms down a column, 80 ms along a row, and 48 ms along a row with this on —

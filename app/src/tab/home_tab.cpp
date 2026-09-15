@@ -22,6 +22,20 @@ using namespace brls::literals;  // for _i18n
 HomeTab::HomeTab() {
     brls::Logger::debug("Tab HomeTab: create");
     this->inflateFromXMLRes("xml/tabs/home.xml");
+    // modernHeroFullScreenBackdropEnabled: the backdrop leaves its corner and
+    // takes the whole screen. The reference switches the same image between
+    // TopEnd at a fraction of the width and TopStart filling it, so the two
+    // edge fades that hide the corner version's seams go with it — there is no
+    // seam left to hide once the art reaches both edges.
+    if (AppConfig::instance().getItem(AppConfig::LAYOUT_FULLSCREEN_HERO, false)) {
+        if (auto* art = this->getView("home/hero/art")) {
+            art->setWidth(brls::Application::contentWidth);
+            art->setHeight(brls::Application::contentHeight);
+            art->setPositionLeft(0);
+            art->setPositionRight(brls::View::AUTO);
+        }
+        if (auto* fade = this->getView("home/hero/fade/left")) fade->setVisibility(brls::Visibility::GONE);
+    }
     // centered spinner overlay shown while the home hubs load (the rows are
     // built into boxHome only once the response arrives).
     this->spinner = new LoadingSpinner();
@@ -584,7 +598,11 @@ void HomeTab::renderHero() {
         std::string ratingRes, ratingValue;
         const float ratingH = 18.f;  // matches the text beside it
         float ratingW = ratingH;
-        if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
+        // homeImdbRatingsVisibility.HIDE_ALL takes the hero's rating with it,
+        // the same as the pills on a detail page (utils/rating.hpp).
+        if (!AppConfig::instance().getItem(AppConfig::LAYOUT_SHOW_RATINGS, true)) {
+            // nothing to show
+        } else if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
             ratingRes = info->icon;
             ratingValue = info->value;
             ratingW = ratingH * info->aspect;

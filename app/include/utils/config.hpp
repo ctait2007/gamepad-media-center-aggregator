@@ -193,6 +193,13 @@ public:
         LAYOUT_POSTER_RADIUS,
         /// hide_unreleased_content: drop anything not out yet from the rows.
         LAYOUT_HIDE_UNRELEASED,
+        /// homeImdbRatingsVisibility (SHOW_ALL / HIDE_ALL): the rating beside a
+        /// title, on the home hero and on a detail page. Shown, as it is there.
+        LAYOUT_SHOW_RATINGS,
+        /// modernHeroFullScreenBackdropEnabled: the home backdrop fills the
+        /// screen instead of sitting in its top-right corner. Off, as it is
+        /// there. Read once, at startup, since it is the screen's own layout.
+        LAYOUT_FULLSCREEN_HERO,
         /// Subtitle face, persisted the way PlayerSettingsDataStore persists
         /// it: the player panel's steppers only ever moved mpv, so every one
         /// of these went back to its default on the next launch.

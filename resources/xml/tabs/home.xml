@@ -29,6 +29,7 @@
 
         <!-- left edge, so the art has no seam against the text column -->
         <brls:Image
+            id="home/hero/fade/left"
             positionType="absolute"
             positionTop="0"
             positionLeft="0"
