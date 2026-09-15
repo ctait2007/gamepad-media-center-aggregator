@@ -360,6 +360,8 @@
             "stream_addon_logo": "Addon logo on sources",
             "episode_overlay_art": "Episode artwork behind the options menu",
             "hide_unreleased": "Hide unreleased content",
+            "full_release_date": "Show full release date",
+            "cw_episode_thumbs": "Episode stills in Continue Watching",
             "card_width": "Poster width (restart required)",
             "card_radius": "Poster corner radius (restart required)",
             "preset": {

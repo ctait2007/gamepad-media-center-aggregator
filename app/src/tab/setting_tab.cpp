@@ -769,6 +769,14 @@ void SettingTab::onCreate() {
         conf.getItem(AppConfig::LAYOUT_HIDE_UNRELEASED, false),
         [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_HIDE_UNRELEASED, value); });
 
+    // Two more of the reference's Layout toggles, both on as it has them.
+    btnFullReleaseDate->init("main/setting/layout/full_release_date"_i18n,
+        conf.getItem(AppConfig::LAYOUT_FULL_RELEASE_DATE, true),
+        [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_FULL_RELEASE_DATE, value); });
+    btnCwEpisodeThumbs->init("main/setting/layout/cw_episode_thumbs"_i18n,
+        conf.getItem(AppConfig::LAYOUT_CW_EPISODE_THUMBS, true),
+        [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_CW_EPISODE_THUMBS, value); });
+
     // Poster Card Style. The reference offers named presets rather than a free
     // slider, and these are its own six widths and five radii, in its dp.
     struct Preset {

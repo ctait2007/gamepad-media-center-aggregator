@@ -148,6 +148,10 @@
                                 id="setting/layout/episode_overlay_art" />
                             <brls:BooleanCell
                                 id="setting/layout/hide_unreleased" />
+                            <brls:BooleanCell
+                                id="setting/layout/full_release_date" />
+                            <brls:BooleanCell
+                                id="setting/layout/cw_episode_thumbs" />
                             <brls:SelectorCell
                                 id="setting/layout/card_width" />
                             <brls:SelectorCell

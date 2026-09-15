@@ -429,9 +429,12 @@ void MediaMovie::applyMovie(const media::Item& item) {
     }
     // Primary line carries the year; the runtime moved to the secondary line
     // beside the age rating, as the reference lays them out.
-    // The reference prints a movie's full release date ("September 24, 2025"),
-    // not just its year; fall back to the year when the addon sends no date.
-    std::string released = misc::formatDate(item.originallyAvailableAt);
+    // The reference prints a movie's full release date ("September 24, 2025")
+    // rather than its year, and makes that a setting (show_full_release_date,
+    // on); fall back to the year when it is off or the addon sends no date.
+    std::string released = AppConfig::instance().getItem(AppConfig::LAYOUT_FULL_RELEASE_DATE, true)
+                               ? misc::formatDate(item.originallyAvailableAt)
+                               : std::string();
     bool haveYear = item.year > 0 || !released.empty();
     if (!released.empty() && released != item.originallyAvailableAt)
         this->labelYear->setText(released);

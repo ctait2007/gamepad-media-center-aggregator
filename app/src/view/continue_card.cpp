@@ -1,4 +1,5 @@
 #include "view/continue_card.hpp"
+#include "utils/config.hpp"
 
 #include "activity/player_view.hpp"
 #include "api/plex.hpp"
@@ -51,7 +52,15 @@ RecyclingGridItem* ContinueDataSource::cellForRow(RecyclingView* recycler, size_
     // a strip here, so the backdrop wins for those too.
     std::string art;
     if (item.type == plex::mediaTypeEpisode) {
-        art = !item.thumb.empty() ? item.thumb : (!item.grandparentArt.empty() ? item.grandparentArt : item.art);
+        // use_episode_thumbnails_in_cw: the episode's own still by default,
+        // the show's backdrop when the viewer would rather not be shown a
+        // frame of something they have not watched yet.
+        bool stills = AppConfig::instance().getItem(AppConfig::LAYOUT_CW_EPISODE_THUMBS, true);
+        std::string backdrop = !item.grandparentArt.empty() ? item.grandparentArt : item.art;
+        if (stills)
+            art = !item.thumb.empty() ? item.thumb : backdrop;
+        else
+            art = !backdrop.empty() ? backdrop : item.thumb;
     } else {
         art = !item.art.empty() ? item.art : item.thumb;
     }

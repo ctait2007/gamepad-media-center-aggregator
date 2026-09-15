@@ -183,6 +183,11 @@ public:
         /// amoledMode / amoledSurfacesMode: pure black backgrounds, and
         /// optionally pure black cards and panels with them.
         /// playback_osd_clock: the wall clock on the player's bar.
+        /// show_full_release_date: a movie's full date instead of its year.
+        LAYOUT_FULL_RELEASE_DATE,
+        /// use_episode_thumbnails_in_cw: an episode's own still on the
+        /// Continue Watching tile, or the show's backdrop when off.
+        LAYOUT_CW_EPISODE_THUMBS,
         OSD_CLOCK,
         AMOLED_MODE,
         AMOLED_SURFACES,

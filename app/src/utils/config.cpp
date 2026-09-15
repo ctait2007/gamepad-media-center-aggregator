@@ -92,6 +92,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
+    {LAYOUT_FULL_RELEASE_DATE, {"layout_full_release_date"}},
+    {LAYOUT_CW_EPISODE_THUMBS, {"layout_cw_episode_thumbs"}},
     {OSD_CLOCK, {"osd_clock"}},
     {AMOLED_MODE, {"amoled_mode"}},
     {AMOLED_SURFACES, {"amoled_surfaces"}},
