@@ -3,6 +3,7 @@
 #include "view/svg_image.hpp"
 #include "utils/config.hpp"
 #include "utils/keybind.hpp"
+#include "utils/image.hpp"
 
 using namespace brls::literals;
 
@@ -75,4 +76,57 @@ VideoCardCell::VideoCardCell() {
     this->inflateFromXMLRes("xml/view/video_card.xml");
     this->applyPosterLabels();
     this->registerContextMenu();
+}
+
+/// ModernCarouselCard's landscape order: the backdrop, then the poster. An
+/// episode's own `thumb` IS a 16:9 still, so it comes first for one.
+const std::string& VideoCardCell::landscapeArt(const plex::Item& item) {
+    static const std::string kEmpty;
+    if (item.type == plex::mediaTypeEpisode) {
+        if (!item.thumb.empty()) return item.thumb;
+        if (!item.grandparentArt.empty()) return item.grandparentArt;
+    }
+    if (!item.art.empty()) return item.art;
+    if (!item.thumb.empty()) return item.thumb;
+    return kEmpty;
+}
+
+void VideoCardCell::applyLandscape(bool on, const plex::Item& item) {
+    // Cells are recycled, so the overlay has to be taken back off as well as
+    // put on — a portrait build never calls this with `on`, but one row can
+    // still hand a cell an item with no logo after one that had one.
+    Image::cancel(this->overlayLogo);
+    this->overlayLogo->clear();
+    this->overlayLogo->setVisibility(brls::Visibility::GONE);
+    this->overlayTitle->setVisibility(brls::Visibility::GONE);
+    if (!on) {
+        this->overlayBox->setVisibility(brls::Visibility::GONE);
+        return;
+    }
+    this->overlayBox->setVisibility(brls::Visibility::VISIBLE);
+
+    // 34% of the card's height, as the reference sizes its logo box. The row
+    // knows the height; the cell asks the style for the same number the row
+    // was built from, less the label block.
+    float cardHeight = brls::getStyle()["app/card/poster/row"] - brls::getStyle()["app/card/labels"];
+    this->overlayLogo->setHeight(cardHeight * 0.34f);
+
+    const std::string& title = item.grandparentTitle.empty() ? item.title : item.grandparentTitle;
+    if (item.clearLogo.empty()) {
+        this->overlayTitle->setText(title);
+        this->overlayTitle->setVisibility(brls::Visibility::VISIBLE);
+        return;
+    }
+    // The title stands in until the logo's pixels actually arrive, and stays
+    // if they never do — an advertised url is not proof of an image.
+    this->overlayTitle->setText(title);
+    this->overlayTitle->setVisibility(brls::Visibility::VISIBLE);
+    brls::Image* logo = this->overlayLogo;
+    brls::Label* label = this->overlayTitle;
+    Image::load(logo, item.clearLogo, (int)brls::getStyle()["app/card/poster/width"], 0,
+        [logo, label](bool ok, bool) {
+            if (!ok) return;
+            logo->setVisibility(brls::Visibility::VISIBLE);
+            label->setVisibility(brls::Visibility::GONE);
+        });
 }

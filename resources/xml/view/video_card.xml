@@ -66,6 +66,34 @@
             </brls:Box>
         </brls:Box>
 
+        <!-- Landscape cards only (modernLandscapePostersEnabled): the item's
+             cut-out logo over the bottom left of the artwork, or its title in
+             the same place when there is no logo. The reference's own box —
+             62% of the card's width, 34% of its height, 10dp in from the left
+             and 8dp up from the bottom. GONE on a portrait card. -->
+        <brls:Box
+            id="video/card/overlay"
+            positionType="absolute"
+            positionBottom="8"
+            positionLeft="10"
+            width="62%"
+            axis="column"
+            justifyContent="flexEnd"
+            visibility="gone">
+            <brls:Image
+                id="video/card/overlay/logo"
+                width="100%"
+                scalingType="fit"
+                imageAlign="left"
+                visibility="gone" />
+            <brls:Label
+                id="video/card/overlay/title"
+                wireframe="false"
+                fontSize="@style/app/card/label/title_size"
+                textColor="#FFFFFFFF"
+                visibility="gone" />
+        </brls:Box>
+
         <SVGImage
             id="video/card/badge/top"
             positionType="absolute"

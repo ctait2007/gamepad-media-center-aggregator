@@ -187,6 +187,11 @@ public:
         /// theintrodb.org markers, and whether they skip themselves.
         INTRODB,
         INTRODB_AUTO_SKIP,
+        /// modernLandscapePostersEnabled: the catalog rows carry 16:9 cards
+        /// showing the backdrop, with the item's logo (or its title) over the
+        /// bottom left, instead of 2:3 posters. Off, as it is there; read once,
+        /// at startup, because it is the rows' own geometry.
+        LAYOUT_LANDSCAPE_POSTERS,
         /// Poster Card Style (posterCardWidthDp / posterCardCornerRadiusDp),
         /// both in the reference's dp. Read into the style metrics at startup.
         LAYOUT_POSTER_WIDTH,

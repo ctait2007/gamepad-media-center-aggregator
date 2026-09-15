@@ -133,6 +133,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {AUTO_SKIP_OUTRO, {"auto_skip_outro"}},
     {LAYOUT_POSTER_WIDTH, {"layout_poster_width"}},
     {LAYOUT_POSTER_RADIUS, {"layout_poster_radius"}},
+    {LAYOUT_LANDSCAPE_POSTERS, {"layout_landscape_posters"}},
     {LAYOUT_HIDE_UNRELEASED, {"layout_hide_unreleased"}},
     {NEXT_EPISODE_MODE, {"next_episode_mode"}},
     {NEXT_EPISODE_PERCENT, {"next_episode_percent"}},
@@ -1292,10 +1293,18 @@ void AppConfig::initThemes() {
             // what posterCardWidthDp is there; 126 = its Balanced default.
             {
                 double baseDp = (double)this->getItem(LAYOUT_POSTER_WIDTH, 126);
-                // ModernHomeContent's own two factors, then dp -> px.
-                int w = (int)std::lround(baseDp * 0.84 * 1.08 * 2);
-                // 189/126 = 1.5, the card's aspect, + the 100 label block.
-                int h = (int)std::lround(w * 1.5) + 100;
+                int w, h;
+                if (this->getItem(LAYOUT_LANDSCAPE_POSTERS, false)) {
+                    // modernLandscapePostersEnabled: the reference's own other
+                    // pair of factors (1.24 x 1.34) and its 1.77 aspect.
+                    w = (int)std::lround(baseDp * 1.24 * 1.34 * 2);
+                    h = (int)std::lround(w / 1.77) + 100;
+                } else {
+                    // ModernHomeContent's own two factors, then dp -> px.
+                    w = (int)std::lround(baseDp * 0.84 * 1.08 * 2);
+                    // 189/126 = 1.5, the card's aspect, + the 100 label block.
+                    h = (int)std::lround(w * 1.5) + 100;
+                }
                 brls::getStyle().addMetric("app/card/poster/width", w);
                 brls::getStyle().addMetric("app/card/poster/row", h);
             }

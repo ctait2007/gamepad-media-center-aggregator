@@ -3,6 +3,7 @@
 #include <view/recycling_grid.hpp>
 #include <view/long_press_gesture.hpp>
 #include <utils/image.hpp>
+#include <api/plex/types.hpp>
 
 class SVGImage;
 
@@ -147,7 +148,20 @@ public:
     /// scrobble, without reloading the list.
     void setWatched(bool played);
 
+    /// modernLandscapePostersEnabled: puts the reference's overlay treatment
+    /// on the card — the item's cut-out logo over the bottom left of the
+    /// artwork, its title in the same place when it has no logo — or takes it
+    /// off again for a recycled portrait card. A no-op when `on` is false.
+    void applyLandscape(bool on, const plex::Item& item);
+
+    /// The 16:9 artwork a landscape card wants, in the reference's own order:
+    /// the backdrop, then the poster. "" when the item has neither.
+    static const std::string& landscapeArt(const plex::Item& item);
+
     BRLS_BIND(SVGImage, badgeTopRight, "video/card/badge/top");
     BRLS_BIND(brls::Rectangle, rectProgress, "video/card/progress");
     BRLS_BIND(brls::Box, badgeDownload, "video/card/badge/download");
+    BRLS_BIND(brls::Box, overlayBox, "video/card/overlay");
+    BRLS_BIND(brls::Image, overlayLogo, "video/card/overlay/logo");
+    BRLS_BIND(brls::Label, overlayTitle, "video/card/overlay/title");
 };

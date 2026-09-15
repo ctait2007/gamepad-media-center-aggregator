@@ -93,6 +93,11 @@ its screenshots; where we deviate from it, the entry says so.
     (everything by recency, as before), Streaming style (aired first, upcoming
     at the end soonest-first) or Separate Upcoming row, which gives the unaired
     ones a row of their own.
+- **Layout: landscape cards** (`modernLandscapePostersEnabled`, off as it is
+  there). The catalog rows carry 16:9 cards showing the backdrop with the
+  item's cut-out logo over the bottom left — its own factors (1.24 × 1.34, a
+  1.77 aspect) against the portrait card's (0.84 × 1.08, 1.5) — and its title
+  in the logo's place when it has none. Takes effect on the next launch.
 - **Layout: show ratings** (`homeImdbRatingsVisibility`, shown as it is there).
   Off, the rating goes from the home hero and from every pill on a detail page.
 - **Layout: fullscreen hero backdrop**
@@ -225,10 +230,11 @@ case rather than a shortage of effort:
 - **Audio "Original" language** — needs TMDB's `original_language`, which no
   backend here carries.
 - **Alternative home layouts** (Classic, Grid, Custom), **alternative settings
-  layouts** (Minimal, Top Bar), **landscape posters**, **card depth**, the
-  **Continue Watching card shapes** and the **collapsing sidebar** — these are
-  whole alternative UI systems rather than settings over this one, and every
-  one of them is off by default there. This app draws the reference's defaults.
+  layouts** (Minimal, Top Bar), **card depth**, the **Continue Watching card
+  shapes**, the **expand-on-focus poster** and the **collapsing sidebar** —
+  these are whole alternative UI systems rather than settings over this one,
+  and every one of them is off by default there. This app draws the
+  reference's defaults.
 
 ## [1.1.0] - 2026-07-17
 

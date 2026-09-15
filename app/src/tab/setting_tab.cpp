@@ -921,6 +921,14 @@ void SettingTab::onCreate() {
         conf.getItem(AppConfig::LAYOUT_HIDE_UNRELEASED, false),
         [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_HIDE_UNRELEASED, value); });
 
+    // modernLandscapePostersEnabled. The row geometry behind it is computed
+    // once, in initThemes, so it lands on the next launch.
+    btnLandscapePosters->init("main/setting/layout/landscape_posters"_i18n,
+        conf.getItem(AppConfig::LAYOUT_LANDSCAPE_POSTERS, false), [&conf](bool value) {
+            conf.setItem(AppConfig::LAYOUT_LANDSCAPE_POSTERS, value);
+            Dialog::quitApp();
+        });
+
     // homeImdbRatingsVisibility, as a switch rather than its two-value enum:
     // the reference only ever offers SHOW_ALL and HIDE_ALL from this row.
     btnShowRatings->init("main/setting/layout/show_ratings"_i18n,
