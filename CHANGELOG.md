@@ -9,6 +9,120 @@ prepared with [git-cliff](https://git-cliff.org/) from conventional commits
 hand. For the history of the upstream project this fork is based on, see the
 [Switchfin changelog](https://github.com/dragonflylee/switchfin/blob/dev/CHANGELOG.md).
 
+## [Unreleased]
+
+The NuvioTV reskin, continued: the player's "up next" and skip-intro
+behaviour built against NuvioTV's own rules, and its settings imported screen
+by screen. Everything below was checked against NuvioTV's source rather than
+its screenshots; where we deviate from it, the entry says so.
+
+### Added
+
+- **"Up next" at the end of an episode** (its `PostPlayOverlay` in AutoPlay
+  mode). The still, name and "Play" of the next episode, bottom right, on
+  `PlayerNextEpisodeRules`' own timing. Focusable, as its card is: it takes
+  focus when it appears with the controls down, select plays the next episode,
+  back dismisses it for the rest of the episode, and up/down move between it
+  and the bar.
+- **theintrodb.org intro and credits markers.** Its public v3 read endpoint
+  takes no authentication (only submissions need a key), so this goes at the
+  API directly rather than reproducing NuvioTV's client, which is written
+  against an older endpoint shape. Content here is IMDb-keyed already, so the
+  lookup is free for the backends that matter; a Plex guid or Jellyfin
+  ProviderId is simply not looked up. Cached per episode, fetched off the
+  player's critical path, and an episode nobody has submitted yet is the
+  ordinary case rather than an error.
+  - With an outro marker, "up next" fires at the credits instead of at a
+    percentage — `shouldShowNextEpisodeCard`'s outro branch, in full.
+  - A **Skip Intro / Skip Recap / Skip Ending** button (`SkipIntroButton`),
+    bottom left, with the countdown strip that runs the ten seconds it stays
+    up for. Skip Ending is offered only when nothing else is: with a next
+    episode to go to, "up next" already covers it.
+  - **Auto-skip**, one switch per segment type as `autoSkipSegmentTypes` is a
+    set — intro, recap and credits are three different appetites. All off, as
+    its set starts empty.
+- **Playback: when "up next" appears.** `nextEpisodeThresholdMode` and its two
+  values, at NuvioTV's ranges and defaults — percentage (97–100%, default 99)
+  or minutes before the end (0–3.5, default 2). 99% of a 23-minute episode is
+  fourteen seconds, which is what the card firing "at the wrong time" was.
+- **Playback: a subtitle face that survives a restart.** The player's panel
+  could already move size, outline and position, but only at mpv — nothing was
+  written down, so every launch started from the defaults again. Size, vertical
+  offset, bold, outline and its width, and text/background/outline colour are
+  now stored, at `PlayerSettingsDataStore`'s keys, ranges and defaults. The
+  colours are its own swatch lists in its own order.
+- **Playback: strip SDH subtitles** (`SubtitleSdhFilter`, ported). Sound
+  descriptions, speaker labels and CEA-608 speaker chevrons come out of sidecar
+  SRT/VTT as it is cached, in the reference's own order — chevrons first, so
+  ">> NAME:" is recognisable as a label by the time the label pattern runs. A
+  cue left with nothing is dropped rather than shown blank. ASS/SSA is left
+  alone, as it is there.
+- **Playback: secondary subtitle language and "show only preferred
+  languages".** The player's language rail now orders itself the way
+  `preferredOverlayLanguageOrder` does — preferred first, secondary next,
+  everything else alphabetically behind them — where it used to pin English by
+  name. With the filter on, every other language is hidden bar whichever one is
+  currently playing, which the reference also keeps so the picker can never
+  hide the track you are looking at.
+- **Playback: preferred audio language**, which the app had none of — you got
+  whichever track the file listed first. Its third option ("the content's
+  original language, from TMDB") is not here: no backend carries that field.
+- **Playback: a switch for the skip button itself**, separate from the marker
+  lookup, since those markers also decide when "up next" comes up.
+- **Playback: OSD clock** toggle.
+- **Appearance: AMOLED mode and pure black surfaces.** `NuvioColorScheme`'s
+  rule exactly: the first flag takes the background to pure black, and only
+  with the second do cards, panels, fields and menus follow.
+- **Layout: poster card style.** NuvioTV's own six widths (Compact 104 to Large
+  140 dp, default Balanced 126) and five corner radii (Sharp 0 to Pill 16,
+  default Rounded 12). 126 is where the app's fixed poster size came from all
+  along. Takes effect on the next launch.
+- **Layout: hide unreleased content**, **show full release date**, and
+  **episode stills in Continue Watching** — three more of its Layout toggles,
+  at its defaults.
+
+### Changed
+
+- **The player's subtitle panel writes its changes down.** Its steppers moved
+  mpv and nothing else, so anything set there was gone by the next launch; they
+  store what the Playback settings store now. Its "bottom offset" also counted
+  from a hardcoded 98 rather than the frame's bottom, so the panel and the
+  setting disagreed by three; both now state the reference's own percentage up
+  from the bottom, and the steppers take its ranges (50–200%, outline 0–5).
+- **The focus ring is its own colour, not the accent.** Every NuvioTV palette
+  carries a fill colour and a `focusRing` one step lighter; ours already
+  carried that lighter step, and the ring now uses it. Its radius follows the
+  poster's, so a square card gets a square ring.
+- **mpv's options now follow NuvioTV's own mpv engine** rather than its
+  ExoPlayer settings screen, which drives a different player entirely.
+  `sub-ass-override=no` (an ASS track keeps the styling it shipped with),
+  `sub-codepage=auto:utf-8`, and `sub-use-margins` + `sub-ass-force-margins`,
+  without which the vertical offset was silently ignored on ASS subtitles. The
+  demuxer's back buffer gets the same budget as its forward one, as the
+  reference gives both.
+- **The detail page is full-bleed.** NuvioTV gates its sidebar on the route
+  being a root one, and its detail screen is not; the icon rail is hidden there
+  now and the hero starts at its own 48dp margin instead of clearing a rail.
+- **Backing out of the player no longer rebuilds the home screen.** Only
+  Continue Watching refreshes; triangle is still the full refresh.
+
+### Fixed
+
+- **A crash after watching a few episodes in one sitting.** A staleness timer
+  was re-pulling every catalog row on the way out of the player, at the one
+  moment the player's own buffers had not been handed back — a PS4 log shows
+  `std::bad_alloc` mid-rebuild, surviving it once and dying the next time.
+- **Scrolling stopped at the top of long settings pages.** The clamp that keeps
+  a row's title on screen was applying to blocks of any height, so a settings
+  page — one block hundreds of rows long — pinned every scroll to its own top.
+- **Every other page then jumped between the top and where it belonged.** The
+  fix above had summed one offset too far, into the view whose translation *is*
+  the scroll, so the clamp fed the scroll position back into its own target.
+- **A self-inflicted rate limit on debrid links.** The resolved link is kept per
+  source for fifteen minutes and a 429 is backed off rather than retried
+  immediately; a link that then fails to play is dropped from the cache so the
+  retry asks for a fresh one.
+
 ## [1.1.0] - 2026-07-17
 
 ### Added
