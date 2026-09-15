@@ -107,6 +107,9 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMode, "setting/player/next_episode_mode");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodePercent, "setting/player/next_episode_percent");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMinutes, "setting/player/next_episode_minutes");
+    BRLS_BIND(brls::SelectorCell, selectorStreamAutoplayMode, "setting/player/stream_autoplay_mode");
+    BRLS_BIND(brls::InputCell, inputStreamAutoplayRegex, "setting/player/stream_autoplay_regex");
+    BRLS_BIND(brls::BooleanCell, btnPreferBingeGroup, "setting/player/prefer_binge_group");
     BRLS_BIND(brls::BooleanCell, btnNextEpisodeAutoplay, "setting/player/next_episode_autoplay");
     BRLS_BIND(brls::BooleanCell, btnStillWatching, "setting/player/still_watching");
     BRLS_BIND(brls::SelectorCell, selectorStillWatchingThreshold, "setting/player/still_watching_threshold");

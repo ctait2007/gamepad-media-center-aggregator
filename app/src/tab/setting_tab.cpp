@@ -535,6 +535,34 @@ void SettingTab::onCreate() {
             conf.setItem(AppConfig::NEXT_EPISODE_MINUTES, selected);
         });
 
+    // StreamAutoPlayMode. The reference states its three as sentences; these
+    // are the same three, in its own order (the enum's ordinal is what is
+    // stored). The pattern row only exists for the third.
+    int autoplayMode = std::clamp(conf.getItem(AppConfig::STREAM_AUTOPLAY_MODE, 0), 0, 2);
+    selectorStreamAutoplayMode->init("main/setting/playback/stream_autoplay_mode"_i18n,
+        {
+            "main/setting/playback/stream_autoplay/manual"_i18n,
+            "main/setting/playback/stream_autoplay/first"_i18n,
+            "main/setting/playback/stream_autoplay/regex"_i18n,
+        },
+        autoplayMode, [&conf, this](int selected) {
+            conf.setItem(AppConfig::STREAM_AUTOPLAY_MODE, selected);
+            inputStreamAutoplayRegex->setVisibility(
+                selected == 2 ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+        });
+
+    inputStreamAutoplayRegex->init("main/setting/playback/stream_autoplay_regex"_i18n,
+        conf.getItem(AppConfig::STREAM_AUTOPLAY_REGEX, std::string("")),
+        [&conf](std::string value) { conf.setItem(AppConfig::STREAM_AUTOPLAY_REGEX, value); });
+    inputStreamAutoplayRegex->setVisibility(
+        autoplayMode == 2 ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+
+    // streamAutoPlayPreferBingeGroupForNextEpisode. On, as it is there: a run
+    // of episodes should stay on the release it started on.
+    btnPreferBingeGroup->init("main/setting/playback/prefer_binge_group"_i18n,
+        conf.getItem(AppConfig::PREFER_BINGE_GROUP, true),
+        [&conf](bool value) { conf.setItem(AppConfig::PREFER_BINGE_GROUP, value); });
+
     // streamAutoPlayNextEpisodeEnabled — the card starts the next episode
     // itself rather than offering it.
     btnNextEpisodeAutoplay->init("main/setting/playback/next_episode_autoplay"_i18n,

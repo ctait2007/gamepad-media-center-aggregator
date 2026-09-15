@@ -165,6 +165,14 @@ public:
         NEXT_EPISODE_CARD,
         /// When it comes up (nextEpisodeThresholdMode / ...Percent /
         /// ...MinutesBeforeEnd). See MPVCore for the doubled-integer encoding.
+        /// StreamAutoPlayMode: 0 manual (show the list), 1 the first playable
+        /// stream, 2 the first matching STREAM_AUTOPLAY_REGEX. Manual, as it is
+        /// there. See utils/stream_select.hpp for what each one means.
+        STREAM_AUTOPLAY_MODE,
+        STREAM_AUTOPLAY_REGEX,
+        /// streamAutoPlayPreferBingeGroupForNextEpisode: keep a binge run on
+        /// the release it started on. ON there, and on here.
+        PREFER_BINGE_GROUP,
         /// streamAutoPlayNextEpisodeEnabled: the next episode starts by itself
         /// the moment "up next" comes up, rather than waiting to be told. Off,
         /// as it is there.

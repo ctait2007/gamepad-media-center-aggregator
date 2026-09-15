@@ -12,6 +12,7 @@
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "api/http.hpp"
+#include "utils/stream_select.hpp"
 #include "utils/dialog.hpp"
 #include "utils/misc.hpp"
 #include "utils/subtitle_cache.hpp"
@@ -465,6 +466,26 @@ void PlayerView::playMedia(const int64_t seekMs) {
                 accessible(this->item.media[this->preferredVersion])) {
                 chosen = &this->item.media[this->preferredVersion];
             }
+            // Nothing pinned: this is a binge advance, or a re-resolve. The
+            // reference picks here rather than asking — on its StreamAutoPlay
+            // Mode, and before that on the binge group, so a run keeps the
+            // release it started on instead of drifting between encodes as
+            // whichever addon answered first changes.
+            if (!chosen) {
+                auto& conf = AppConfig::instance();
+                int picked = stream_select::pick(this->item.media,
+                    (stream_select::Mode)conf.getItem(AppConfig::STREAM_AUTOPLAY_MODE, 0),
+                    conf.getItem(AppConfig::STREAM_AUTOPLAY_REGEX, std::string("")), this->stream.bingeGroup,
+                    conf.getItem(AppConfig::PREFER_BINGE_GROUP, true));
+                if (picked >= 0 && accessible(this->item.media[picked])) {
+                    brls::Logger::info("PlayerView: source {} picked automatically ({})", picked,
+                        this->item.media[picked].label);
+                    chosen = &this->item.media[picked];
+                }
+            }
+            // Still nothing — MANUAL mode with no binge group to match, or a
+            // pattern nothing satisfied. There is no picker to fall back to in
+            // mid-binge, so the first playable source is better than stopping.
             for (auto& m : this->item.media) {
                 if (chosen) break;
                 if (accessible(m)) chosen = &m;

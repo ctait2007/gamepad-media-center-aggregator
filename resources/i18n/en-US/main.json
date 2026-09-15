@@ -478,6 +478,14 @@
             "next_episode_mode": "Next episode threshold mode",
             "next_episode_percent": "Threshold percentage",
             "next_episode_minutes": "Threshold minutes",
+            "stream_autoplay_mode": "Stream selection",
+            "stream_autoplay": {
+                "manual": "Manual (choose a source)",
+                "first": "Auto-play the first source",
+                "regex": "Auto-play a pattern match"
+            },
+            "stream_autoplay_regex": "Pattern",
+            "prefer_binge_group": "Keep a binge run on one release",
             "next_episode_autoplay": "Auto-play next episode",
             "still_watching": "Are you still watching?",
             "still_watching_threshold": "Episode threshold",

@@ -58,6 +58,10 @@ private:
     /// only reveals the logo once its pixels have actually arrived.
     void applyLogo(const std::string& url);
     void play(int mediaIndex);
+
+    /// StreamAutoPlayMode is tried once per picker, on the first fetch. A
+    /// REFRESH is the viewer asking to see the list.
+    bool autoSelectTried = false;
     void showMessage(const std::string& text, bool spinner);
 
     media::Item item;

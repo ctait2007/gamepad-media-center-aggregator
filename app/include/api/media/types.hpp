@@ -226,6 +226,10 @@ struct Media {
     std::string labelRaw;
     std::string detailRaw;
     std::string addonName;  // which addon produced this stream (source filter)
+    /// behaviorHints.bingeGroup: an addon stamps every stream of one release
+    /// with the same string, so the next episode can be kept on the same one.
+    /// See utils/stream_select.hpp.
+    std::string bingeGroup;
     std::string addonLogo;  // that addon's manifest `logo`, when it has one
     SourceKind kind = SourceKind::Direct;
     bool cached = true;  // debrid cache hint (best-effort; ⚡ vs pending). false = uncached

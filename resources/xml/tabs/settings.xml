@@ -239,6 +239,12 @@
                                 id="setting/player/next_episode_percent" />
                             <brls:SelectorCell
                                 id="setting/player/next_episode_minutes" />
+                            <brls:SelectorCell
+                                id="setting/player/stream_autoplay_mode" />
+                            <brls:InputCell
+                                id="setting/player/stream_autoplay_regex" />
+                            <brls:BooleanCell
+                                id="setting/player/prefer_binge_group" />
                             <brls:BooleanCell
                                 id="setting/player/next_episode_autoplay" />
                             <brls:BooleanCell

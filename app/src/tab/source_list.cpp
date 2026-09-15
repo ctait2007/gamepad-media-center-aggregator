@@ -1,4 +1,5 @@
 #include "tab/source_list.hpp"
+#include "utils/stream_select.hpp"
 
 #include "activity/player_view.hpp"
 #include "utils/config.hpp"
@@ -342,6 +343,27 @@ void SourceList::fetchSources() {
             // keep the richer detail (runtime, art) the fetch came back with
             if (!full.title.empty()) this->item.media = full.media;
             this->buildFilters();
+
+            // StreamAutoPlayMode. On anything but MANUAL the list is not the
+            // point — the reference plays what the mode names and never shows
+            // it. Only ever tried on the first fetch: a REFRESH is the viewer
+            // asking to see the list, and auto-playing it back at them would
+            // make the button useless.
+            if (!this->autoSelectTried) {
+                this->autoSelectTried = true;
+                auto& conf = AppConfig::instance();
+                int picked = stream_select::pick(this->sources,
+                    (stream_select::Mode)conf.getItem(AppConfig::STREAM_AUTOPLAY_MODE, 0),
+                    conf.getItem(AppConfig::STREAM_AUTOPLAY_REGEX, std::string("")), "",
+                    conf.getItem(AppConfig::PREFER_BINGE_GROUP, true));
+                if (picked >= 0) {
+                    brls::Logger::info("source list: auto-playing source {} ({})", picked,
+                        this->sources[picked].label);
+                    this->play(picked);
+                    return;
+                }
+            }
+
             this->renderSources();
         },
         [ASYNC_TOKEN](const std::string& ex) {

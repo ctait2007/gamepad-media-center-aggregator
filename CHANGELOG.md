@@ -90,6 +90,21 @@ its screenshots; where we deviate from it, the entry says so.
   reference lets you drop. The screen itself stays either way: here it is what
   covers the server probe and holds input off while it runs, not decoration
   over an already-built UI.
+- **Playback: stream selection** (`StreamAutoPlayMode`), its three modes at
+  its own defaults: choose a source by hand as before, auto-play the first
+  playable one, or auto-play the first whose text matches a pattern. Manual, as
+  it is there. The pattern half carries its one oddity verbatim — the negative
+  lookaheads are read back out of the pattern and applied a second time as a
+  plain exclusion, because "(?!.*(CAM|TS))1080p" is written by people who mean
+  to rule a CAM out wherever it appears, not only where the match starts.
+  Checked against its own preset shapes.
+- **Playback: keep a binge run on one release**
+  (`streamAutoPlayPreferBingeGroupForNextEpisode`, on as it is there). A Stremio
+  addon stamps every stream of one release with the same `behaviorHints
+  .bingeGroup`; with this on, the next episode takes a stream carrying the
+  group of the one playing over anything else — same release, same encode, same
+  account — instead of drifting to whichever addon answered first this time.
+  As there, that preference wins even in manual mode.
 - **Playback: auto-play the next episode.** With it on, "up next" starts the
   next episode itself instead of offering it, which is what NuvioTV's
   `streamAutoPlayNextEpisodeEnabled` does. Off, as it is there.

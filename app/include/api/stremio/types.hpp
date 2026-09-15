@@ -783,6 +783,7 @@ inline media::Media streamToMedia(
     m.detailRaw = s.title;
     m.addonName = addonName;
     m.addonLogo = addonLogo;
+    m.bingeGroup = s.bingeGroup;
 
     if (!s.url.empty()) {
         bool cached = true;
