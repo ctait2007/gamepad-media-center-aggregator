@@ -5,6 +5,8 @@
   "exit": "Exit",
   "on": "On",
   "off": "Off",
+  "open": "Open",
+  "closed": "Closed",
   "delete": "Delete",
   "save": "Save",
   "submit": "Submit",

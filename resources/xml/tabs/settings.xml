@@ -110,9 +110,9 @@
                             <SelectorCell
                                 id="setting/ui/theme"
                                 quitApp="true" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/ui/amoled" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/ui/amoled_surfaces" />
                             <SelectorCell
                                 id="setting/ui/scale"
@@ -135,48 +135,111 @@
                             height="auto"
                             axis="column"
                             visibility="gone">
-                            <brls:BooleanCell
-                                id="setting/ui/poster_labels" />
-                            <brls:BooleanCell
-                                id="setting/layout/show_hero" />
-                            <brls:BooleanCell
-                                id="setting/layout/show_continue" />
-                            <brls:BooleanCell
-                                id="setting/layout/catalog_addon_name" />
-                            <brls:BooleanCell
-                                id="setting/layout/catalog_type" />
-                            <brls:BooleanCell
-                                id="setting/layout/stream_addon_logo" />
-                            <brls:BooleanCell
-                                id="setting/layout/episode_overlay_art" />
-                            <brls:BooleanCell
-                                id="setting/layout/hide_unreleased" />
-                            <brls:BooleanCell
-                                id="setting/layout/landscape_posters" />
-                            <brls:BooleanCell
-                                id="setting/layout/show_ratings" />
-                            <brls:BooleanCell
-                                id="setting/layout/fullscreen_hero" />
-                            <brls:BooleanCell
-                                id="setting/layout/full_release_date" />
-                            <brls:BooleanCell
-                                id="setting/layout/cw_episode_thumbs" />
-                            <brls:BooleanCell
-                                id="setting/layout/cw_next_up_furthest" />
-                            <brls:BooleanCell
-                                id="setting/layout/cw_show_unaired" />
-                            <brls:SelectorCell
-                                id="setting/layout/cw_sort_mode" />
-                            <brls:SelectorCell
-                                id="setting/layout/card_width" />
-                            <brls:SelectorCell
-                                id="setting/layout/card_radius" />
-                            <DisclosureCell
-                                title="@i18n/main/setting/hidden_rows/header"
-                                id="setting/hidden_rows" />
-                            <DisclosureCell
-                                title="@i18n/main/setting/libraries/header"
-                                id="setting/libraries" />
+                            <SettingsSection
+                                title="@i18n/main/setting/section/home/title"
+                                subtitle="@i18n/main/setting/section/home/sub"
+                                expanded="true">
+                                <BooleanCell
+                                    id="setting/layout/show_hero"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/layout_show_hero" />
+                                <BooleanCell
+                                    id="setting/layout/fullscreen_hero"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/layout_fullscreen_hero" />
+                                <BooleanCell
+                                    id="setting/layout/landscape_posters"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/layout_landscape_posters" />
+                                <SelectorCell
+                                    id="setting/layout/card_width"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/layout_card_width" />
+                                <SelectorCell
+                                    id="setting/layout/card_radius"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/layout_card_radius" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/content/title"
+                                subtitle="@i18n/main/setting/section/content/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/ui/poster_labels"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/ui_poster_labels" />
+                                <BooleanCell
+                                    id="setting/layout/catalog_addon_name"
+                                    icon="folder"
+                                    subtitle="@i18n/main/setting/sub/layout_catalog_addon_name" />
+                                <BooleanCell
+                                    id="setting/layout/catalog_type"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/layout_catalog_type" />
+                                <BooleanCell
+                                    id="setting/layout/hide_unreleased"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/layout_hide_unreleased" />
+                                <DisclosureCell
+                                    id="setting/hidden_rows"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/hidden_rows" />
+                                <DisclosureCell
+                                    id="setting/libraries"
+                                    icon="folder"
+                                    subtitle="@i18n/main/setting/sub/libraries" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/detail/title"
+                                subtitle="@i18n/main/setting/section/detail/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/layout/show_ratings"
+                                    icon="info"
+                                    subtitle="@i18n/main/setting/sub/layout_show_ratings" />
+                                <BooleanCell
+                                    id="setting/layout/full_release_date"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/layout_full_release_date" />
+                                <BooleanCell
+                                    id="setting/layout/episode_overlay_art"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/layout_episode_overlay_art" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/streams/title"
+                                subtitle="@i18n/main/setting/section/streams/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/layout/stream_addon_logo"
+                                    icon="folder"
+                                    subtitle="@i18n/main/setting/sub/layout_stream_addon_logo" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/cw/title"
+                                subtitle="@i18n/main/setting/section/cw/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/layout/show_continue"
+                                    icon="history"
+                                    subtitle="@i18n/main/setting/sub/layout_show_continue" />
+                                <BooleanCell
+                                    id="setting/layout/cw_episode_thumbs"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/layout_cw_episode_thumbs" />
+                                <BooleanCell
+                                    id="setting/layout/cw_next_up_furthest"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/layout_cw_next_up_furthest" />
+                                <BooleanCell
+                                    id="setting/layout/cw_show_unaired"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/layout_cw_show_unaired" />
+                                <SelectorCell
+                                    id="setting/layout/cw_sort_mode"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/layout_cw_sort_mode" />
+                            </SettingsSection>
                         </brls:Box>
 
                         <!-- Playback -->
@@ -186,121 +249,219 @@
                             height="auto"
                             axis="column"
                             visibility="gone">
-                            <brls:BooleanCell
-                                id="setting/video/hwdec" />
-                            <brls:SelectorCell
-                                id="setting/mpv/vo" />
-                            <brls:BooleanCell
-                                id="setting/video/low_quality" />
-                            <brls:SelectorCell
-                                id="setting/video/inmemory" />
-                            <brls:SelectorCell
-                                id="setting/playback/audio_channels" />
-                            <brls:BooleanCell
-                                id="setting/video/subs_fallback" />
-                            <brls:SelectorCell
-                                id="setting/playback/audio_lang" />
-                            <brls:BooleanCell
-                                id="setting/player/audio_delay_remember" />
-                            <brls:BooleanCell
-                                id="setting/player/parental_guide" />
-                            <brls:SelectorCell
-                                id="setting/playback/subtitle_lang" />
-                            <brls:SelectorCell
-                                id="setting/playback/sub_secondary_lang" />
-                            <brls:BooleanCell
-                                id="setting/player/sub_only_preferred" />
-                            <brls:BooleanCell
-                                id="setting/player/sub_use_forced" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/transcode/header"
-                                marginBottom="0px" />
-                            <brls:BooleanCell
-                                id="setting/video/directplay" />
-                            <brls:SelectorCell
-                                id="setting/transcode/codec" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/control/header"
-                                marginBottom="0px" />
-                            <brls:BooleanCell
-                                id="setting/player/osd_on_toggle" />
-                            <brls:BooleanCell
-                                id="setting/player/osd_clock" />
-                            <brls:BooleanCell
-                                id="setting/player/loading_screen" />
-                            <brls:BooleanCell
-                                id="setting/player/loading_stages" />
-                            <brls:BooleanCell
-                                id="setting/player/pause_screen" />
-                            <brls:BooleanCell
-                                id="setting/player/next_episode_card" />
-                            <brls:BooleanCell
-                                id="setting/player/introdb" />
-                            <brls:BooleanCell
-                                id="setting/player/skip_intro_enabled" />
-                            <brls:BooleanCell
-                                id="setting/player/auto_skip_intro" />
-                            <brls:BooleanCell
-                                id="setting/player/auto_skip_recap" />
-                            <brls:BooleanCell
-                                id="setting/player/auto_skip_outro" />
-                            <brls:SelectorCell
-                                id="setting/player/next_episode_mode" />
-                            <brls:SelectorCell
-                                id="setting/player/next_episode_percent" />
-                            <brls:SelectorCell
-                                id="setting/player/next_episode_minutes" />
-                            <brls:SelectorCell
-                                id="setting/player/stream_autoplay_mode" />
-                            <brls:InputCell
-                                id="setting/player/stream_autoplay_regex" />
-                            <brls:BooleanCell
-                                id="setting/player/prefer_binge_group" />
-                            <brls:BooleanCell
-                                id="setting/player/next_episode_autoplay" />
-                            <brls:BooleanCell
-                                id="setting/player/still_watching" />
-                            <brls:SelectorCell
-                                id="setting/player/still_watching_threshold" />
-                            <brls:BooleanCell
-                                id="setting/player/touch_gesture" />
-                            <brls:BooleanCell
-                                id="setting/player/tv_model" />
-                            <brls:BooleanCell
-                                id="setting/player/clip_point" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/playback/sub/header"
-                                marginBottom="0px" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_size" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_offset" />
-                            <brls:BooleanCell
-                                id="setting/player/sub_bold" />
-                            <brls:BooleanCell
-                                id="setting/player/sub_outline" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_outline_width" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_text_color" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_bg_color" />
-                            <brls:SelectorCell
-                                id="setting/player/sub_outline_color" />
-                            <brls:BooleanCell
-                                id="setting/player/sub_strip_sdh" />
+                            <SettingsSection
+                                title="@i18n/main/setting/section/general/title"
+                                subtitle="@i18n/main/setting/section/general/sub"
+                                expanded="true">
+                                <BooleanCell
+                                    id="setting/player/loading_screen"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/player_loading_screen" />
+                                <BooleanCell
+                                    id="setting/player/loading_stages"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/player_loading_stages" />
+                                <BooleanCell
+                                    id="setting/player/pause_screen"
+                                    icon="pause_circle"
+                                    subtitle="@i18n/main/setting/sub/player_pause_screen" />
+                                <BooleanCell
+                                    id="setting/player/osd_clock"
+                                    icon="timer"
+                                    subtitle="@i18n/main/setting/sub/player_osd_clock" />
+                                <BooleanCell
+                                    id="setting/player/osd_on_toggle"
+                                    icon="tune"
+                                    subtitle="@i18n/main/setting/sub/player_osd_on_toggle" />
+                                <BooleanCell
+                                    id="setting/player/parental_guide"
+                                    icon="info"
+                                    subtitle="@i18n/main/setting/sub/player_parental_guide" />
+                                <BooleanCell
+                                    id="setting/player/clip_point"
+                                    icon="history"
+                                    subtitle="@i18n/main/setting/sub/player_clip_point" />
+                                <BooleanCell
+                                    id="setting/player/touch_gesture"
+                                    icon="tune"
+                                    subtitle="@i18n/main/setting/sub/player_touch_gesture" />
+                                <BooleanCell
+                                    id="setting/player/tv_model"
+                                    icon="tv"
+                                    subtitle="@i18n/main/setting/sub/player_tv_model" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/skip/title"
+                                subtitle="@i18n/main/setting/section/skip/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/player/skip_intro_enabled"
+                                    icon="history"
+                                    subtitle="@i18n/main/setting/sub/player_skip_intro_enabled" />
+                                <BooleanCell
+                                    id="setting/player/introdb"
+                                    icon="search"
+                                    subtitle="@i18n/main/setting/sub/player_introdb" />
+                                <BooleanCell
+                                    id="setting/player/auto_skip_intro"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/player_auto_skip_intro" />
+                                <BooleanCell
+                                    id="setting/player/auto_skip_recap"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/player_auto_skip_recap" />
+                                <BooleanCell
+                                    id="setting/player/auto_skip_outro"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/player_auto_skip_outro" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/stream/title"
+                                subtitle="@i18n/main/setting/section/stream/sub"
+                                expanded="false">
+                                <SelectorCell
+                                    id="setting/player/stream_autoplay_mode"
+                                    icon="play_arrow"
+                                    subtitle="@i18n/main/setting/sub/player_stream_autoplay_mode" />
+                                <InputCell
+                                    id="setting/player/stream_autoplay_regex"
+                                    icon="search"
+                                    subtitle="@i18n/main/setting/sub/player_stream_autoplay_regex" />
+                                <BooleanCell
+                                    id="setting/player/prefer_binge_group"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/player_prefer_binge_group" />
+                                <BooleanCell
+                                    id="setting/player/next_episode_card"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/player_next_episode_card" />
+                                <BooleanCell
+                                    id="setting/player/next_episode_autoplay"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/sub/player_next_episode_autoplay" />
+                                <SelectorCell
+                                    id="setting/player/next_episode_mode"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/player_next_episode_mode" />
+                                <SelectorCell
+                                    id="setting/player/next_episode_percent"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/player_next_episode_percent" />
+                                <SelectorCell
+                                    id="setting/player/next_episode_minutes"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/player_next_episode_minutes" />
+                                <BooleanCell
+                                    id="setting/player/still_watching"
+                                    icon="visibility"
+                                    subtitle="@i18n/main/setting/sub/player_still_watching" />
+                                <SelectorCell
+                                    id="setting/player/still_watching_threshold"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/player_still_watching_threshold" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/audio/title"
+                                subtitle="@i18n/main/setting/section/audio/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/video/hwdec"
+                                    icon="memory"
+                                    subtitle="@i18n/main/setting/sub/video_hwdec" />
+                                <SelectorCell
+                                    id="setting/mpv/vo"
+                                    icon="tv"
+                                    subtitle="@i18n/main/setting/sub/mpv_vo" />
+                                <BooleanCell
+                                    id="setting/video/low_quality"
+                                    icon="speed"
+                                    subtitle="@i18n/main/setting/sub/video_low_quality" />
+                                <SelectorCell
+                                    id="setting/video/inmemory"
+                                    icon="storage"
+                                    subtitle="@i18n/main/setting/sub/video_inmemory" />
+                                <SelectorCell
+                                    id="setting/playback/audio_channels"
+                                    icon="volume_up"
+                                    subtitle="@i18n/main/setting/sub/playback_audio_channels" />
+                                <SelectorCell
+                                    id="setting/playback/audio_lang"
+                                    icon="volume_up"
+                                    subtitle="@i18n/main/setting/sub/playback_audio_lang" />
+                                <BooleanCell
+                                    id="setting/player/audio_delay_remember"
+                                    icon="volume_up"
+                                    subtitle="@i18n/main/setting/sub/player_audio_delay_remember" />
+                                <BooleanCell
+                                    id="setting/video/directplay"
+                                    icon="play_arrow"
+                                    subtitle="@i18n/main/setting/sub/video_directplay" />
+                                <SelectorCell
+                                    id="setting/transcode/codec"
+                                    icon="memory"
+                                    subtitle="@i18n/main/setting/sub/transcode_codec" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/subtitles/title"
+                                subtitle="@i18n/main/setting/section/subtitles/sub"
+                                expanded="false">
+                                <SelectorCell
+                                    id="setting/playback/subtitle_lang"
+                                    icon="subtitles"
+                                    subtitle="@i18n/main/setting/sub/playback_subtitle_lang" />
+                                <SelectorCell
+                                    id="setting/playback/sub_secondary_lang"
+                                    icon="subtitles"
+                                    subtitle="@i18n/main/setting/sub/playback_sub_secondary_lang" />
+                                <BooleanCell
+                                    id="setting/player/sub_only_preferred"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/sub/player_sub_only_preferred" />
+                                <BooleanCell
+                                    id="setting/player/sub_use_forced"
+                                    icon="subtitles"
+                                    subtitle="@i18n/main/setting/sub/player_sub_use_forced" />
+                                <BooleanCell
+                                    id="setting/video/subs_fallback"
+                                    icon="subtitles"
+                                    subtitle="@i18n/main/setting/sub/video_subs_fallback" />
+                                <BooleanCell
+                                    id="setting/player/sub_strip_sdh"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/player_sub_strip_sdh" />
+                                <SelectorCell
+                                    id="setting/player/sub_size"
+                                    icon="format_size"
+                                    subtitle="@i18n/main/setting/sub/player_sub_size" />
+                                <SelectorCell
+                                    id="setting/player/sub_offset"
+                                    icon="format_size"
+                                    subtitle="@i18n/main/setting/sub/player_sub_offset" />
+                                <BooleanCell
+                                    id="setting/player/sub_bold"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/player_sub_bold" />
+                                <BooleanCell
+                                    id="setting/player/sub_outline"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/player_sub_outline" />
+                                <SelectorCell
+                                    id="setting/player/sub_outline_width"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/player_sub_outline_width" />
+                                <SelectorCell
+                                    id="setting/player/sub_text_color"
+                                    icon="palette"
+                                    subtitle="@i18n/main/setting/sub/player_sub_text_color" />
+                                <SelectorCell
+                                    id="setting/player/sub_bg_color"
+                                    icon="palette"
+                                    subtitle="@i18n/main/setting/sub/player_sub_bg_color" />
+                                <SelectorCell
+                                    id="setting/player/sub_outline_color"
+                                    icon="palette"
+                                    subtitle="@i18n/main/setting/sub/player_sub_outline_color" />
+                            </SettingsSection>
                         </brls:Box>
 
                         <!-- Advanced -->
@@ -310,19 +471,19 @@
                             height="auto"
                             axis="column"
                             visibility="gone">
-                            <brls:SelectorCell
+                            <SelectorCell
                                 id="setting/network/threads" />
-                            <brls:SelectorCell
+                            <SelectorCell
                                 id="setting/network/timeout" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/network/proxy_status" />
-                            <brls:InputCell
+                            <InputCell
                                 id="setting/network/proxy"
                                 visibility="gone" />
-                            <brls:InputCell
+                            <InputCell
                                 id="setting/network/proxy_user"
                                 visibility="gone" />
-                            <brls:InputCell
+                            <InputCell
                                 id="setting/network/proxy_passwd"
                                 type="password"
                                 visibility="gone" />
@@ -333,9 +494,9 @@
                                 marginTop="20"
                                 title="@i18n/main/setting/advanced/performance"
                                 marginBottom="0px" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/advanced/fast_horizontal_nav" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/advanced/startup_splash" />
 
                             <brls:Header
@@ -344,7 +505,7 @@
                                 marginTop="20"
                                 title="@i18n/main/setting/advanced/diagnostics"
                                 marginBottom="0px" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/advanced/player_stats_hud" />
 
                             <brls:Header
@@ -355,19 +516,19 @@
                                 marginBottom="0px" />
                             <SelectorCell
                                 id="setting/ui/vsync" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/ui/show_fps" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/fullscreen" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/always_on_top" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/single" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/overclock" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/sync" />
-                            <brls:BooleanCell
+                            <BooleanCell
                                 id="setting/debug" />
 
                             <brls:Header
@@ -376,16 +537,16 @@
                                 marginTop="20"
                                 title="@i18n/main/setting/tutorial/header"
                                 marginBottom="0px" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="tools/tutorial_open"
                                 title="@i18n/main/setting/tutorial/open" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="tools/tutorial_error"
                                 title="@i18n/main/setting/tutorial/error" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="tools/tutorial_font"
                                 title="@i18n/main/setting/tutorial/font" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="tools/config_dir"
                                 title="@i18n/main/setting/others/config_dir" />
                         </brls:Box>
@@ -400,10 +561,10 @@
                             <DisclosureCell
                                 title="@i18n/main/about/header"
                                 id="setting/about" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="setting/changelog"
                                 title="@i18n/main/setting/others/changelog" />
-                            <brls:RadioCell
+                            <ActionCell
                                 id="setting/release_checker" />
                         </brls:Box>
 

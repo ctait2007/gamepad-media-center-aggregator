@@ -21,7 +21,7 @@
 #include "view/gallery_view.hpp"
 #include "view/search_list.hpp"
 #include "view/video_view.hpp"
-#include "view/selector_cell.hpp"
+#include "view/settings_cells.hpp"
 #include "view/button_close.hpp"
 #include "view/text_box.hpp"
 #include "view/mpv_core.hpp"
@@ -225,6 +225,10 @@ int main(int argc, char* argv[]) {
     brls::Application::registerXMLView("MenuItem", MenuItem::create);
     brls::Application::registerXMLView("CustomButton", CustomButton::create);
     brls::Application::registerXMLView("SelectorCell", SelectorCell::create);
+    brls::Application::registerXMLView("BooleanCell", BooleanCell::create);
+    brls::Application::registerXMLView("ActionCell", ActionCell::create);
+    brls::Application::registerXMLView("InputCell", InputCell::create);
+    brls::Application::registerXMLView("SettingsSection", SettingsSection::create);
     brls::Application::registerXMLView("TextBox", TextBox::create);
     brls::Application::registerXMLView("ButtonClose", ButtonClose::create);
     brls::Application::registerXMLView("AutoTabFrame", AutoTabFrame::create);

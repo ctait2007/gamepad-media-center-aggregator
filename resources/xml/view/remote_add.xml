@@ -40,7 +40,7 @@
                     height="auto"
                     marginBottom="10" />
 
-                <brls:SelectorCell
+                <SelectorCell
                     id="remote/add/type" />
 
                 <brls:InputCell

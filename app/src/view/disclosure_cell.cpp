@@ -4,6 +4,8 @@
 
 #include "view/disclosure_cell.hpp"
 
+#include "view/settings_cells.hpp"
+
 #include <cstdio>
 
 namespace {
@@ -27,22 +29,36 @@ std::string hex(NVGcolor c) {
 }  // namespace
 
 DisclosureCell::DisclosureCell() {
+    // Same row shape as every other settings row (title over subtitle, pill
+    // focus ring, no fill change) — see view/settings_cells.hpp.
+    this->parts = settings_row::skin(this, this->title, this->detail);
+    this->registerStringXMLAttribute("subtitle", [this](std::string value) {
+        settings_row::setSubtitle(this->parts, value);
+    });
+    this->registerStringXMLAttribute("icon", [this](std::string value) {
+        settings_row::setIcon(this, this->parts, value);
+    });
+
     // DetailCell inflated a title + a value Label. We don't use the value text:
     // hide it and append an SVG chevron the Box centers vertically
     // (alignItems="center") — the geometry the Material glyph could not give us.
     this->detail->setVisibility(brls::Visibility::GONE);
 
     // Match DetailCell's value color so the chevron reads as chrome, not accent.
-    const NVGcolor color = brls::Application::getTheme().getColor("brls/list/listItem_value_color");
+    // TextSecondary, the colour the reference gives a trailing chevron.
+    const NVGcolor color = brls::Application::getTheme().getColor("font/grey");
     char svg[320];
     std::snprintf(svg, sizeof(svg), kChevronSVG, hex(color).c_str());
 
     this->chevron = new SVGImage();
-    this->chevron->setWidth(24);
-    this->chevron->setHeight(24);
+    this->chevron->setWidth(40);
+    this->chevron->setHeight(40);
     this->chevron->setShrink(0);
+    this->chevron->setMarginLeft(20);
     this->chevron->setImageFromSVGString(svg);
     this->addView(this->chevron);
 }
+
+void DisclosureCell::onLayout() { settings_row::keepPillRing(this); }
 
 brls::View* DisclosureCell::create() { return new DisclosureCell(); }

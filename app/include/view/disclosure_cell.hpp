@@ -6,6 +6,7 @@
 
 #include <borealis.hpp>
 
+#include "view/settings_cells.hpp"
 #include "view/svg_image.hpp"
 
 /// A settings cell that drills into a sub-screen: a title on the left and a
@@ -22,8 +23,11 @@ class DisclosureCell : public brls::DetailCell {
   public:
     DisclosureCell();
 
+    void onLayout() override;
+
     static brls::View* create();
 
   private:
+    settings_row::Parts parts;
     SVGImage* chevron = nullptr;
 };

@@ -41,9 +41,9 @@
                     height="auto"
                     axis="column"
                     marginBottom="30px">
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="media/sort/by" />
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="media/sort/order" />
                 </brls:Box>
 

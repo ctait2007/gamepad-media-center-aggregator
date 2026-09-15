@@ -44,11 +44,11 @@
                     <!-- audio / subtitle / subtitle-sync now live on the OSD
                          (direct-access icons), removed from here to avoid
                          duplication -->
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="setting/video/mirror" />
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="setting/video/rotation" />
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="setting/video/aspect" />
                 </brls:Box>
 

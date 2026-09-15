@@ -42,9 +42,9 @@
                     height="auto"
                     axis="column"
                     marginBottom="30px">
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="remote/sort/by" />
-                    <brls:SelectorCell
+                    <SelectorCell
                         id="remote/sort/order" />
                 </brls:Box>
 

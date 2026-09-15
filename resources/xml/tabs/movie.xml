@@ -77,7 +77,7 @@
                             height="330"
                             scalingType="fill"
                             cornerRadius="12" />
-                        <brls:SelectorCell
+                        <SelectorCell
                             id="movie/source"
                             visibility="gone"
                             height="40"
