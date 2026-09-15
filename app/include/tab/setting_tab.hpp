@@ -83,6 +83,9 @@ private:
     BRLS_BIND(brls::BooleanCell, btnFullscreenHero, "setting/layout/fullscreen_hero");
     BRLS_BIND(brls::BooleanCell, btnFullReleaseDate, "setting/layout/full_release_date");
     BRLS_BIND(brls::BooleanCell, btnCwEpisodeThumbs, "setting/layout/cw_episode_thumbs");
+    BRLS_BIND(brls::BooleanCell, btnCwNextUpFurthest, "setting/layout/cw_next_up_furthest");
+    BRLS_BIND(brls::BooleanCell, btnCwShowUnaired, "setting/layout/cw_show_unaired");
+    BRLS_BIND(brls::SelectorCell, selectorCwSortMode, "setting/layout/cw_sort_mode");
     BRLS_BIND(brls::SelectorCell, selectorCardWidth, "setting/layout/card_width");
     BRLS_BIND(brls::SelectorCell, selectorCardRadius, "setting/layout/card_radius");
     BRLS_BIND(brls::BooleanCell, btnIntroDb, "setting/player/introdb");

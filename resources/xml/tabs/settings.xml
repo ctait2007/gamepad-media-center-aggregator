@@ -156,6 +156,12 @@
                                 id="setting/layout/full_release_date" />
                             <brls:BooleanCell
                                 id="setting/layout/cw_episode_thumbs" />
+                            <brls:BooleanCell
+                                id="setting/layout/cw_next_up_furthest" />
+                            <brls:BooleanCell
+                                id="setting/layout/cw_show_unaired" />
+                            <brls:SelectorCell
+                                id="setting/layout/cw_sort_mode" />
                             <brls:SelectorCell
                                 id="setting/layout/card_width" />
                             <brls:SelectorCell

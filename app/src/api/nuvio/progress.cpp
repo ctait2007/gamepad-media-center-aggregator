@@ -201,6 +201,25 @@ std::optional<WatchProgressRow> ProgressStore::progressFor(
     return std::nullopt;
 }
 
+std::pair<int64_t, int64_t> ProgressStore::lastTouched(const std::string& contentId, bool furthest) {
+    std::lock_guard<std::mutex> lock(mtx);
+    int64_t season = -1, episode = -1, when = -1;
+    auto consider = [&](int64_t s, int64_t e, int64_t at) {
+        if (s < 0 || e < 0) return;
+        bool better = furthest ? (s > season || (s == season && e > episode)) : (at > when);
+        if (season < 0 || better) {
+            season = s;
+            episode = e;
+            when = at;
+        }
+    };
+    for (const WatchedRow& w : watched)
+        if (w.contentId == contentId) consider(w.season, w.episode, w.watchedAt);
+    for (const WatchProgressRow& r : progress)
+        if (r.contentId == contentId && r.positionMs > 0) consider(r.season, r.episode, r.lastWatched);
+    return {season, episode};
+}
+
 bool ProgressStore::isWatched(const std::string& contentId, int64_t season, int64_t episode) {
     std::lock_guard<std::mutex> lock(mtx);
     for (auto& w : watched)

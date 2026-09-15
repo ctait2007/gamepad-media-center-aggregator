@@ -145,6 +145,9 @@ private:
     // (AttachedView caches the tab, so onCreate never runs twice) — null until
     // a Continue Watching hub with items has actually been rendered once
     RecylingVideo* resumeRow = nullptr;
+    /// The reference's Separate Upcoming Row sort gives the unaired
+    /// next-ups a row of their own; null under its other two sorts.
+    RecylingVideo* upcomingRow = nullptr;
 
     LoadingSpinner* spinner = nullptr;  // centered overlay while hubs load
     // offline empty state: added to the tab root (definite height) with the

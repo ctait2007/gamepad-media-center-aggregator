@@ -926,6 +926,24 @@ void SettingTab::onCreate() {
         conf.getItem(AppConfig::LAYOUT_CW_EPISODE_THUMBS, true),
         [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_CW_EPISODE_THUMBS, value); });
 
+    // The reference's three Continue Watching rules. All of them are about the
+    // episode the row offers once the one before it is finished, which is why
+    // they sit together.
+    btnCwNextUpFurthest->init("main/setting/layout/cw_next_up_furthest"_i18n,
+        conf.getItem(AppConfig::CW_NEXT_UP_FURTHEST, true),
+        [&conf](bool value) { conf.setItem(AppConfig::CW_NEXT_UP_FURTHEST, value); });
+    btnCwShowUnaired->init("main/setting/layout/cw_show_unaired"_i18n,
+        conf.getItem(AppConfig::CW_SHOW_UNAIRED, true),
+        [&conf](bool value) { conf.setItem(AppConfig::CW_SHOW_UNAIRED, value); });
+    selectorCwSortMode->init("main/setting/layout/cw_sort_mode"_i18n,
+        {
+            "main/setting/layout/cw_sort/default"_i18n,
+            "main/setting/layout/cw_sort/streaming"_i18n,
+            "main/setting/layout/cw_sort/split"_i18n,
+        },
+        std::clamp(conf.getItem(AppConfig::CW_SORT_MODE, 0), 0, 2),
+        [&conf](int selected) { conf.setItem(AppConfig::CW_SORT_MODE, selected); });
+
     // Poster Card Style. The reference offers named presets rather than a free
     // slider, and these are its own six widths and five radii, in its dp.
     struct Preset {

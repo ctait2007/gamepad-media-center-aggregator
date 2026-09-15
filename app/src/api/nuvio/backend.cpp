@@ -5,6 +5,7 @@
 #include "api/nuvio/backend.hpp"
 #include "api/nuvio/sync.hpp"
 #include "api/stremio/types.hpp"
+#include "utils/config.hpp"
 #include <borealis/core/i18n.hpp>
 #include <borealis/core/logger.hpp>
 #include <borealis/core/thread.hpp>
@@ -70,8 +71,21 @@ media::Item NuvioBackend::nextEpisodeAfter(const WatchProgressRow& row) {
         if (a.parentIndex != b.parentIndex) return a.parentIndex < b.parentIndex;
         return a.index < b.index;
     });
+    // nextUpFromFurthestEpisode. The row itself is the title's MOST RECENT
+    // one (ProgressStore::continueWatching picks it by lastWatched), which is
+    // what the setting means by "off"; with it on the count starts from the
+    // furthest episode reached instead, so dipping back into season one does
+    // not drag the row back with it.
+    int64_t fromSeason = row.season, fromEpisode = row.episode;
+    if (AppConfig::instance().getItem(AppConfig::CW_NEXT_UP_FURTHEST, true)) {
+        auto [s, e] = progressStore.lastTouched(row.contentId, true);
+        if (s >= 0) {
+            fromSeason = s;
+            fromEpisode = e;
+        }
+    }
     for (const media::Item& e : eps) {
-        bool after = e.parentIndex > row.season || (e.parentIndex == row.season && e.index > row.episode);
+        bool after = e.parentIndex > fromSeason || (e.parentIndex == fromSeason && e.index > fromEpisode);
         if (!after) continue;
         if (progressStore.isWatched(row.contentId, e.parentIndex, e.index)) continue;
         media::Item out = e;
@@ -126,11 +140,48 @@ void NuvioBackend::getContinueWatching(
                     if (row.durationMs > 0) item.duration = row.durationMs;
                     return item;
                 });
+            // An episode offered because the one before it is finished may not
+            // have aired yet. showUnairedNextUp decides whether it is offered,
+            // and ContinueWatchingSortMode where it goes — the store has
+            // already sorted everything by recency, which is Default.
+            auto& conf = AppConfig::instance();
+            bool showUnaired = conf.getItem(AppConfig::CW_SHOW_UNAIRED, true);
+            int sortMode = std::clamp(conf.getItem(AppConfig::CW_SORT_MODE, 0), 0, 2);
+
+            std::vector<media::Item> aired, upcoming;
             for (auto& item : resolved) {
                 if (item.ratingKey.empty()) continue;
-                h.items.push_back(std::move(item));
+                bool unaired = media::isUnreleased(item);
+                if (unaired && !showUnaired) continue;
+                // Default keeps one row in the store's recency order, so
+                // everything goes to the same list; the other two split.
+                if (sortMode == 0 || !unaired)
+                    aired.push_back(std::move(item));
+                else
+                    upcoming.push_back(std::move(item));
             }
+            // Soonest first, as both of its splitting modes order them;
+            // anything with no usable date goes to the end.
+            std::sort(upcoming.begin(), upcoming.end(), [](const media::Item& a, const media::Item& b) {
+                bool da = a.originallyAvailableAt.size() >= 10, db = b.originallyAvailableAt.size() >= 10;
+                if (da != db) return da;
+                if (!da) return false;
+                return a.originallyAvailableAt < b.originallyAvailableAt;
+            });
+
+            h.items = std::move(aired);
+            // Streaming Style keeps the upcoming ones, at the end of the same
+            // row; Separate Upcoming Row gives them their own.
+            if (sortMode == 1)
+                for (auto& item : upcoming) h.items.push_back(std::move(item));
             if (!h.items.empty()) out.Items.push_back(std::move(h));
+            if (sortMode == 2 && !upcoming.empty()) {
+                media::Hub up;
+                up.title = "main/home/upcoming"_i18n;
+                up.hubIdentifier = "home.upcoming";
+                up.items = std::move(upcoming);
+                out.Items.push_back(std::move(up));
+            }
             out.TotalRecordCount = (long)out.Items.size();
             brls::sync(std::bind(then, std::move(out)));
         } catch (const std::exception& ex) {
@@ -150,14 +201,14 @@ void NuvioBackend::getNextUp(
             stremio::ParsedId pid = stremio::parseId(sid);
             auto eps = resolveEpisodes(delegate.addonEngine(), sid);
             if (!eps.empty()) {
-                // Last episode (in order) with any signal (watched or in
-                // progress); -1 if the show has never been touched.
+                // The episode "next" is measured from — nextUpFromFurthest
+                // Episode: the furthest one reached, or the one touched most
+                // recently by the clock. -1 if the show has never been touched.
+                bool furthest = AppConfig::instance().getItem(AppConfig::CW_NEXT_UP_FURTHEST, true);
+                auto [fromSeason, fromEpisode] = progressStore.lastTouched(pid.stremioId, furthest);
                 int lastIdx = -1;
-                for (size_t i = 0; i < eps.size(); i++) {
-                    bool watched = progressStore.isWatched(pid.stremioId, eps[i].parentIndex, eps[i].index);
-                    auto prog = progressStore.progressFor(pid.stremioId, eps[i].parentIndex, eps[i].index);
-                    if (watched || (prog && prog->positionMs > 0)) lastIdx = (int)i;
-                }
+                for (size_t i = 0; i < eps.size(); i++)
+                    if (eps[i].parentIndex == fromSeason && eps[i].index == fromEpisode) lastIdx = (int)i;
                 if (lastIdx < 0) {
                     // Never started: offer episode 1, "Play" (not "Replay").
                     result = eps.front();

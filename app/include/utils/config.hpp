@@ -211,6 +211,17 @@ public:
         /// playback_osd_clock: the wall clock on the player's bar.
         /// show_full_release_date: a movie's full date instead of its year.
         LAYOUT_FULL_RELEASE_DATE,
+        /// nextUpFromFurthestEpisode: what "next" is measured from — the
+        /// FURTHEST episode reached (on), or the most recently watched one
+        /// (off, "for rewatches"). On, as it is there.
+        CW_NEXT_UP_FURTHEST,
+        /// showUnairedNextUp: whether an episode that has not aired yet is
+        /// offered on the row at all. On, as it is there.
+        CW_SHOW_UNAIRED,
+        /// ContinueWatchingSortMode: 0 Default (everything by recency),
+        /// 1 Streaming Style (aired first, upcoming at the end by soonest),
+        /// 2 Separate Upcoming Row. Default, as it is there.
+        CW_SORT_MODE,
         /// use_episode_thumbnails_in_cw: an episode's own still on the
         /// Continue Watching tile, or the show's backdrop when off.
         LAYOUT_CW_EPISODE_THUMBS,

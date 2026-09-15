@@ -21,6 +21,7 @@
     },
     "home": {
         "resume": "Continue Watching",
+        "upcoming": "Upcoming",
         "nextup": "Next Up",
         "latest": "Recently Added",
         "empty": "Nothing to show here yet — no catalogs were loaded. Check that your account still has addons enabled, then press the refresh button."
@@ -370,6 +371,14 @@
             "fullscreen_hero": "Fullscreen hero backdrop (restart required)",
             "full_release_date": "Show full release date",
             "cw_episode_thumbs": "Episode stills in Continue Watching",
+            "cw_next_up_furthest": "Up next from the furthest episode",
+            "cw_show_unaired": "Offer episodes that have not aired",
+            "cw_sort_mode": "Continue Watching order",
+            "cw_sort": {
+                "default": "Default",
+                "streaming": "Streaming style",
+                "split": "Separate Upcoming row"
+            },
             "card_width": "Poster width (restart required)",
             "card_radius": "Poster corner radius (restart required)",
             "preset": {

@@ -80,6 +80,19 @@ its screenshots; where we deviate from it, the entry says so.
 - **Layout: hide unreleased content**, **show full release date**, and
   **episode stills in Continue Watching** — three more of its Layout toggles,
   at its defaults.
+- **Layout: the reference's three Continue Watching rules.**
+  - **Up next from the furthest episode** (`nextUpFromFurthestEpisode`, on as
+    it is there). The row measures "next" from the furthest episode reached
+    rather than the one watched most recently, so dipping back into season one
+    does not drag the row back with it. Off is for a rewatch, and is what the
+    row used to do unconditionally.
+  - **Offer episodes that have not aired** (`showUnairedNextUp`, on as it is
+    there). Off, an episode the row would offer because the one before it is
+    finished stays away until it airs.
+  - **Continue Watching order** (`ContinueWatchingSortMode`): Default
+    (everything by recency, as before), Streaming style (aired first, upcoming
+    at the end soonest-first) or Separate Upcoming row, which gives the unaired
+    ones a row of their own.
 - **Layout: show ratings** (`homeImdbRatingsVisibility`, shown as it is there).
   Off, the rating goes from the home hero and from every pill on a detail page.
 - **Layout: fullscreen hero backdrop**

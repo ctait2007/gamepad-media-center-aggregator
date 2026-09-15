@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <utility>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -89,6 +90,15 @@ public:
     std::vector<WatchProgressRow> continueWatching(size_t limit);
     std::optional<WatchProgressRow> progressFor(const std::string& contentId, int64_t season, int64_t episode);
     bool isWatched(const std::string& contentId, int64_t season, int64_t episode);
+
+    /// The (season, episode) of this show that "next" should be measured from,
+    /// counting both watched episodes and part-watched ones. This is
+    /// nextUpFromFurthestEpisode: `furthest` picks the highest (season,
+    /// episode) touched, which is what a first watch wants; false picks the one
+    /// touched most recently by the clock, which is what a rewatch wants ("go
+    /// back to episode 2 and it should offer episode 3, not episode 20").
+    /// {-1, -1} when the show has never been touched.
+    std::pair<int64_t, int64_t> lastTouched(const std::string& contentId, bool furthest);
 
     /// True if a progress push for this content/episode happened less than
     /// `withinSec` ago — throttles the player's 10 s "playing" ticks down to

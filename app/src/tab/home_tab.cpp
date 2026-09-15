@@ -70,6 +70,7 @@ void HomeTab::doRequest() {
     if (NetworkState::isOffline()) {
         this->boxHome->clearViews();
         this->resumeRow = nullptr;
+        this->upcomingRow = nullptr;
         auto& lib = OfflineLibrary::instance();
         bool any = false;
         for (auto& s : lib.sections()) {
@@ -101,6 +102,7 @@ void HomeTab::doRequest() {
     this->spinner->setSpinning(true);
     this->boxHome->clearViews();
     this->resumeRow = nullptr;
+    this->upcomingRow = nullptr;
 
     this->pendingRows.clear();
     this->renderedIds.clear();
@@ -207,7 +209,8 @@ void HomeTab::fetchResume() {
                     this->insertResumeRow(row);
                 else
                     this->pendingRows.push_back(std::move(row));
-                break;  // only one Continue Watching hub is meaningful
+                // Two of them now, at most: Continue Watching and, under the
+                // reference's Separate Upcoming Row sort, "Upcoming".
             }
         },
         [ASYNC_TOKEN](const std::string& ex) {
@@ -358,7 +361,10 @@ RecylingVideo* HomeTab::buildRow(const RowData& row) {
         view->setItemWidth(wide);
         view->setSidePadding(brls::getStyle()["main/content_padding_sides"]);
         view->setContinueItems(row.items);
-        this->resumeRow = view;
+        if (row.identifier == "home.upcoming")
+            this->upcomingRow = view;
+        else
+            this->resumeRow = view;
         return view;
     }
     view->setFrameHeight(frameHeight);
@@ -408,23 +414,32 @@ void HomeTab::insertResumeRow(const RowData& row) {
 }
 
 void HomeTab::refreshResumeRow() {
-    if (!this->resumeRow) return;
+    if (!this->resumeRow && !this->upcomingRow) return;
     RecylingVideo* row = this->resumeRow;
+    RecylingVideo* up = this->upcomingRow;
     ASYNC_RETAIN
     AppConfig::instance().backend().getContinueWatching(20,
-        [ASYNC_TOKEN, row](const media::Container<media::Hub>& r) {
+        [ASYNC_TOKEN, row, up](const media::Container<media::Hub>& r) {
             ASYNC_RELEASE
+            // Whichever of the two rows is on screen takes the hub of its own
+            // name; a row whose hub has gone away is emptied rather than left
+            // showing what it had before the episode was finished.
+            bool gotResume = false, gotUpcoming = false;
             for (auto& hub : r.Items) {
                 if (hub.items.empty()) continue;
                 if (AppConfig::instance().isHubHidden(hub.hubIdentifier)) continue;
+                bool isUpcoming = hub.hubIdentifier == "home.upcoming";
+                RecylingVideo* target = isUpcoming ? up : row;
+                if (!target) continue;
                 std::string title = hub.title.empty() ? "main/home/resume"_i18n : hub.title;
-                row->setTitle(title);
+                target->setTitle(title);
                 // stays a Continue Watching row across refreshes: setItems
                 // would quietly swap the landscape tiles back for posters
-                row->setContinueItems(hub.items);
-                return;
+                target->setContinueItems(hub.items);
+                (isUpcoming ? gotUpcoming : gotResume) = true;
             }
-            row->setContinueItems({});
+            if (row && !gotResume) row->setContinueItems({});
+            if (up && !gotUpcoming) up->setContinueItems({});
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
