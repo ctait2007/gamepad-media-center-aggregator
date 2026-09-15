@@ -535,6 +535,10 @@ void SettingTab::onCreate() {
             MPVCore::NEXT_EPISODE_MODE = selected;
             conf.setItem(AppConfig::NEXT_EPISODE_MODE, selected);
         });
+    selectorNextEpisodeMode->setDescriptions({
+        "main/setting/playback/next_episode_threshold/percentage_desc"_i18n,
+        "main/setting/playback/next_episode_threshold/minutes_desc"_i18n,
+    });
 
     std::vector<std::string> percentOptions;
     for (int half = 194; half <= 200; half++) percentOptions.push_back(fmt::format("{:.1f}%", half / 2.0));
@@ -567,6 +571,11 @@ void SettingTab::onCreate() {
             inputStreamAutoplayRegex->setVisibility(
                 selected == 2 ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
         });
+    selectorStreamAutoplayMode->setDescriptions({
+        "main/setting/playback/stream_autoplay/manual_desc"_i18n,
+        "main/setting/playback/stream_autoplay/first_desc"_i18n,
+        "main/setting/playback/stream_autoplay/regex_desc"_i18n,
+    });
 
     inputStreamAutoplayRegex->init("main/setting/playback/stream_autoplay_regex"_i18n,
         conf.getItem(AppConfig::STREAM_AUTOPLAY_REGEX, std::string("")),

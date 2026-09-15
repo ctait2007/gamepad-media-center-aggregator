@@ -92,8 +92,10 @@
                             axis="column"
                             visibility="gone">
                             <DisclosureCell
+                                id="setting/connections"
                                 title="@i18n/main/server/switch_title"
-                                id="setting/connections" />
+                                icon="person"
+                                subtitle="@i18n/main/setting/sub/connections" />
                         </brls:Box>
 
                         <!-- Appearance -->
@@ -103,29 +105,48 @@
                             height="auto"
                             axis="column"
                             visibility="gone">
-                            <!-- colour theme (NuvioTV's list); takes effect
-                                 immediately, no relaunch, so no quitApp -->
-                            <SelectorCell
-                                id="setting/ui/accent" />
-                            <SelectorCell
-                                id="setting/ui/theme"
-                                quitApp="true" />
-                            <BooleanCell
-                                id="setting/ui/amoled" />
-                            <BooleanCell
-                                id="setting/ui/amoled_surfaces" />
-                            <SelectorCell
-                                id="setting/ui/scale"
-                                quitApp="true" />
-                            <SelectorCell
-                                id="setting/ui/font"
-                                quitApp="true" />
-                            <SelectorCell
-                                id="setting/language"
-                                quitApp="true" />
-                            <SelectorCell
-                                id="setting/keymap"
-                                quitApp="true" />
+                            <SettingsSection
+                                title="@i18n/main/setting/section/theme/title"
+                                subtitle="@i18n/main/setting/section/theme/sub"
+                                expanded="true">
+                                <SelectorCell
+                                    id="setting/ui/accent"
+                                    icon="palette"
+                                    subtitle="@i18n/main/setting/sub/ui_accent" />
+                                <SelectorCell
+                                    id="setting/ui/theme"
+                                    icon="visibility"
+                                    subtitle="@i18n/main/setting/sub/ui_theme" />
+                                <BooleanCell
+                                    id="setting/ui/amoled"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/ui_amoled" />
+                                <BooleanCell
+                                    id="setting/ui/amoled_surfaces"
+                                    icon="dashboard"
+                                    subtitle="@i18n/main/setting/sub/ui_amoled_surfaces" />
+                                <SelectorCell
+                                    id="setting/ui/scale"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/ui_scale" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/typography/title"
+                                subtitle="@i18n/main/setting/section/typography/sub"
+                                expanded="false">
+                                <SelectorCell
+                                    id="setting/ui/font"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/ui_font" />
+                                <SelectorCell
+                                    id="setting/language"
+                                    icon="language"
+                                    subtitle="@i18n/main/setting/sub/language" />
+                                <SelectorCell
+                                    id="setting/keymap"
+                                    icon="settings"
+                                    subtitle="@i18n/main/setting/sub/keymap" />
+                            </SettingsSection>
                         </brls:Box>
 
                         <!-- Layout -->
@@ -182,10 +203,12 @@
                                     subtitle="@i18n/main/setting/sub/layout_hide_unreleased" />
                                 <DisclosureCell
                                     id="setting/hidden_rows"
+                                    title="@i18n/main/setting/hidden_rows/header"
                                     icon="list"
                                     subtitle="@i18n/main/setting/sub/hidden_rows" />
                                 <DisclosureCell
                                     id="setting/libraries"
+                                    title="@i18n/main/setting/libraries/header"
                                     icon="folder"
                                     subtitle="@i18n/main/setting/sub/libraries" />
                             </SettingsSection>
@@ -471,84 +494,118 @@
                             height="auto"
                             axis="column"
                             visibility="gone">
-                            <SelectorCell
-                                id="setting/network/threads" />
-                            <SelectorCell
-                                id="setting/network/timeout" />
-                            <BooleanCell
-                                id="setting/network/proxy_status" />
-                            <InputCell
-                                id="setting/network/proxy"
-                                visibility="gone" />
-                            <InputCell
-                                id="setting/network/proxy_user"
-                                visibility="gone" />
-                            <InputCell
-                                id="setting/network/proxy_passwd"
-                                type="password"
-                                visibility="gone" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/advanced/performance"
-                                marginBottom="0px" />
-                            <BooleanCell
-                                id="setting/advanced/fast_horizontal_nav" />
-                            <BooleanCell
-                                id="setting/advanced/startup_splash" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/advanced/diagnostics"
-                                marginBottom="0px" />
-                            <BooleanCell
-                                id="setting/advanced/player_stats_hud" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/ui/header"
-                                marginBottom="0px" />
-                            <SelectorCell
-                                id="setting/ui/vsync" />
-                            <BooleanCell
-                                id="setting/ui/show_fps" />
-                            <BooleanCell
-                                id="setting/fullscreen" />
-                            <BooleanCell
-                                id="setting/always_on_top" />
-                            <BooleanCell
-                                id="setting/single" />
-                            <BooleanCell
-                                id="setting/overclock" />
-                            <BooleanCell
-                                id="setting/sync" />
-                            <BooleanCell
-                                id="setting/debug" />
-
-                            <brls:Header
-                                width="auto"
-                                height="auto"
-                                marginTop="20"
-                                title="@i18n/main/setting/tutorial/header"
-                                marginBottom="0px" />
-                            <ActionCell
-                                id="tools/tutorial_open"
-                                title="@i18n/main/setting/tutorial/open" />
-                            <ActionCell
-                                id="tools/tutorial_error"
-                                title="@i18n/main/setting/tutorial/error" />
-                            <ActionCell
-                                id="tools/tutorial_font"
-                                title="@i18n/main/setting/tutorial/font" />
-                            <ActionCell
-                                id="tools/config_dir"
-                                title="@i18n/main/setting/others/config_dir" />
+                            <SettingsSection
+                                title="@i18n/main/setting/section/performance/title"
+                                subtitle="@i18n/main/setting/section/performance/sub"
+                                expanded="true">
+                                <BooleanCell
+                                    id="setting/advanced/fast_horizontal_nav"
+                                    icon="speed"
+                                    subtitle="@i18n/main/setting/sub/advanced_fast_horizontal_nav" />
+                                <BooleanCell
+                                    id="setting/advanced/startup_splash"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/sub/advanced_startup_splash" />
+                                <BooleanCell
+                                    id="setting/overclock"
+                                    icon="memory"
+                                    subtitle="@i18n/main/setting/sub/overclock" />
+                                <SelectorCell
+                                    id="setting/ui/vsync"
+                                    icon="speed"
+                                    subtitle="@i18n/main/setting/sub/ui_vsync" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/diagnostics/title"
+                                subtitle="@i18n/main/setting/section/diagnostics/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/advanced/player_stats_hud"
+                                    icon="memory"
+                                    subtitle="@i18n/main/setting/sub/advanced_player_stats_hud" />
+                                <BooleanCell
+                                    id="setting/ui/show_fps"
+                                    icon="speed"
+                                    subtitle="@i18n/main/setting/sub/ui_show_fps" />
+                                <BooleanCell
+                                    id="setting/debug"
+                                    icon="bug_report"
+                                    subtitle="@i18n/main/setting/sub/debug" />
+                                <ActionCell
+                                    id="tools/tutorial_open"
+                                    title="@i18n/main/setting/tutorial/open"
+                                    icon="info"
+                                    subtitle="@i18n/main/setting/sub/tools_tutorial_open" />
+                                <ActionCell
+                                    id="tools/tutorial_error"
+                                    title="@i18n/main/setting/tutorial/error"
+                                    icon="info"
+                                    subtitle="@i18n/main/setting/sub/tools_tutorial_error" />
+                                <ActionCell
+                                    id="tools/tutorial_font"
+                                    title="@i18n/main/setting/tutorial/font"
+                                    icon="text_fields"
+                                    subtitle="@i18n/main/setting/sub/tools_tutorial_font" />
+                                <ActionCell
+                                    id="tools/config_dir"
+                                    title="@i18n/main/setting/others/config_dir"
+                                    icon="folder"
+                                    subtitle="@i18n/main/setting/sub/tools_config_dir" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/network/title"
+                                subtitle="@i18n/main/setting/section/network/sub"
+                                expanded="false">
+                                <SelectorCell
+                                    id="setting/network/threads"
+                                    icon="wifi"
+                                    subtitle="@i18n/main/setting/sub/network_threads" />
+                                <SelectorCell
+                                    id="setting/network/timeout"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/network_timeout" />
+                                <BooleanCell
+                                    id="setting/network/proxy_status"
+                                    icon="wifi"
+                                    subtitle="@i18n/main/setting/sub/network_proxy_status" />
+                                <InputCell
+                                    id="setting/network/proxy"
+                                    icon="wifi"
+                                    visibility="gone"
+                                    subtitle="@i18n/main/setting/sub/network_proxy" />
+                                <InputCell
+                                    id="setting/network/proxy_user"
+                                    icon="person"
+                                    visibility="gone"
+                                    subtitle="@i18n/main/setting/sub/network_proxy_user" />
+                                <InputCell
+                                    id="setting/network/proxy_passwd"
+                                    icon="person"
+                                    type="password"
+                                    visibility="gone"
+                                    subtitle="@i18n/main/setting/sub/network_proxy_passwd" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/section/window/title"
+                                subtitle="@i18n/main/setting/section/window/sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/fullscreen"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/fullscreen" />
+                                <BooleanCell
+                                    id="setting/always_on_top"
+                                    icon="aspect_ratio"
+                                    subtitle="@i18n/main/setting/sub/always_on_top" />
+                                <BooleanCell
+                                    id="setting/single"
+                                    icon="settings"
+                                    subtitle="@i18n/main/setting/sub/single" />
+                                <BooleanCell
+                                    id="setting/sync"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/sub/sync" />
+                            </SettingsSection>
                         </brls:Box>
 
                         <!-- About -->
@@ -559,13 +616,19 @@
                             axis="column"
                             visibility="gone">
                             <DisclosureCell
+                                id="setting/about"
                                 title="@i18n/main/about/header"
-                                id="setting/about" />
+                                icon="info"
+                                subtitle="@i18n/main/setting/sub/about" />
                             <ActionCell
                                 id="setting/changelog"
-                                title="@i18n/main/setting/others/changelog" />
+                                title="@i18n/main/setting/others/changelog"
+                                icon="list"
+                                subtitle="@i18n/main/setting/sub/changelog" />
                             <ActionCell
-                                id="setting/release_checker" />
+                                id="setting/release_checker"
+                                icon="download"
+                                subtitle="@i18n/main/setting/sub/release_checker" />
                         </brls:Box>
 
                     </brls:Box>

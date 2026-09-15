@@ -506,9 +506,12 @@
             "next_episode_minutes": "Threshold Minutes",
             "stream_autoplay_mode": "Auto Stream Selection",
             "stream_autoplay": {
-                "manual": "Manual (choose a source)",
-                "first": "Auto-play the first source",
-                "regex": "Auto-play a pattern match"
+                "manual": "Manual (choose stream)",
+                "first": "Auto-play first source",
+                "regex": "Auto-play regex match",
+                "manual_desc": "Always show source list and let me choose.",
+                "first_desc": "Play the first available source automatically.",
+                "regex_desc": "Play first source whose text matches your regex pattern."
             },
             "stream_autoplay_regex": "Regex Pattern",
             "prefer_binge_group": "Prefer Binge Group (Next Episode)",
@@ -517,7 +520,9 @@
             "still_watching_threshold": "Still Watching After",
             "next_episode_threshold": {
                 "percentage": "Percentage",
-                "minutes": "Minutes before end"
+                "minutes": "Minutes before end",
+                "percentage_desc": "Show by playback percent when no outro timestamp is available.",
+                "minutes_desc": "Show this many minutes before episode end when no outro timestamp is available."
             }
         },
         "transcode": {
@@ -550,10 +555,10 @@
         },
         "network": {
             "header": "Network",
-            "threads": "Number of image loading threads",
-            "timeout": "Request timeout (ms)",
-            "proxy": "Proxy Setting",
-            "host": "Host",
+            "threads": "Connection Count",
+            "timeout": "Network Timeout",
+            "proxy": "Use a Proxy",
+            "host": "Proxy Address",
             "port": "Port"
         },
         "advanced": {
@@ -566,7 +571,7 @@
         "ui": {
             "header": "UI",
             "scale": {
-                "header": "UI Scale (restart required)",
+                "header": "Interface Scale",
                 "544p": "544p",
                 "720p": "720p",
                 "900p": "900p",
@@ -574,9 +579,9 @@
             },
             "vsync": "Vertical Sync",
             "font": "App Font",
-            "amoled": "AMOLED mode",
-            "amoled_surfaces": "Pure black surfaces",
-            "show_fps": "Show FPS"
+            "amoled": "AMOLED Mode",
+            "amoled_surfaces": "Pure Black Surfaces",
+            "show_fps": "Frame Rate Counter"
         },
         "tutorial": {
             "header": "Tutorial",
@@ -616,25 +621,25 @@
             "always_on_top": "Always on top",
             "single": "Single instance",
             "overclock": "CPU Overclock",
-            "debug": "Debug View",
+            "debug": "Debug Logging",
             "sync": "Preserve order setting",
             "accent": {
-                "header": "Colour theme",
+                "header": "Color Theme",
                 "auto": "Automatic (match connection)",
                 "applied": "Theme applied"
             },
             "theme": {
-                "header": "Theme (restart required)",
+                "header": "Interface Theme",
                 "1": "Auto",
                 "2": "Light",
                 "3": "Dark"
             },
             "language": {
-                "header": "Language (restart required)",
+                "header": "App Language",
                 "auto": "Auto"
             },
             "keymap": {
-                "header": "Keymap style",
+                "header": "Button Layout",
                 "xbox": "Xbox",
                 "ps": "PlayStation",
                 "keyboard": "Keyboard"
@@ -690,6 +695,30 @@
             "cw": {
                 "title": "Continue Watching",
                 "sub": "Settings for the Continue Watching section."
+            },
+            "theme": {
+                "title": "Theme",
+                "sub": "Pick the accent color used across the app."
+            },
+            "typography": {
+                "title": "Font and Language",
+                "sub": "Choose the typeface and locale used throughout the app."
+            },
+            "performance": {
+                "title": "Performance & navigation",
+                "sub": "Navigation feel and startup behaviour."
+            },
+            "diagnostics": {
+                "title": "Diagnostics",
+                "sub": "Overlays and logs for working out what went wrong."
+            },
+            "network": {
+                "title": "Network",
+                "sub": "How the app reaches your servers and addons."
+            },
+            "window": {
+                "title": "Window",
+                "sub": "How the app fills the screen on a desktop."
             }
         },
         "sub": {
@@ -699,7 +728,7 @@
             "player_osd_clock": "Show current time and end time while controls are visible.",
             "player_osd_on_toggle": "Show the on-screen controls whenever playback is paused or resumed.",
             "player_parental_guide": "Show parental guidance overlay when playback starts.",
-            "player_clip_point": "Keep the last position for each file so playback resumes where it stopped.",
+            "player_clip_point": "Mark the chapter boundaries along the seek bar.",
             "player_touch_gesture": "Seek, change volume and brightness by dragging on the video.",
             "player_tv_model": "Lay the on-screen controls out for a remote rather than a pointer.",
             "player_skip_intro_enabled": "Show a Skip button when an intro, recap or outro is detected.",
@@ -759,7 +788,40 @@
             "layout_cw_episode_thumbs": "Use episode thumbnails as default image. When disabled, uses backdrop.",
             "layout_cw_next_up_furthest": "Offer the episode after the furthest one watched, not the most recent.",
             "layout_cw_show_unaired": "Keep a show in the row when its next episode has not aired yet.",
-            "layout_cw_sort_mode": "How the Continue Watching row is ordered."
+            "layout_cw_sort_mode": "How the Continue Watching row is ordered.",
+            "ui_accent": "Pick the accent color used across the app.",
+            "ui_theme": "Choose between the dark and light interface.",
+            "ui_amoled": "Use pure black for app backgrounds.",
+            "ui_amoled_surfaces": "Also make cards, panels, and containers pure black.",
+            "ui_scale": "How large the interface is drawn.",
+            "ui_font": "Choose your preferred font.",
+            "language": "Override system language.",
+            "keymap": "Which glyphs the on-screen hints use for your controller.",
+            "advanced_fast_horizontal_nav": "Increase D-pad repeat speed in rows while keeping repeat throttling enabled.",
+            "advanced_startup_splash": "Show logo and loading indicator after selecting a profile.",
+            "overclock": "Raise the console clocks while the app runs.",
+            "ui_vsync": "How many display refreshes each drawn frame waits for.",
+            "advanced_player_stats_hud": "Show a button in stream info to toggle live cpu, memory, buffer, bitrate and thermal readings during playback.",
+            "ui_show_fps": "Draw the current frame rate over the interface.",
+            "debug": "Write verbose logs. Slows the app down; leave off unless asked for a log.",
+            "tools_tutorial_open": "How to open a file or a stream in the player.",
+            "tools_tutorial_error": "What to do when playback fails.",
+            "tools_tutorial_font": "How to install a custom font.",
+            "tools_config_dir": "Where this app keeps its settings file.",
+            "network_threads": "Number of parallel connections used for downloads.",
+            "network_timeout": "How long to wait on a server before giving up.",
+            "network_proxy_status": "Route the app’s requests through an HTTP proxy.",
+            "network_proxy": "The host and port of the proxy, for example 192.168.1.2:8080.",
+            "network_proxy_user": "The user name the proxy asks for, if it asks for one.",
+            "network_proxy_passwd": "The password the proxy asks for, if it asks for one.",
+            "fullscreen": "Run the app filling the whole screen.",
+            "always_on_top": "Keep the window above other windows.",
+            "single": "Refuse to start a second copy of the app.",
+            "sync": "Keep the app’s clock in step with the network.",
+            "connections": "Add, switch or remove a server or addon connection.",
+            "about": "Version, licences and the people behind the app.",
+            "changelog": "What changed in this release and the ones before it.",
+            "release_checker": "Look for a newer release and install it."
         }
     },
     "hints": {

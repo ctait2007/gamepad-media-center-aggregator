@@ -142,6 +142,8 @@ Parts skin(brls::Box* row, brls::Label* title, brls::Label* value) {
 
     if (value) {
         value->setFontSize(kValueSize);
+        // The reference caps a row's value at one line and ellipsizes it.
+        value->setSingleLine(true);
         value->setTextColor(secondaryText());
         value->setMarginLeft(kTrailingGap);
     }
@@ -194,8 +196,12 @@ SelectorCell::SelectorCell() {
     this->addView(settings_row::makeChevron());
 
     this->registerClickAction([this](View* view) {
+        std::vector<settings_dialog::Option> options;
+        options.reserve(this->data.size());
+        for (size_t i = 0; i < this->data.size(); i++)
+            options.push_back({this->data[i], i < this->descriptions.size() ? this->descriptions[i] : "", ""});
         settings_dialog::choose(
-            this->title->getFullText(), this->data, this->selection,
+            this->title->getFullText(), this->parts.subtitle->getFullText(), options, this->selection,
             [this](int selected) { this->setSelection(selected, false); },
             [this]() { this->dismissEvent.fire(this->selection); });
         return true;
@@ -211,6 +217,8 @@ SelectorCell::SelectorCell() {
         if (value) this->dismissEvent.subscribe([](int selected) { Dialog::quitApp(); });
     });
 }
+
+void SelectorCell::setDescriptions(std::vector<std::string> d) { this->descriptions = std::move(d); }
 
 void SelectorCell::onLayout() { settings_row::keepPillRing(this); }
 

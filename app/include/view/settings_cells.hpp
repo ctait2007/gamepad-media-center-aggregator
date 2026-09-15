@@ -24,6 +24,7 @@
 #include <borealis.hpp>
 
 #include <string>
+#include <vector>
 
 #include "view/svg_image.hpp"
 
@@ -70,12 +71,18 @@ class SelectorCell : public brls::SelectorCell {
   public:
     SelectorCell();
 
+    /// The second line the dialog shows under each option. NuvioTV writes one
+    /// for the choices whose names do not explain themselves
+    /// (SettingsPickerOption.description). Pass one per option, or none.
+    void setDescriptions(std::vector<std::string> descriptions);
+
     void onLayout() override;
 
     static brls::View* create();
 
   private:
     settings_row::Parts parts;
+    std::vector<std::string> descriptions;
     brls::Event<int> dismissEvent;
 };
 
