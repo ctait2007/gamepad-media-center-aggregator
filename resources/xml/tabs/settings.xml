@@ -220,6 +220,8 @@
                             <brls:BooleanCell
                                 id="setting/player/introdb" />
                             <brls:BooleanCell
+                                id="setting/player/skip_intro_enabled" />
+                            <brls:BooleanCell
                                 id="setting/player/auto_skip_intro" />
                             <brls:BooleanCell
                                 id="setting/player/auto_skip_recap" />
@@ -260,6 +262,8 @@
                                 id="setting/player/sub_bg_color" />
                             <brls:SelectorCell
                                 id="setting/player/sub_outline_color" />
+                            <brls:BooleanCell
+                                id="setting/player/sub_strip_sdh" />
                         </brls:Box>
 
                         <!-- Advanced -->

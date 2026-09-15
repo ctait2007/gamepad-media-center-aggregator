@@ -1065,6 +1065,13 @@ void VideoView::takeSkipInterval() {
 
 void VideoView::tickSkipButton(double positionSec, double durationSec) {
     if (!this->skipButton) return;
+    // The markers still drive "up next" with the button switched off — the
+    // reference keeps skipIntroEnabled separate from having the data for
+    // exactly that reason.
+    if (!MPVCore::SKIP_INTRO_ENABLED) {
+        this->hideSkipButton();
+        return;
+    }
     if (this->skipIntervals.empty()) {
         this->hideSkipButton();
         return;

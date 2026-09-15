@@ -318,6 +318,21 @@ void SettingTab::onCreate() {
             c.applyTheme(c.backend().type());
         });
 
+    // skipIntroEnabled, which gates only the BUTTON. The markers it would use
+    // also decide when "up next" comes up, so this must not take the lookup
+    // down with it — the reference keeps the two apart for the same reason.
+    btnSkipIntroEnabled->init("main/setting/playback/skip_intro_enabled"_i18n, MPVCore::SKIP_INTRO_ENABLED,
+        [&conf](bool value) {
+            MPVCore::SKIP_INTRO_ENABLED = value;
+            conf.setItem(AppConfig::SKIP_INTRO_ENABLED, value);
+        });
+
+    // subtitleStripSdh. Applied where a sidecar is cached, so it also decides
+    // what is on disk; the cache key carries the choice.
+    btnSubStripSdh->init("main/setting/playback/sub/strip_sdh"_i18n,
+        conf.getItem(AppConfig::SUB_STRIP_SDH, false),
+        [&conf](bool value) { conf.setItem(AppConfig::SUB_STRIP_SDH, value); });
+
     // autoSkipSegmentTypes: a flag per segment type, not one switch. All three
     // start off, as the reference's set starts empty.
     struct AutoSkip {

@@ -183,6 +183,12 @@ public:
     /// playback_osd_clock. On, as the reference has it.
     inline static bool OSD_CLOCK = true;
 
+    /// skipIntroEnabled: whether the skip button is offered at all. Separate
+    /// from INTRODB, which is whether the markers are fetched — those also
+    /// decide when "up next" comes up, so switching the button off must not
+    /// switch the lookup off with it.
+    inline static bool SKIP_INTRO_ENABLED = true;
+
     inline static bool AUTO_SKIP_INTRO = false;
     inline static bool AUTO_SKIP_RECAP = false;
     inline static bool AUTO_SKIP_OUTRO = false;

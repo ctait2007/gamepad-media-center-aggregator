@@ -430,6 +430,7 @@
             "subsync": "Subtitle Sync",
             "next_episode_card": "Show \"up next\" near the end of an episode",
             "introdb": "Use theintrodb.org for intro and credits markers",
+            "skip_intro_enabled": "Show the skip button",
             "auto_skip": {
                 "intro": "Skip intros automatically",
                 "recap": "Skip recaps automatically",
@@ -445,6 +446,7 @@
                 "text_color": "Text colour",
                 "bg_color": "Background colour",
                 "outline_color": "Outline colour",
+                "strip_sdh": "Strip SDH subtitles",
                 "color": {
                     "white": "White",
                     "silver": "Silver",

@@ -192,6 +192,11 @@ public:
         /// app's language). Its third, "original", wants TMDB's
         /// original_language, which no backend here carries.
         PLAYER_AUDIO_LANG,
+        /// skipIntroEnabled: the skip button itself, separate from whether the
+        /// markers are fetched at all (they also drive "up next").
+        SKIP_INTRO_ENABLED,
+        /// subtitleStripSdh: drop sound descriptions and speaker labels.
+        SUB_STRIP_SDH,
         OSD_CLOCK,
         AMOLED_MODE,
         AMOLED_SURFACES,

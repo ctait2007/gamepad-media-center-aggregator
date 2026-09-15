@@ -3,6 +3,7 @@
 */
 
 #include "utils/subtitle_cache.hpp"
+#include "utils/sdh_filter.hpp"
 #include "utils/config.hpp"
 #include "utils/misc.hpp"
 #include "api/http.hpp"
@@ -128,7 +129,11 @@ std::string fetch(const std::string& url) {
     // A stable name for a stable url: the second time this track is picked the
     // file is already here, and mpv's own "cached" sub-add flag then re-selects
     // the track it made the first time instead of loading it again.
-    std::string stem = fmt::format("{:016x}", (uint64_t)std::hash<std::string>{}(url));
+    // The SDH choice is part of the key: the same url filtered and unfiltered
+    // are two different files, and toggling the setting has to re-fetch rather
+    // than hand back whichever one happens to be on disk.
+    bool strip = AppConfig::instance().getItem(AppConfig::SUB_STRIP_SDH, false);
+    std::string stem = fmt::format("{:016x}{}", (uint64_t)std::hash<std::string>{}(url), strip ? "-nosdh" : "");
     std::string known = extFromUrl(url);
 
     if (!known.empty()) {
@@ -149,6 +154,15 @@ std::string fetch(const std::string& url) {
     if (!isUtf8(body)) body = cp1252ToUtf8(body);
 
     std::string ext = known.empty() ? extFromBody(body) : known;
+    // subtitleStripSdh. Text formats only: an ASS line carries styling and
+    // drawing commands the reference's filter is not written for either.
+    if (strip && (ext == "srt" || ext == "vtt")) {
+        std::string filtered = sdh::filterDocument(body);
+        if (!filtered.empty()) {
+            brls::Logger::info("subtitles: SDH stripped, {} -> {} bytes", body.size(), filtered.size());
+            body = std::move(filtered);
+        }
+    }
     std::string path = fmt::format("{}/{}.{}", dir, stem, ext);
     std::error_code ec;
     fs::create_directories(dir, ec);

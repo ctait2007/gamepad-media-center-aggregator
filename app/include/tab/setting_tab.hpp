@@ -88,6 +88,8 @@ private:
     BRLS_BIND(brls::BooleanCell, btnOsdClock, "setting/player/osd_clock");
     BRLS_BIND(brls::BooleanCell, btnAmoled, "setting/ui/amoled");
     BRLS_BIND(brls::BooleanCell, btnAmoledSurfaces, "setting/ui/amoled_surfaces");
+    BRLS_BIND(brls::BooleanCell, btnSkipIntroEnabled, "setting/player/skip_intro_enabled");
+    BRLS_BIND(brls::BooleanCell, btnSubStripSdh, "setting/player/sub_strip_sdh");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipIntro, "setting/player/auto_skip_intro");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipRecap, "setting/player/auto_skip_recap");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipOutro, "setting/player/auto_skip_outro");
