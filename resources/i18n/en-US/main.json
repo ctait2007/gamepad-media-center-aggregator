@@ -422,6 +422,9 @@
             "transcodec": "Codec",
             "audio_channels": "Audio Channels",
             "audio_lang": "Preferred audio language",
+            "sub_secondary_lang": "Secondary subtitle language",
+            "sub_secondary_none": "None",
+            "sub_only_preferred": "Show only preferred subtitle languages",
             "audio_lang_option": {
                 "default": "The file's own",
                 "device": "App language"

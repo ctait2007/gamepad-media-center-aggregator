@@ -187,6 +187,10 @@
                                 id="setting/playback/audio_lang" />
                             <brls:SelectorCell
                                 id="setting/playback/subtitle_lang" />
+                            <brls:SelectorCell
+                                id="setting/playback/sub_secondary_lang" />
+                            <brls:BooleanCell
+                                id="setting/player/sub_only_preferred" />
 
                             <brls:Header
                                 width="auto"

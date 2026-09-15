@@ -183,6 +183,27 @@ void SettingTab::onCreate() {
             AppConfig::instance().setItem(AppConfig::PLAYER_SUBTITLE_LANG, subLangValues[selected]);
         });
 
+    // secondaryPreferredLanguage, off the same catalog as the preferred one,
+    // with "None" where that list has "Automatic" — a second language is an
+    // addition, not a fallback.
+    std::vector<std::string> secLangValues = {""};
+    std::vector<std::string> secLangLabels = {"main/setting/playback/sub_secondary_none"_i18n};
+    for (auto& l : media::subtitleLangCatalog()) {
+        secLangValues.push_back(l.code);
+        secLangLabels.push_back(l.display);
+    }
+    std::string secCur = conf.getItem(AppConfig::SUB_SECONDARY_LANG, std::string(""));
+    auto secIt = std::find(secLangValues.begin(), secLangValues.end(), secCur);
+    int secIndex = secIt != secLangValues.end() ? (int)(secIt - secLangValues.begin()) : 0;
+    selectorSubSecondaryLang->init("main/setting/playback/sub_secondary_lang"_i18n, secLangLabels, secIndex,
+        [secLangValues](int selected) {
+            AppConfig::instance().setItem(AppConfig::SUB_SECONDARY_LANG, secLangValues[selected]);
+        });
+
+    btnSubOnlyPreferred->init("main/setting/playback/sub_only_preferred"_i18n,
+        conf.getItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, false),
+        [&conf](bool value) { conf.setItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, value); });
+
     btnDirectPlay->init("main/setting/playback/force_directplay"_i18n, MPVCore::FORCE_DIRECTPLAY, [&conf](bool value) {
         if (MPVCore::FORCE_DIRECTPLAY == value) return;
         MPVCore::FORCE_DIRECTPLAY = value;

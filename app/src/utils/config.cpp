@@ -97,6 +97,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {PLAYER_AUDIO_LANG, {"player_audio_lang", {"default", "device"}}},
     {SKIP_INTRO_ENABLED, {"skip_intro_enabled"}},
     {SUB_STRIP_SDH, {"sub_strip_sdh"}},
+    {SUB_SECONDARY_LANG, {"sub_secondary_lang"}},
+    {SUB_ONLY_PREFERRED_LANGS, {"sub_only_preferred_langs"}},
     {OSD_CLOCK, {"osd_clock"}},
     {AMOLED_MODE, {"amoled_mode"}},
     {AMOLED_SURFACES, {"amoled_surfaces"}},

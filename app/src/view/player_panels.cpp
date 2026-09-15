@@ -287,10 +287,54 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
         std::string key = languageName(o.lang);
         if (std::find(langs.begin(), langs.end(), key) == langs.end()) langs.push_back(key);
     }
-    // English first, under Off — the language most of this app's users want is
-    // not worth scrolling for, and the reference pins the preferred one too.
+    // The reference's own order, which was a hardcoded "English first" here:
+    // preferredOverlayLanguageOrder is [preferred, secondary] with the blanks
+    // and duplicates dropped, everything else falling in behind it
+    // alphabetically (its compareBy(preferredIndex, sortLabel)).
+    auto& conf = AppConfig::instance();
+    auto resolve = [](const std::string& code) -> std::string {
+        if (code.empty() || code == "off" || code == "none") return "";
+        // "auto" is the app's own language, which is what the picker's
+        // preferred entry means when it has not been set to a code.
+        if (code == "auto") {
+            std::string locale = brls::Application::getLocale();
+            return languageName(locale.substr(0, locale.find('-')));
+        }
+        return languageName(code);
+    };
+    std::vector<std::string> preferredOrder;
+    for (const std::string& code : {conf.getItem(AppConfig::PLAYER_SUBTITLE_LANG, std::string("auto")),
+             conf.getItem(AppConfig::SUB_SECONDARY_LANG, std::string(""))}) {
+        std::string name = resolve(code);
+        if (name.empty()) continue;
+        if (std::find(preferredOrder.begin(), preferredOrder.end(), name) != preferredOrder.end()) continue;
+        preferredOrder.push_back(name);
+    }
+
+    // showOnlyPreferredLanguages: everything else goes, EXCEPT whatever is
+    // playing — the reference keeps the current one so the picker can never
+    // hide the track you are looking at.
+    if (conf.getItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, false) && !preferredOrder.empty()) {
+        std::string current = anyOn ? languageName(activeLang) : "";
+        langs.erase(std::remove_if(langs.begin() + 1, langs.end(),
+                        [&](const std::string& l) {
+                            if (l == current) return false;
+                            return std::find(preferredOrder.begin(), preferredOrder.end(), l) ==
+                                   preferredOrder.end();
+                        }),
+            langs.end());
+    }
+
+    auto rank = [&preferredOrder](const std::string& l) {
+        auto it = std::find(preferredOrder.begin(), preferredOrder.end(), l);
+        return it == preferredOrder.end() ? (size_t)-1 : (size_t)(it - preferredOrder.begin());
+    };
     std::stable_sort(langs.begin() + (langs.empty() ? 0 : 1), langs.end(),
-        [](const std::string& a, const std::string& b) { return a == "English" && b != "English"; });
+        [&rank](const std::string& a, const std::string& b) {
+            size_t ra = rank(a), rb = rank(b);
+            if (ra != rb) return ra < rb;
+            return a < b;
+        });
 
     // Which language the middle rail is showing. Held by shared_ptr because
     // the language cards rebuild that rail from their own click handlers,
@@ -386,13 +430,22 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
     // those setters use, and drops the write silently when it will not.
     auto& core = MPVCore::instance();
 
+    // Every stepper below writes the setting as well as mpv: they are the same
+    // values PlayerSettingsDataStore keeps, so a change made here has to
+    // survive the session exactly as one made in Settings does. Before this
+    // the panel moved mpv and nothing else, which is how the face reset itself
+    // on every launch.
+    auto persist = [](AppConfig::Item key, auto value) { AppConfig::instance().setItem(key, value); };
+
     auto size = std::make_shared<double>(core.getOptionDouble("sub-scale", 1.0));
     auto setSize = std::make_shared<std::function<void(const std::string&)>>();
     auto sizeText = [size]() { return fmt::format("{:.0f} %", *size * 100); };
     auto bumpSize = [size, setSize, sizeText](double delta) {
         return [size, setSize, sizeText, delta]() {
-            *size = std::clamp(*size + delta, 0.2, 4.0);
+            *size = std::clamp(*size + delta, 0.5, 2.0);  // the reference's 50..200 %
             MPVCore::instance().setOption("sub-scale", fmt::format("{:.2f}", *size));
+            MPVCore::SUB_SIZE = (int)std::lround(*size * 100);
+            AppConfig::instance().setItem(AppConfig::SUB_SIZE, MPVCore::SUB_SIZE);
             (*setSize)(sizeText());
         };
     };
@@ -405,6 +458,8 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
             auto& m = MPVCore::instance();
             *bold = !*bold;
             m.setOption("sub-bold", *bold ? "yes" : "no");
+            MPVCore::SUB_BOLD = *bold;
+            AppConfig::instance().setItem(AppConfig::SUB_BOLD, *bold);
             (*boldCard)->setTrailingText(*bold ? "main/player/panel/on"_i18n : "main/player/panel/off"_i18n);
             brls::Logger::debug("subtitles: sub-bold set to {}, mpv reports '{}'", *bold, m.getString("sub-bold"));
         });
@@ -414,8 +469,12 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
     auto outText = [outline]() { return fmt::format("{:.1f}", *outline); };
     auto bumpOut = [outline, setOut, outText](double delta) {
         return [outline, setOut, outText, delta]() {
-            *outline = std::clamp(*outline + delta, 0.0, 10.0);
+            *outline = std::clamp(*outline + delta, 0.0, 5.0);  // the reference's 1..5, plus off
             MPVCore::instance().setOption("sub-border-size", fmt::format("{:.1f}", *outline));
+            MPVCore::SUB_OUTLINE = *outline > 0;
+            if (*outline > 0) MPVCore::SUB_OUTLINE_WIDTH = (int)std::lround(*outline);
+            AppConfig::instance().setItem(AppConfig::SUB_OUTLINE, MPVCore::SUB_OUTLINE);
+            AppConfig::instance().setItem(AppConfig::SUB_OUTLINE_WIDTH, MPVCore::SUB_OUTLINE_WIDTH);
             (*setOut)(outText());
         };
     };
@@ -423,18 +482,20 @@ void showSubtitles(const plex::Media* src, const std::vector<plex::Stream>& side
         "main/player/panel/sub_outline"_i18n, outText(), bumpOut(-0.5), bumpOut(0.5));
 
     // sub-pos counts DOWN from the top of the frame (100 = the bottom), so
-    // "further up the screen" is a smaller number. Inverted here so the value
-    // beside the label means what the label says — and counted from 98 rather
-    // than 100, which is where the subtitles now start (MPVCore's sub-pos):
-    // zero on this stepper is the resting position, not mpv's bottom edge.
-    constexpr double kSubPosBase = 98;
+    // "further up the screen" is a smaller number. Shown the way the reference
+    // states it — a percentage UP FROM THE BOTTOM — which is 100 - sub-pos, and
+    // is the same number the Playback setting shows. It used to count from a
+    // hardcoded 98, so the panel and the setting disagreed by three.
+    constexpr double kSubPosBase = 100;
     auto pos = std::make_shared<double>(core.getOptionDouble("sub-pos", kSubPosBase));
     auto setPos = std::make_shared<std::function<void(const std::string&)>>();
     auto posText = [pos]() { return fmt::format("{:.0f}", kSubPosBase - *pos); };
     auto bumpPos = [pos, setPos, posText](double delta) {
         return [pos, setPos, posText, delta]() {
-            *pos = std::clamp(*pos - delta, 0.0, 150.0);
+            *pos = std::clamp(*pos - delta, 50.0, 120.0);  // the reference's -20..50 offset
             MPVCore::instance().setOption("sub-pos", fmt::format("{:.0f}", *pos));
+            MPVCore::SUB_OFFSET = (int)std::lround(kSubPosBase - *pos);
+            AppConfig::instance().setItem(AppConfig::SUB_OFFSET, MPVCore::SUB_OFFSET);
             (*setPos)(posText());
         };
     };

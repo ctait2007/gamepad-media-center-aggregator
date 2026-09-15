@@ -197,6 +197,12 @@ public:
         SKIP_INTRO_ENABLED,
         /// subtitleStripSdh: drop sound descriptions and speaker labels.
         SUB_STRIP_SDH,
+        /// secondaryPreferredLanguage: the one that sorts under the preferred
+        /// one in the picker (and survives the filter below). "" = none.
+        SUB_SECONDARY_LANG,
+        /// showOnlyPreferredLanguages: hide every other language from the
+        /// picker, bar whichever one is currently selected.
+        SUB_ONLY_PREFERRED_LANGS,
         OSD_CLOCK,
         AMOLED_MODE,
         AMOLED_SURFACES,

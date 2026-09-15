@@ -90,6 +90,8 @@ private:
     BRLS_BIND(brls::BooleanCell, btnAmoledSurfaces, "setting/ui/amoled_surfaces");
     BRLS_BIND(brls::BooleanCell, btnSkipIntroEnabled, "setting/player/skip_intro_enabled");
     BRLS_BIND(brls::BooleanCell, btnSubStripSdh, "setting/player/sub_strip_sdh");
+    BRLS_BIND(brls::SelectorCell, selectorSubSecondaryLang, "setting/playback/sub_secondary_lang");
+    BRLS_BIND(brls::BooleanCell, btnSubOnlyPreferred, "setting/player/sub_only_preferred");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipIntro, "setting/player/auto_skip_intro");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipRecap, "setting/player/auto_skip_recap");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipOutro, "setting/player/auto_skip_outro");
