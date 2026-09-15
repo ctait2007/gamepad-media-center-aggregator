@@ -208,7 +208,11 @@
                             <brls:BooleanCell
                                 id="setting/player/introdb" />
                             <brls:BooleanCell
-                                id="setting/player/introdb_auto_skip" />
+                                id="setting/player/auto_skip_intro" />
+                            <brls:BooleanCell
+                                id="setting/player/auto_skip_recap" />
+                            <brls:BooleanCell
+                                id="setting/player/auto_skip_outro" />
                             <brls:SelectorCell
                                 id="setting/player/next_episode_mode" />
                             <brls:SelectorCell
@@ -221,6 +225,29 @@
                                 id="setting/player/tv_model" />
                             <brls:BooleanCell
                                 id="setting/player/clip_point" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/playback/sub/header"
+                                marginBottom="0px" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_size" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_offset" />
+                            <brls:BooleanCell
+                                id="setting/player/sub_bold" />
+                            <brls:BooleanCell
+                                id="setting/player/sub_outline" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_outline_width" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_text_color" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_bg_color" />
+                            <brls:SelectorCell
+                                id="setting/player/sub_outline_color" />
                         </brls:Box>
 
                         <!-- Advanced -->

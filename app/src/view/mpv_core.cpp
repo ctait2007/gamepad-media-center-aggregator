@@ -151,6 +151,20 @@ MPVCore::MPVCore() {
     });
 }
 
+/// Push the stored subtitle face at mpv. Also called when a setting changes,
+/// so the player picks it up without a restart.
+void MPVCore::applySubtitleStyle() {
+    if (!mpv) return;
+    auto set = [this](const char* name, const std::string& value) { mpv_set_option_string(mpv, name, value.c_str()); };
+    set("sub-scale", fmt::format("{:.2f}", std::clamp(SUB_SIZE, 50, 200) / 100.0));
+    set("sub-pos", fmt::format("{}", 100 - std::clamp(SUB_OFFSET, -20, 50)));
+    set("sub-bold", SUB_BOLD ? "yes" : "no");
+    set("sub-border-size", SUB_OUTLINE ? fmt::format("{}", std::clamp(SUB_OUTLINE_WIDTH, 1, 5)) : "0");
+    set("sub-color", SUB_TEXT_COLOR);
+    set("sub-back-color", SUB_BG_COLOR);
+    set("sub-border-color", SUB_OUTLINE_COLOR);
+}
+
 void MPVCore::init() {
     std::setlocale(LC_NUMERIC, "C");
 #ifdef ANDROID
@@ -208,11 +222,11 @@ void MPVCore::init() {
     // face reads better beside it. Both stay adjustable from the subtitle
     // panel, whose steppers start from these.
     mpv_set_option_string(mpv, "sub-font-size", "48");
-    mpv_set_option_string(mpv, "sub-border-size", "1");
-    // Two notches off the bottom edge, and THAT is what the panel calls 0 (see
-    // kSubPosBase). mpv's own 100 puts the line hard against the frame, which
-    // is where a TV's overscan starts eating it.
-    mpv_set_option_string(mpv, "sub-pos", "98");
+    // Everything below is the viewer's, from Playback settings, and matches
+    // PlayerSettingsDataStore's own units: a size in percent, an offset in
+    // percent UP FROM THE BOTTOM (mpv counts down from the top, hence 100 -),
+    // an outline width in whole steps, and #AARRGGBB colours.
+    applySubtitleStyle();
     mpv_set_option_string(mpv, "vo", MPVCore::VO.c_str());
 #if defined(__PS4__) || defined(__PSV__) || defined(TRIMUI)
     mpv_set_option_string(mpv, "audio-channels", "stereo");

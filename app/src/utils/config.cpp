@@ -92,6 +92,17 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
+    {SUB_SIZE, {"sub_size"}},
+    {SUB_OFFSET, {"sub_offset"}},
+    {SUB_BOLD, {"sub_bold"}},
+    {SUB_OUTLINE, {"sub_outline"}},
+    {SUB_OUTLINE_WIDTH, {"sub_outline_width"}},
+    {SUB_TEXT_COLOR, {"sub_text_color"}},
+    {SUB_BG_COLOR, {"sub_bg_color"}},
+    {SUB_OUTLINE_COLOR, {"sub_outline_color"}},
+    {AUTO_SKIP_INTRO, {"auto_skip_intro"}},
+    {AUTO_SKIP_RECAP, {"auto_skip_recap"}},
+    {AUTO_SKIP_OUTRO, {"auto_skip_outro"}},
     {LAYOUT_POSTER_WIDTH, {"layout_poster_width"}},
     {LAYOUT_POSTER_RADIUS, {"layout_poster_radius"}},
     {LAYOUT_HIDE_UNRELEASED, {"layout_hide_unreleased"}},
@@ -397,7 +408,17 @@ bool AppConfig::init() {
     MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
     MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
     MPVCore::INTRODB = this->getItem(INTRODB, true);
-    MPVCore::INTRODB_AUTO_SKIP = this->getItem(INTRODB_AUTO_SKIP, false);
+    MPVCore::AUTO_SKIP_INTRO = this->getItem(AUTO_SKIP_INTRO, false);
+    MPVCore::AUTO_SKIP_RECAP = this->getItem(AUTO_SKIP_RECAP, false);
+    MPVCore::AUTO_SKIP_OUTRO = this->getItem(AUTO_SKIP_OUTRO, false);
+    MPVCore::SUB_SIZE = this->getItem(SUB_SIZE, 100);
+    MPVCore::SUB_OFFSET = this->getItem(SUB_OFFSET, 5);
+    MPVCore::SUB_BOLD = this->getItem(SUB_BOLD, false);
+    MPVCore::SUB_OUTLINE = this->getItem(SUB_OUTLINE, true);
+    MPVCore::SUB_OUTLINE_WIDTH = this->getItem(SUB_OUTLINE_WIDTH, 2);
+    MPVCore::SUB_TEXT_COLOR = this->getItem(SUB_TEXT_COLOR, std::string("#FFFFFFFF"));
+    MPVCore::SUB_BG_COLOR = this->getItem(SUB_BG_COLOR, std::string("#00000000"));
+    MPVCore::SUB_OUTLINE_COLOR = this->getItem(SUB_OUTLINE_COLOR, std::string("#FF000000"));
     MPVCore::NEXT_EPISODE_MODE = this->getItem(NEXT_EPISODE_MODE, 0);
     MPVCore::NEXT_EPISODE_PERCENT = this->getItem(NEXT_EPISODE_PERCENT, 198);
     MPVCore::NEXT_EPISODE_MINUTES = this->getItem(NEXT_EPISODE_MINUTES, 4);

@@ -284,11 +284,149 @@ void SettingTab::onCreate() {
         if (!value) introdb::clearCache();
     });
 
-    btnIntroDbAutoSkip->init(
-        "main/setting/playback/introdb_auto_skip"_i18n, MPVCore::INTRODB_AUTO_SKIP, [&conf](bool value) {
-            MPVCore::INTRODB_AUTO_SKIP = value;
-            conf.setItem(AppConfig::INTRODB_AUTO_SKIP, value);
+    // autoSkipSegmentTypes: a flag per segment type, not one switch. All three
+    // start off, as the reference's set starts empty.
+    struct AutoSkip {
+        brls::BooleanCell* cell;
+        bool* flag;
+        AppConfig::Item key;
+        const char* label;
+    };
+    for (const AutoSkip& a : std::vector<AutoSkip>{
+             {btnAutoSkipIntro, &MPVCore::AUTO_SKIP_INTRO, AppConfig::AUTO_SKIP_INTRO,
+                 "main/setting/playback/auto_skip/intro"},
+             {btnAutoSkipRecap, &MPVCore::AUTO_SKIP_RECAP, AppConfig::AUTO_SKIP_RECAP,
+                 "main/setting/playback/auto_skip/recap"},
+             {btnAutoSkipOutro, &MPVCore::AUTO_SKIP_OUTRO, AppConfig::AUTO_SKIP_OUTRO,
+                 "main/setting/playback/auto_skip/outro"},
+         }) {
+        bool* flag = a.flag;
+        AppConfig::Item key = a.key;
+        a.cell->init(brls::getStr(a.label), *flag, [flag, key](bool value) {
+            *flag = value;
+            AppConfig::instance().setItem(key, value);
         });
+    }
+
+    // ---- Subtitle face -----------------------------------------------------
+    // The player's own panel could already move all of this, but only at mpv:
+    // nothing was written down, so every launch started from the defaults
+    // again. These are the reference's keys, ranges and defaults, and the
+    // player picks a change up without a restart.
+    auto applySubs = []() { MPVCore::instance().applySubtitleStyle(); };
+
+    std::vector<std::string> sizeLabels;
+    std::vector<int> sizeValues;
+    for (int v = 50; v <= 200; v += 10) {
+        sizeLabels.push_back(fmt::format("{} %", v));
+        sizeValues.push_back(v);
+    }
+    auto indexOf = [](const std::vector<int>& values, int current) {
+        for (size_t i = 0; i < values.size(); i++)
+            if (values[i] == current) return (int)i;
+        return 0;
+    };
+    static std::vector<int> kSizes = sizeValues;
+    selectorSubSize->init("main/setting/playback/sub/size"_i18n, sizeLabels, indexOf(kSizes, MPVCore::SUB_SIZE),
+        [applySubs](int selected) {
+            MPVCore::SUB_SIZE = kSizes[selected];
+            AppConfig::instance().setItem(AppConfig::SUB_SIZE, MPVCore::SUB_SIZE);
+            applySubs();
+        });
+
+    // The reference's slider runs -20..50 a step at a time; a selector cannot
+    // carry seventy rows, so it steps by 5 and the player panel keeps the fine
+    // control it always had.
+    std::vector<std::string> offLabels;
+    static std::vector<int> kOffsets;
+    kOffsets.clear();
+    for (int v = -20; v <= 50; v += 5) {
+        offLabels.push_back(fmt::format("{} %", v));
+        kOffsets.push_back(v);
+    }
+    selectorSubOffset->init("main/setting/playback/sub/offset"_i18n, offLabels,
+        indexOf(kOffsets, MPVCore::SUB_OFFSET), [applySubs](int selected) {
+            MPVCore::SUB_OFFSET = kOffsets[selected];
+            AppConfig::instance().setItem(AppConfig::SUB_OFFSET, MPVCore::SUB_OFFSET);
+            applySubs();
+        });
+
+    btnSubBold->init("main/setting/playback/sub/bold"_i18n, MPVCore::SUB_BOLD, [applySubs](bool value) {
+        MPVCore::SUB_BOLD = value;
+        AppConfig::instance().setItem(AppConfig::SUB_BOLD, value);
+        applySubs();
+    });
+
+    btnSubOutline->init("main/setting/playback/sub/outline"_i18n, MPVCore::SUB_OUTLINE, [applySubs](bool value) {
+        MPVCore::SUB_OUTLINE = value;
+        AppConfig::instance().setItem(AppConfig::SUB_OUTLINE, value);
+        applySubs();
+    });
+
+    std::vector<std::string> widthLabels;
+    static std::vector<int> kWidths2;
+    kWidths2.clear();
+    for (int v = 1; v <= 5; v++) {
+        widthLabels.push_back(std::to_string(v));
+        kWidths2.push_back(v);
+    }
+    selectorSubOutlineWidth->init("main/setting/playback/sub/outline_width"_i18n, widthLabels,
+        indexOf(kWidths2, MPVCore::SUB_OUTLINE_WIDTH), [applySubs](int selected) {
+            MPVCore::SUB_OUTLINE_WIDTH = kWidths2[selected];
+            AppConfig::instance().setItem(AppConfig::SUB_OUTLINE_WIDTH, MPVCore::SUB_OUTLINE_WIDTH);
+            applySubs();
+        });
+
+    // The reference's own three swatch lists, in its own order. mpv takes
+    // #AARRGGBB, which is also how the reference stores them.
+    struct Swatch {
+        const char* label;
+        const char* argb;
+    };
+    auto initSwatches = [&conf, applySubs, indexOf](auto&& cell, const std::vector<Swatch>& swatches,
+                            AppConfig::Item key, std::string* target, const char* label) {
+        std::vector<std::string> labels;
+        int index = 0;
+        for (size_t i = 0; i < swatches.size(); i++) {
+            labels.push_back(brls::getStr(swatches[i].label));
+            if (*target == swatches[i].argb) index = (int)i;
+        }
+        cell->init(brls::getStr(label), labels, index, [&swatches, key, target, applySubs](int selected) {
+            *target = swatches[selected].argb;
+            AppConfig::instance().setItem(key, *target);
+            applySubs();
+        });
+    };
+    static const std::vector<Swatch> kTextColors = {
+        {"main/setting/playback/sub/color/white", "#FFFFFFFF"},
+        {"main/setting/playback/sub/color/silver", "#FFD9D9D9"},
+        {"main/setting/playback/sub/color/yellow", "#FFFFFF00"},
+        {"main/setting/playback/sub/color/cyan", "#FF00FFFF"},
+        {"main/setting/playback/sub/color/green", "#FF00FF00"},
+        {"main/setting/playback/sub/color/magenta", "#FFFF00FF"},
+        {"main/setting/playback/sub/color/coral", "#FFFF6B6B"},
+        {"main/setting/playback/sub/color/orange", "#FFFFA500"},
+        {"main/setting/playback/sub/color/mint", "#FF90EE90"},
+    };
+    static const std::vector<Swatch> kBgColors = {
+        {"main/setting/playback/sub/color/transparent", "#00000000"},
+        {"main/setting/playback/sub/color/black", "#FF000000"},
+        {"main/setting/playback/sub/color/black_half", "#80000000"},
+        {"main/setting/playback/sub/color/near_black", "#FF1A1A1A"},
+        {"main/setting/playback/sub/color/charcoal", "#FF2D2D2D"},
+    };
+    static const std::vector<Swatch> kOutlineColors = {
+        {"main/setting/playback/sub/color/black", "#FF000000"},
+        {"main/setting/playback/sub/color/near_black", "#FF1A1A1A"},
+        {"main/setting/playback/sub/color/graphite", "#FF333333"},
+        {"main/setting/playback/sub/color/white", "#FFFFFFFF"},
+    };
+    initSwatches(selectorSubTextColor, kTextColors, AppConfig::SUB_TEXT_COLOR, &MPVCore::SUB_TEXT_COLOR,
+        "main/setting/playback/sub/text_color");
+    initSwatches(selectorSubBgColor, kBgColors, AppConfig::SUB_BG_COLOR, &MPVCore::SUB_BG_COLOR,
+        "main/setting/playback/sub/bg_color");
+    initSwatches(selectorSubOutlineColor, kOutlineColors, AppConfig::SUB_OUTLINE_COLOR,
+        &MPVCore::SUB_OUTLINE_COLOR, "main/setting/playback/sub/outline_color");
 
     // When "up next" comes up: the reference's three PlayerSettingsDataStore
     // keys, at its own ranges. Its two sliders run over doubled integers —

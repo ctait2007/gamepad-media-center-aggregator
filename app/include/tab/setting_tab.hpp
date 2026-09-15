@@ -82,7 +82,17 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorCardWidth, "setting/layout/card_width");
     BRLS_BIND(brls::SelectorCell, selectorCardRadius, "setting/layout/card_radius");
     BRLS_BIND(brls::BooleanCell, btnIntroDb, "setting/player/introdb");
-    BRLS_BIND(brls::BooleanCell, btnIntroDbAutoSkip, "setting/player/introdb_auto_skip");
+    BRLS_BIND(brls::BooleanCell, btnAutoSkipIntro, "setting/player/auto_skip_intro");
+    BRLS_BIND(brls::BooleanCell, btnAutoSkipRecap, "setting/player/auto_skip_recap");
+    BRLS_BIND(brls::BooleanCell, btnAutoSkipOutro, "setting/player/auto_skip_outro");
+    BRLS_BIND(brls::SelectorCell, selectorSubSize, "setting/player/sub_size");
+    BRLS_BIND(brls::SelectorCell, selectorSubOffset, "setting/player/sub_offset");
+    BRLS_BIND(brls::BooleanCell, btnSubBold, "setting/player/sub_bold");
+    BRLS_BIND(brls::BooleanCell, btnSubOutline, "setting/player/sub_outline");
+    BRLS_BIND(brls::SelectorCell, selectorSubOutlineWidth, "setting/player/sub_outline_width");
+    BRLS_BIND(brls::SelectorCell, selectorSubTextColor, "setting/player/sub_text_color");
+    BRLS_BIND(brls::SelectorCell, selectorSubBgColor, "setting/player/sub_bg_color");
+    BRLS_BIND(brls::SelectorCell, selectorSubOutlineColor, "setting/player/sub_outline_color");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMode, "setting/player/next_episode_mode");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodePercent, "setting/player/next_episode_percent");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMinutes, "setting/player/next_episode_minutes");

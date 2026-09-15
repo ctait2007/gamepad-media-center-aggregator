@@ -37,6 +37,8 @@ public:
 
     void restart();
 
+    /// (Re)apply the stored subtitle face to a live mpv. Safe before init.
+    void applySubtitleStyle();
     void init();
 
     void clean();
@@ -175,7 +177,22 @@ public:
     inline static bool INTRODB = true;
     /// Skip an intro/recap/outro as soon as it starts, instead of offering the
     /// button. Off, as the reference's autoSkipSegmentTypes starts empty.
-    inline static bool INTRODB_AUTO_SKIP = false;
+    /// autoSkipSegmentTypes, which the reference keeps as a SET of segment
+    /// types rather than one switch: skipping a recap and skipping the credits
+    /// are not the same appetite.
+    inline static bool AUTO_SKIP_INTRO = false;
+    inline static bool AUTO_SKIP_RECAP = false;
+    inline static bool AUTO_SKIP_OUTRO = false;
+
+    /// Subtitle face, from PlayerSettingsDataStore's own keys and defaults.
+    inline static int SUB_SIZE = 100;            // percent, 50..200
+    inline static int SUB_OFFSET = 5;            // percent up from the bottom, -20..50
+    inline static bool SUB_BOLD = false;
+    inline static bool SUB_OUTLINE = true;
+    inline static int SUB_OUTLINE_WIDTH = 2;     // 1..5
+    inline static std::string SUB_TEXT_COLOR = "#FFFFFFFF";
+    inline static std::string SUB_BG_COLOR = "#00000000";
+    inline static std::string SUB_OUTLINE_COLOR = "#FF000000";
 
     inline static int NEXT_EPISODE_MODE = 0;
     inline static int NEXT_EPISODE_PERCENT = 198;  // 99 %

@@ -1099,7 +1099,11 @@ void VideoView::tickSkipButton(double positionSec, double durationSec) {
     // Skip it outright when the viewer asked for that — autoSkipSegmentTypes,
     // as one switch rather than a set, and once per span so that seeking back
     // into one does not fight them.
-    if (MPVCore::INTRODB_AUTO_SKIP && !this->autoSkipped.count(active)) {
+    const std::string& activeType = this->skipIntervals[active].type;
+    bool autoSkip = (activeType == "intro" && MPVCore::AUTO_SKIP_INTRO) ||
+                    (activeType == "recap" && MPVCore::AUTO_SKIP_RECAP) ||
+                    (isOutro(activeType) && MPVCore::AUTO_SKIP_OUTRO);
+    if (autoSkip && !this->autoSkipped.count(active)) {
         this->takeSkipInterval();
         return;
     }

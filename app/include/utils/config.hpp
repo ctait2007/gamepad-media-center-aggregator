@@ -174,6 +174,24 @@ public:
         LAYOUT_POSTER_RADIUS,
         /// hide_unreleased_content: drop anything not out yet from the rows.
         LAYOUT_HIDE_UNRELEASED,
+        /// Subtitle face, persisted the way PlayerSettingsDataStore persists
+        /// it: the player panel's steppers only ever moved mpv, so every one
+        /// of these went back to its default on the next launch.
+        ///   SUB_SIZE      percent, 50..200 (sub-scale)
+        ///   SUB_OFFSET    percent up from the bottom, -20..50 (sub-pos)
+        ///   SUB_OUTLINE_W 1..5 (sub-border-size)
+        SUB_SIZE,
+        SUB_OFFSET,
+        SUB_BOLD,
+        SUB_OUTLINE,
+        SUB_OUTLINE_WIDTH,
+        SUB_TEXT_COLOR,
+        SUB_BG_COLOR,
+        SUB_OUTLINE_COLOR,
+        /// autoSkipSegmentTypes, one flag per AutoSkipSegmentType.
+        AUTO_SKIP_INTRO,
+        AUTO_SKIP_RECAP,
+        AUTO_SKIP_OUTRO,
         NEXT_EPISODE_MODE,
         NEXT_EPISODE_PERCENT,
         NEXT_EPISODE_MINUTES,
