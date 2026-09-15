@@ -202,6 +202,11 @@ private:
     void updateSkipCountdown();
     void takeSkipInterval();
     void hideSkipButton();
+public:
+    /// The content warnings for what is about to play, worst first. Owned by
+    /// the player, which is the side that knows the item's IMDb id.
+    void setContentWarnings(const std::vector<std::string>& labels, const std::vector<std::string>& severities);
+private:
     bool skipButtonHasFocus();
     void dismissNextEpisodeCard();
     /// OSD
@@ -254,6 +259,13 @@ private:
     PauseScreen* pauseScreen = nullptr;
     NextEpisodeCard* nextCard = nullptr;
     SkipButton* skipButton = nullptr;
+    /// Content warnings, over the first seconds of playback.
+    ParentalGuide* parentalGuide = nullptr;
+    /// THIS file has reached its first frame. Unlike firstFrameSeen (which is
+    /// the pause screen's gate and never goes back down), this is false again
+    /// for every load — the content warnings belong to the file being started,
+    /// and must not run over the loading screen of the next one.
+    bool playbackStarted = false;
     /// The markers for the item playing now, in start order.
     std::vector<introdb::SkipInterval> skipIntervals;
     /// The span the position is inside, or -1. Index into skipIntervals.

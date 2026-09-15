@@ -195,6 +195,10 @@
                                 id="setting/video/subs_fallback" />
                             <brls:SelectorCell
                                 id="setting/playback/audio_lang" />
+                            <brls:BooleanCell
+                                id="setting/player/audio_delay_remember" />
+                            <brls:BooleanCell
+                                id="setting/player/parental_guide" />
                             <brls:SelectorCell
                                 id="setting/playback/subtitle_lang" />
                             <brls:SelectorCell

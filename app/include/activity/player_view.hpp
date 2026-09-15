@@ -58,6 +58,8 @@ private:
     void updateNextEpisode();
     /// theintrodb.org markers for the played item, handed to the player view.
     void resolveSkipMarkers();
+    /// theintrodb's sibling: the content warnings, per item.
+    void resolveContentWarnings();
     /// Picked from the episode sheet: present the SOURCE PICKER for that
     /// episode rather than starting it straight away. Auto-play is a feature
     /// this app has not been asked for yet, and switching episode is exactly
@@ -133,6 +135,8 @@ private:
     /// ratingKey the skip markers were last looked up for, so a quality or
     /// track switch does not re-fetch the same episode.
     std::string skipMarkersItem;
+    /// The item the warnings above were looked up for.
+    std::string warningsItem;
     bool mpvLoaded = false;
     /// Which sidecarSubtitles() entry is attached right now, or -1. The picker
     /// reads it: an attached sidecar is an ordinary mpv track, but mpv's own

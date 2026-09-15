@@ -349,6 +349,23 @@ void SettingTab::onCreate() {
     // skipIntroEnabled, which gates only the BUTTON. The markers it would use
     // also decide when "up next" comes up, so this must not take the lookup
     // down with it — the reference keeps the two apart for the same reason.
+    // rememberAudioDelayPerDevice. Turning it off also forgets what is stored,
+    // so the next launch starts level rather than restoring a delay the viewer
+    // has just said they do not want kept.
+    btnAudioDelayRemember->init("main/setting/playback/audio_delay_remember"_i18n,
+        conf.getItem(AppConfig::AUDIO_DELAY_REMEMBER, true), [&conf](bool value) {
+            conf.setItem(AppConfig::AUDIO_DELAY_REMEMBER, value);
+            if (!value) conf.setItem(AppConfig::AUDIO_DELAY_MS, 0);
+        });
+
+    // playback_parental_guide. The overlay is decoration over the first
+    // seconds of playback; with it off nothing is even looked up.
+    btnParentalGuide->init("main/setting/playback/parental_guide"_i18n, MPVCore::PARENTAL_GUIDE,
+        [&conf](bool value) {
+            MPVCore::PARENTAL_GUIDE = value;
+            conf.setItem(AppConfig::PARENTAL_GUIDE, value);
+        });
+
     btnSkipIntroEnabled->init("main/setting/playback/skip_intro_enabled"_i18n, MPVCore::SKIP_INTRO_ENABLED,
         [&conf](bool value) {
             MPVCore::SKIP_INTRO_ENABLED = value;

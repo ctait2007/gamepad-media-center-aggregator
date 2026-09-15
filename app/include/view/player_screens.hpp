@@ -26,6 +26,34 @@
 
 #include <functional>
 #include <string>
+#include <vector>
+
+/// The content warnings: NuvioTV's ParentalGuideOverlay. A short accent rule
+/// down the left with "Violence · Severe" beside it, top left, over the first
+/// seconds of playback. Takes no focus and answers to nothing — it appears with
+/// the first frame, holds for five seconds and goes.
+class ParentalGuide : public brls::Box {
+public:
+    ParentalGuide();
+
+    /// The lines to draw, worst first. An empty list leaves it hidden.
+    void setWarnings(const std::vector<std::string>& labels, const std::vector<std::string>& severities);
+
+    /// Starts the five seconds. A second call while it is up is ignored, as the
+    /// reference's own `animating` guard ignores it.
+    void begin();
+    /// Per-frame. Fades the rule in, the lines in one by one, and everything
+    /// out again; returns false once there is nothing left to draw.
+    void tick();
+    void hide();
+    bool shown() { return this->getVisibility() == brls::Visibility::VISIBLE; }
+
+private:
+    brls::Box* rule = nullptr;
+    brls::Box* column = nullptr;
+    std::vector<brls::Box*> rows;
+    brls::Time startedAt = 0;
+};
 
 /// The startup screen. Hidden until show(), and torn down by hide().
 class LoadingScreen : public brls::Box {

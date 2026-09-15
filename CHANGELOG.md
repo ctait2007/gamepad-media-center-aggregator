@@ -135,6 +135,18 @@ its screenshots; where we deviate from it, the entry says so.
   auto-play on, as its `shouldEnterStillWatchingPrompt` requires both — on its
   own it would be asking about episodes chosen one by one. Play continues and
   resets the run; Exit, circle, or the minute running out all leave.
+- **Playback: content warnings** (`playback_parental_guide`, on as it is
+  there). NuvioTV puts a short accent rule and "Violence · Severe" in the top
+  left over the first seconds of playback, from an endpoint that — like
+  theintrodb's — needs no key, so this goes at the same one. Its five
+  categories, its rule for reducing each to one severity (the level with the
+  most votes, "none" excluded, and the category dropped when "none" outvotes
+  it), and its own staggered fade in and out.
+- **Playback: remember the audio delay**
+  (`rememberAudioDelayPerDevice`, on as it is there — its "per device" is per
+  audio output route, and a console has the one). The player's delay stepper
+  only ever moved mpv, so a delay set to fix one badly-muxed release was gone
+  by the next launch.
 - **Playback: use forced subtitles** (`useForcedSubtitles`, on as it is there).
   When the audio is already in the language subtitles were asked for, automatic
   selection takes a forced track — signs and foreign dialogue — or nothing at

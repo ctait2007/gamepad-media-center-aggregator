@@ -9,6 +9,7 @@
 
 #include "activity/player_view.hpp"
 #include "api/introdb.hpp"
+#include "api/parental_guide.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "api/http.hpp"
@@ -352,6 +353,31 @@ void PlayerView::resolveSkipMarkers() {
             if (key != this->skipMarkersItem) return;
             this->view->setSkipIntervals(std::move(intervals));
         });
+
+}
+
+/// The content warnings for whatever is about to play. NOT hung off
+/// resolveSkipMarkers: that one is only reached for an episode, and a film is
+/// exactly what the reference's own overlay is most often over. Called from
+/// applyIdentity, which every playback path goes through.
+void PlayerView::resolveContentWarnings() {
+    const std::string& key = this->item.ratingKey;
+    if (key.empty() || key == this->warningsItem) return;
+    this->warningsItem = key;
+    this->view->setContentWarnings({}, {});
+
+    ASYNC_RETAIN
+    parental::fetch(this->item, [ASYNC_TOKEN, key](std::vector<parental::Warning> warnings) {
+        ASYNC_RELEASE
+        // A newer item superseded this lookup -> its result is stale.
+        if (key != this->warningsItem) return;
+        std::vector<std::string> labels, severities;
+        for (const parental::Warning& w : warnings) {
+            labels.push_back(w.label);
+            severities.push_back(w.severity);
+        }
+        this->view->setContentWarnings(labels, severities);
+    });
 }
 
 /// NuvioTV splits the player's identity across three lines rather than one
@@ -360,6 +386,7 @@ void PlayerView::resolveSkipMarkers() {
 /// that, the last only while paused. Derived from the item here instead of at
 /// each call site, which used to hand over one pre-joined title.
 void PlayerView::applyIdentity() {
+    this->resolveContentWarnings();
     bool episode = this->item.type == plex::mediaTypeEpisode;
     if (episode && !this->item.grandparentTitle.empty()) {
         this->view->setMainTitle(this->item.grandparentTitle);

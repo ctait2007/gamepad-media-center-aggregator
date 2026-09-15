@@ -709,3 +709,137 @@ void SkipButton::setOsdVisible(bool visible) {
 void SkipButton::show() { this->setVisibility(brls::Visibility::VISIBLE); }
 
 void SkipButton::hide() { this->setVisibility(brls::Visibility::GONE); }
+
+// ---- ParentalGuide --------------------------------------------------------
+//
+// ParentalGuideOverlay.kt at its own numbers, doubled: an 18 dp row, a 2 dp
+// gap, a 3 dp accent rule, 11 sp text, and 32/24 dp of padding from the top
+// left corner. Its timing is exact too — 300 ms for the container, 400 for the
+// rule to grow, 80 between each line arriving and 200 for each to fade; then
+// five seconds; then the lines out bottom-to-top 60 apart at 150 each, the
+// rule down over 300, and the container over 200.
+
+namespace {
+constexpr float kPgRowHeight = 36, kPgRowGap = 4, kPgRuleWidth = 6;
+constexpr float kPgPadLeft = 64, kPgPadTop = 48, kPgTextGap = 20;
+
+constexpr int64_t kPgFadeIn = 300000, kPgRuleGrow = 400000, kPgStagger = 80000, kPgItemIn = 200000;
+constexpr int64_t kPgHold = 5000000;
+constexpr int64_t kPgItemOutGap = 60000, kPgItemOut = 150000, kPgRuleShrink = 300000, kPgFadeOut = 200000;
+
+/// 0..1 across [from, from + span), clamped.
+float ramp(int64_t elapsed, int64_t from, int64_t span) {
+    if (span <= 0) return elapsed >= from ? 1.f : 0.f;
+    float t = float(elapsed - from) / float(span);
+    return t < 0.f ? 0.f : (t > 1.f ? 1.f : t);
+}
+}  // namespace
+
+ParentalGuide::ParentalGuide() {
+    this->setPositionType(brls::PositionType::ABSOLUTE);
+    this->setPositionTop(kPgPadTop);
+    this->setPositionLeft(kPgPadLeft);
+    this->setAxis(brls::Axis::ROW);
+    this->setAlignItems(brls::AlignItems::FLEX_START);
+    this->setVisibility(brls::Visibility::GONE);
+
+    this->rule = new brls::Box();
+    this->rule->setWidth(kPgRuleWidth);
+    this->rule->setHeight(0);
+    this->rule->setCornerRadius(kPgRuleWidth / 2);
+    this->rule->setBackgroundColor(brls::Application::getTheme().getColor("color/app"));
+    this->addView(this->rule);
+
+    this->column = new brls::Box();
+    this->column->setAxis(brls::Axis::COLUMN);
+    this->column->setMarginLeft(kPgTextGap);
+    this->addView(this->column);
+}
+
+void ParentalGuide::setWarnings(
+    const std::vector<std::string>& labels, const std::vector<std::string>& severities) {
+    // New warnings are a new item, which is also parentalGuideHasShown going
+    // back to false: whatever was up goes, and begin() may start again.
+    this->hide();
+    this->column->clearViews();
+    this->rows.clear();
+    for (size_t i = 0; i < labels.size() && i < severities.size(); i++) {
+        auto* row = new brls::Box();
+        row->setAxis(brls::Axis::ROW);
+        row->setAlignItems(brls::AlignItems::CENTER);
+        row->setHeight(kPgRowHeight);
+        if (i > 0) row->setMarginTop(kPgRowGap);
+        row->setAlpha(0.f);
+
+        auto* name = label(22, nvgRGBA(255, 255, 255, 217));  // white 85%
+        name->setFontWeight("semibold");
+        name->setText(labels[i]);
+        row->addView(name);
+
+        auto* dot = label(22, nvgRGBA(255, 255, 255, 102));  // white 40%
+        dot->setText(" · ");
+        row->addView(dot);
+
+        auto* sev = label(22, nvgRGBA(255, 255, 255, 128));  // white 50%
+        sev->setText(severities[i]);
+        row->addView(sev);
+
+        this->column->addView(row);
+        this->rows.push_back(row);
+    }
+}
+
+void ParentalGuide::begin() {
+    if (this->rows.empty() || this->startedAt > 0) return;
+    this->startedAt = brls::getCPUTimeUsec();
+    this->rule->setHeight(0);
+    for (brls::Box* row : this->rows) row->setAlpha(0.f);
+    this->setAlpha(0.f);
+    this->setVisibility(brls::Visibility::VISIBLE);
+}
+
+void ParentalGuide::tick() {
+    if (this->startedAt == 0) return;
+    int64_t t = (int64_t)(brls::getCPUTimeUsec() - this->startedAt);
+    size_t n = this->rows.size();
+    float full = kPgRowHeight * n + kPgRowGap * (n > 0 ? n - 1 : 0);
+
+    // The whole sequence's length, so the end is one comparison rather than a
+    // chain of them.
+    int64_t inDone = kPgFadeIn + kPgRuleGrow + (int64_t)n * kPgStagger + kPgItemIn;
+    int64_t outStart = inDone + kPgHold;
+    int64_t outDone = outStart + (int64_t)n * kPgItemOutGap + kPgItemOut + 100000 + kPgRuleShrink +
+                      200000 + kPgFadeOut;
+
+    if (t >= outDone) {
+        this->hide();
+        return;
+    }
+
+    if (t < outStart) {
+        this->setAlpha(ramp(t, 0, kPgFadeIn));
+        this->rule->setHeight(full * ramp(t, kPgFadeIn, kPgRuleGrow));
+        for (size_t i = 0; i < n; i++) {
+            int64_t at = kPgFadeIn + kPgRuleGrow + (int64_t)(i + 1) * kPgStagger;
+            this->rows[i]->setAlpha(ramp(t, at, kPgItemIn));
+        }
+        return;
+    }
+
+    // Out, in the reference's own order: the lines bottom to top, then the
+    // rule, then the container.
+    int64_t o = t - outStart;
+    for (size_t i = 0; i < n; i++) {
+        int64_t at = (int64_t)(n - i) * kPgItemOutGap;  // last row first
+        this->rows[i]->setAlpha(1.f - ramp(o, at, kPgItemOut));
+    }
+    int64_t ruleAt = (int64_t)n * kPgItemOutGap + kPgItemOut + 100000;
+    this->rule->setHeight(full * (1.f - ramp(o, ruleAt, kPgRuleShrink)));
+    this->setAlpha(1.f - ramp(o, ruleAt + kPgRuleShrink + 200000, kPgFadeOut));
+}
+
+void ParentalGuide::hide() {
+    this->startedAt = 0;
+    this->setAlpha(1.f);
+    this->setVisibility(brls::Visibility::GONE);
+}

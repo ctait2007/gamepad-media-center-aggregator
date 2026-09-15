@@ -197,6 +197,14 @@ public:
     /// who has not gone looking.
     inline static bool PLAYER_STATS_HUD = false;
 
+    /// rememberAudioDelayPerDevice: the delay set in the player's audio panel,
+    /// in milliseconds, restored at every launch. 0 with the setting off.
+    inline static int AUDIO_DELAY_MS = 0;
+
+    /// playback_parental_guide ("Content Warnings"): the overlay over the first
+    /// seconds of playback. On, as it is there.
+    inline static bool PARENTAL_GUIDE = true;
+
     /// skipIntroEnabled: whether the skip button is offered at all. Separate
     /// from INTRODB, which is whether the markers are fetched — those also
     /// decide when "up next" comes up, so switching the button off must not

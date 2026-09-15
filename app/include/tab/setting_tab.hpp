@@ -90,6 +90,8 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorCardRadius, "setting/layout/card_radius");
     BRLS_BIND(brls::BooleanCell, btnIntroDb, "setting/player/introdb");
     BRLS_BIND(brls::SelectorCell, selectorAudioLang, "setting/playback/audio_lang");
+    BRLS_BIND(brls::BooleanCell, btnAudioDelayRemember, "setting/player/audio_delay_remember");
+    BRLS_BIND(brls::BooleanCell, btnParentalGuide, "setting/player/parental_guide");
     BRLS_BIND(brls::BooleanCell, btnOsdClock, "setting/player/osd_clock");
     BRLS_BIND(brls::BooleanCell, btnAmoled, "setting/ui/amoled");
     BRLS_BIND(brls::BooleanCell, btnAmoledSurfaces, "setting/ui/amoled_surfaces");

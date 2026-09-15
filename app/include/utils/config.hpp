@@ -225,6 +225,15 @@ public:
         /// use_episode_thumbnails_in_cw: an episode's own still on the
         /// Continue Watching tile, or the show's backdrop when off.
         LAYOUT_CW_EPISODE_THUMBS,
+        /// playback_parental_guide: the content warnings the reference puts
+        /// up over the first seconds of playback. On, as it is there.
+        PARENTAL_GUIDE,
+        /// rememberAudioDelayPerDevice: the in-player audio delay survives a
+        /// restart. On, as it is there — its "per device" is per audio output
+        /// ROUTE, and a console has the one.
+        AUDIO_DELAY_REMEMBER,
+        /// The delay itself, in milliseconds. Only read back with the above on.
+        AUDIO_DELAY_MS,
         /// AudioLanguageOption: "default" (the file's own) or "device" (the
         /// app's language). Its third, "original", wants TMDB's
         /// original_language, which no backend here carries.

@@ -595,7 +595,13 @@ void showAudio(const plex::Media* src) {
     auto bumpDelay = [setDelay, delayText](double deltaSec) {
         return [setDelay, delayText, deltaSec]() {
             auto& m = MPVCore::instance();
-            m.setDouble("audio-delay", m.getDouble("audio-delay") + deltaSec);
+            double delay = m.getDouble("audio-delay") + deltaSec;
+            m.setDouble("audio-delay", delay);
+            // Written down, as rememberAudioDelayPerDevice asks — the panel
+            // used to move mpv and nothing else.
+            MPVCore::AUDIO_DELAY_MS = (int)std::lround(delay * 1000);
+            if (AppConfig::instance().getItem(AppConfig::AUDIO_DELAY_REMEMBER, true))
+                AppConfig::instance().setItem(AppConfig::AUDIO_DELAY_MS, MPVCore::AUDIO_DELAY_MS);
             (*setDelay)(delayText());
         };
     };

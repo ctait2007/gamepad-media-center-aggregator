@@ -105,6 +105,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {CW_SHOW_UNAIRED, {"cw_show_unaired"}},
     {CW_SORT_MODE, {"cw_sort_mode"}},
     {LAYOUT_CW_EPISODE_THUMBS, {"layout_cw_episode_thumbs"}},
+    {PARENTAL_GUIDE, {"parental_guide"}},
+    {AUDIO_DELAY_REMEMBER, {"audio_delay_remember"}},
+    {AUDIO_DELAY_MS, {"audio_delay_ms"}},
     {PLAYER_AUDIO_LANG, {"player_audio_lang", {"default", "device"}}},
     {SKIP_INTRO_ENABLED, {"skip_intro_enabled"}},
     {SUB_STRIP_SDH, {"sub_strip_sdh"}},
@@ -440,6 +443,8 @@ bool AppConfig::init() {
     MPVCore::OSD_CLOCK = this->getItem(OSD_CLOCK, true);
     MPVCore::PLAYER_STATS_HUD = this->getItem(PLAYER_STATS_HUD, false);
     MPVCore::SKIP_INTRO_ENABLED = this->getItem(SKIP_INTRO_ENABLED, true);
+    MPVCore::PARENTAL_GUIDE = this->getItem(PARENTAL_GUIDE, true);
+    MPVCore::AUDIO_DELAY_MS = this->getItem(AUDIO_DELAY_REMEMBER, true) ? this->getItem(AUDIO_DELAY_MS, 0) : 0;
     MPVCore::AUTO_SKIP_INTRO = this->getItem(AUTO_SKIP_INTRO, false);
     MPVCore::AUTO_SKIP_RECAP = this->getItem(AUTO_SKIP_RECAP, false);
     MPVCore::AUTO_SKIP_OUTRO = this->getItem(AUTO_SKIP_OUTRO, false);

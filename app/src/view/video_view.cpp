@@ -369,6 +369,10 @@ VideoView::VideoView() {
     this->addView(this->nextCard);
     this->skipButton = new SkipButton();
     this->addView(this->skipButton);
+    // Last of the three, so it draws over everything — the reference's own
+    // overlay is "completely independent of player controls".
+    this->parentalGuide = new ParentalGuide();
+    this->addView(this->parentalGuide);
     this->skipButton->onSkip([this]() { this->takeSkipInterval(); });
     // Select ON THE CARD plays the next episode: registered on the card, so it
     // only ever fires while the card holds focus.
@@ -482,6 +486,11 @@ void VideoView::setPlayIndex(int index) {
     this->stillWatchingUntil = 0;
     this->stillWatchingShown = -1;
     if (this->nextCard) this->nextCard->setStillWatching(false);
+    // The content warnings are NOT touched here. setPlayIndex fires whenever
+    // the playlist is handed over — including once, with -1, for a film that
+    // has no playlist at all — and taking the overlay down there took it down
+    // a second after it appeared. It is owned by the item instead: a new one
+    // resets it through setContentWarnings.
 
     this->playIndex = index;
     // New episode: the card owes it a fresh offer, and the arming has to see a
@@ -672,6 +681,9 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     // clock, like the skip button's.
     this->tickStillWatching();
     if (nextCard->getVisibility() == brls::Visibility::VISIBLE) nextCard->frame(ctx);
+    // Its whole life is an animation, so it runs on the frame clock too.
+    this->parentalGuide->tick();
+    if (parentalGuide->getVisibility() == brls::Visibility::VISIBLE) parentalGuide->frame(ctx);
     // The countdown is redrawn EVERY frame, not on mpv's once-a-second progress
     // tick -- off that it advanced in ten visible steps instead of sweeping.
     this->updateSkipCountdown();
@@ -749,6 +761,7 @@ void VideoView::registerMpvEvent() {
             break;
         case MpvEventEnum::LOADING_START:
             this->showLoading();
+            this->playbackStarted = false;
             break;
         case MpvEventEnum::LOADING_END:
             this->hideLoading();
@@ -756,7 +769,12 @@ void VideoView::registerMpvEvent() {
             // startup screen was covering for. It is also the gate on the
             // pause screen: nothing to describe before the first frame.
             this->firstFrameSeen = true;
+            this->playbackStarted = true;
             this->hideLoadingScreen();
+            // tryShowParentalGuide: "triggered when video first starts
+            // playing". If the lookup landed first it has been waiting for
+            // this; if it lands later, setContentWarnings starts it then.
+            if (this->parentalGuide) this->parentalGuide->begin();
             break;
         case MpvEventEnum::UPDATE_DURATION:
             if (this->seekingRange == 0) {
@@ -1271,6 +1289,16 @@ bool VideoView::nextCardHasFocus() {
     for (brls::View* v = brls::Application::getCurrentFocus(); v; v = v->getParent())
         if (v == this->nextCard) return true;
     return false;
+}
+
+void VideoView::setContentWarnings(
+    const std::vector<std::string>& labels, const std::vector<std::string>& severities) {
+    if (!this->parentalGuide) return;
+    this->parentalGuide->setWarnings(labels, severities);
+    // tryShowParentalGuide: it only goes up once THIS file is playing. The
+    // lookup usually lands first — it is fired as the item is chosen — so most
+    // of the time it is LOADING_END that starts it.
+    if (this->playbackStarted) this->parentalGuide->begin();
 }
 
 void VideoView::hideNextEpisodeCard() {

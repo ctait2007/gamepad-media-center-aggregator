@@ -116,6 +116,16 @@
             "label": "Next Episode",
             "play": "Play"
         },
+        "parental": {
+            "nudity": "Nudity",
+            "violence": "Violence",
+            "profanity": "Profanity",
+            "alcohol": "Alcohol/Drugs",
+            "frightening": "Frightening",
+            "severe": "Severe",
+            "moderate": "Moderate",
+            "mild": "Mild"
+        },
         "still_watching": {
             "title": "Are you still watching?",
             "exit": "Exit",
@@ -439,6 +449,8 @@
             "transcodec": "Codec",
             "audio_channels": "Audio Channels",
             "audio_lang": "Preferred audio language",
+            "audio_delay_remember": "Remember the audio delay",
+            "parental_guide": "Content warnings",
             "sub_secondary_lang": "Secondary subtitle language",
             "sub_secondary_none": "None",
             "sub_only_preferred": "Show only preferred subtitle languages",

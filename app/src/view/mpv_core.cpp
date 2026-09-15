@@ -253,6 +253,11 @@ void MPVCore::init() {
     // percent UP FROM THE BOTTOM (mpv counts down from the top, hence 100 -),
     // an outline width in whole steps, and #AARRGGBB colours.
     applySubtitleStyle();
+    // rememberAudioDelayPerDevice. The panel's stepper only ever moved mpv, so
+    // a delay set to fix one badly-muxed release was gone by the next launch —
+    // and the reference remembers it by default.
+    if (MPVCore::AUDIO_DELAY_MS != 0)
+        mpv_set_option_string(mpv, "audio-delay", fmt::format("{:.3f}", MPVCore::AUDIO_DELAY_MS / 1000.0).c_str());
     mpv_set_option_string(mpv, "vo", MPVCore::VO.c_str());
 #if defined(__PS4__) || defined(__PSV__) || defined(TRIMUI)
     mpv_set_option_string(mpv, "audio-channels", "stereo");
