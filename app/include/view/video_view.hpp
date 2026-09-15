@@ -190,6 +190,7 @@ private:
     bool nextCardShown();
     void hideNextEpisodeCard();
     void tickSkipButton(double positionSec, double durationSec);
+    void updateSkipCountdown();
     void takeSkipInterval();
     void hideSkipButton();
     bool skipButtonHasFocus();

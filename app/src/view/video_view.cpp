@@ -642,6 +642,9 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     if (loadingScreen->getVisibility() == brls::Visibility::VISIBLE) loadingScreen->frame(ctx);
     if (pauseScreen->getVisibility() == brls::Visibility::VISIBLE) pauseScreen->frame(ctx);
     if (nextCard->getVisibility() == brls::Visibility::VISIBLE) nextCard->frame(ctx);
+    // The countdown is redrawn EVERY frame, not on mpv's once-a-second progress
+    // tick -- off that it advanced in ten visible steps instead of sweeping.
+    this->updateSkipCountdown();
     if (skipButton->getVisibility() == brls::Visibility::VISIBLE) skipButton->frame(ctx);
 }
 
@@ -1064,11 +1067,20 @@ void VideoView::tickSkipButton(double positionSec, double durationSec) {
         return;
     }
 
+    // "Up next" already owns the end of an episode that HAS a next one: it
+    // comes up on the same outro marker, offers the same thing and takes the
+    // focus, so a Skip Ending beside it is a second button for one decision.
+    // With nothing to go on to — the last episode, a film — the outro is worth
+    // skipping on its own and the button is the only thing offering it.
+    bool nextEpisodeCovers = MPVCore::NEXT_EPISODE_CARD && this->playIndex >= 0 &&
+                             this->playIndex + 1 < this->playListSize;
+
     // findActiveSkipInterval: the span the position is inside, if any.
     int active = -1;
     for (size_t i = 0; i < this->skipIntervals.size(); i++) {
         const auto& iv = this->skipIntervals[i];
         if (positionSec < iv.startTime || positionSec >= skipEnd(iv, durationSec)) continue;
+        if (nextEpisodeCovers && isOutro(iv.type)) continue;
         active = (int)i;
         break;
     }
@@ -1092,35 +1104,47 @@ void VideoView::tickSkipButton(double positionSec, double durationSec) {
         return;
     }
 
-    // The 10 s auto-hide. It does not run while the controls are up — the
-    // reference gates its animation on !controlsVisible — and the controls
-    // coming up bring an auto-hidden button back.
-    constexpr int64_t kAutoHideUs = 10 * 1000000;
-    int64_t elapsed = brls::getCPUTimeUsec() - this->skipShownAt;
-    bool autoHidden = elapsed >= kAutoHideUs;
-    if (this->isOsdShown) {
-        // Pinned open: hold the countdown where it is rather than letting it
-        // run out behind the bar.
-        this->skipShownAt = brls::getCPUTimeUsec() - std::min(elapsed, kAutoHideUs);
-        autoHidden = false;
-    }
-
-    bool shouldShow = (!this->skipDismissed || this->isOsdShown) && (!autoHidden || this->isOsdShown);
-    if (!shouldShow) {
+    if (this->skipDismissed && !this->isOsdShown) {
         this->hideSkipButton();
         return;
     }
-
-    this->skipButton->setCountdownVisible(!this->isOsdShown && !this->skipDismissed);
-    this->skipButton->setProgress(this->isOsdShown ? 0.f : (float)elapsed / (float)kAutoHideUs);
     if (this->skipButton->shown()) return;
-
     if (this->pauseScreenShown() || this->loadingScreen->shown()) return;
+
     this->skipButton->setOsdVisible(this->isOsdShown);
     this->skipButton->show();
     // Focus, unless "up next" has it — the reference's suppressFocus is exactly
     // "the post-play card is up".
     if (!this->isOsdShown && !this->nextCardShown()) brls::Application::giveFocus(this->skipButton);
+}
+
+/// The 10 s auto-hide and the bar that shows it running out. Per FRAME, from
+/// draw(): mpv reports a position once a second, and a bar stepping ten times
+/// is not the sweep the reference animates.
+///
+/// The countdown does not run while the controls are up — the reference gates
+/// its animation on !controlsVisible — and the controls coming up bring an
+/// auto-hidden button back.
+void VideoView::updateSkipCountdown() {
+    if (!this->skipButton || !this->skipButton->shown()) return;
+
+    constexpr int64_t kAutoHideUs = 10 * 1000000;
+    brls::Time now = brls::getCPUTimeUsec();
+    int64_t elapsed = now - this->skipShownAt;
+
+    if (this->isOsdShown) {
+        // Pinned open: hold the countdown where it is rather than letting it
+        // run out behind the bar.
+        this->skipShownAt = now - std::min(elapsed, kAutoHideUs);
+        this->skipButton->setCountdownVisible(false);
+        return;
+    }
+    if (this->skipDismissed || elapsed >= kAutoHideUs) {
+        this->hideSkipButton();
+        return;
+    }
+    this->skipButton->setCountdownVisible(true);
+    this->skipButton->setProgress((float)elapsed / (float)kAutoHideUs);
 }
 
 /// Take the card down, and give focus back to the video if the card had it —

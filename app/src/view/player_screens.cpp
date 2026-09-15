@@ -559,14 +559,20 @@ SkipButton::SkipButton() {
     row->addView(this->textLabel);
 
     // The countdown, under the row and running its full width.
+    // The countdown, under the row and running its full width. Inset by the
+    // border so it cannot sit on top of it, which is the other half of why the
+    // bar looked like it overhung the button.
     this->track = new brls::Box();
     this->track->setHeight(kSkipStrip);
+    this->track->setMarginLeft(2);
+    this->track->setMarginRight(2);
+    this->track->setMarginBottom(2);
     this->track->setBackgroundColor(nvgRGBA(255, 255, 255, 38));  // white 15 %
     this->button->addView(this->track);
 
     this->fill = new brls::Box();
     this->fill->setHeight(kSkipStrip);
-    this->fill->setWidth(0);
+    this->fill->setWidthPercentage(0);
     this->fill->setBackgroundColor(nvgRGBA(0x1E, 0x1E, 0x1E, 217));
     this->track->addView(this->fill);
 
@@ -611,10 +617,11 @@ void SkipButton::setSegmentType(const std::string& type) {
 void SkipButton::setProgress(float progress) {
     if (progress < 0) progress = 0;
     if (progress > 1) progress = 1;
-    // Against the button's measured width rather than a percentage of it: the
-    // row decides how wide this is and yoga has already sized it by now.
-    float width = this->button->getWidth();
-    this->fill->setWidth(width > 0 ? width * progress : 0);
+    // A PERCENTAGE of the track, not a width computed from the button's own.
+    // Reading button->getWidth() measured the box including its border, so the
+    // bar ran a couple of pixels past the corner it is supposed to sit inside;
+    // a percentage cannot leave its parent whatever the button measures.
+    this->fill->setWidthPercentage(progress * 100.0f);
 }
 
 void SkipButton::setCountdownVisible(bool visible) {

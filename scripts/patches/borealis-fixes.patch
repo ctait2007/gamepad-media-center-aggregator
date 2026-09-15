@@ -2122,7 +2122,7 @@ index 8e6acb3..76c9249 100644
          layouted = true;
          reloadData();
 diff --git a/library/lib/views/scrolling_frame.cpp b/library/lib/views/scrolling_frame.cpp
-index 61978bd..24ccdf9 100644
+index 61978bd..526900a 100644
 --- a/library/lib/views/scrolling_frame.cpp
 +++ b/library/lib/views/scrolling_frame.cpp
 @@ -18,6 +18,7 @@
@@ -2315,36 +2315,35 @@ index 61978bd..24ccdf9 100644
          return currentFocus;
  
      return this;
-@@ -536,17 +601,63 @@ bool ScrollingFrame::updateScrolling(bool animated)
+@@ -536,17 +601,62 @@ bool ScrollingFrame::updateScrolling(bool animated)
      float itemHeight  = focusedView ? focusedView->getHeight() : 0.0f;
      View* parent      = focusedView ? focusedView->getParent() : nullptr;
  
 +    // The outermost thing still inside the scrolling content that owns the
 +    // focused view: a media row and its title, a settings page and its header.
-+    View* block = focusedView;
++    // Its own offset is where it starts in the content, which is what the clamp
++    // below wants.
++    //
++    // Deliberately NOT summed all the way to the content view. getLocalY()
++    // carries translation, and the content view's translation IS the scroll
++    // (-contentOffsetY, set in startScrolling) -- folding that in made blockY a
++    // function of the current scroll, so the clamp fed the scroll position back
++    // into its own target and every scrolling page oscillated between the top
++    // and where it belonged. localY above stops short of it for the same
++    // reason: both are positions WITHIN the content, not on screen.
++    float blockY      = localY;
++    float blockHeight = itemHeight;
 +
      while (parent && dynamic_cast<ScrollingFrame*>(parent->getParent()) == nullptr)
      {
++        blockY      = parent->getLocalY();
++        blockHeight = parent->getHeight();
          localY += parent->getLocalY();
-+        block = parent;
          parent = parent->getParent();
      }
  
 -    int currentSelectionMiddleOnScreen = localY + itemHeight / 2;
 -    float newScroll                    = currentSelectionMiddleOnScreen - this->getHeight() / 2;
-+    // Where that block starts inside the content. Summed, not just the block's
-+    // own offset: its ancestors up to the content view carry offsets too, and
-+    // reading only one of them put the "keep the block's top on screen" clamp
-+    // below at a Y that had nothing to do with the block.
-+    float blockY = 0.0f;
-+    for (View* v = block; v != nullptr; v = v->getParent())
-+    {
-+        blockY += v->getLocalY();
-+        if (dynamic_cast<ScrollingFrame*>(v->getParent()) != nullptr)
-+            break;
-+    }
-+    float blockHeight = block ? block->getHeight() : 0.0f;
-+
 +    float viewportHeight = this->effectiveScrollHeight();
 +    float newScroll;
 +    if (focusedView && focusedView == this->scrollTopAnchor)
@@ -2382,7 +2381,7 @@ index 61978bd..24ccdf9 100644
  
      if (newScroll < 0)
          newScroll = 0;
-@@ -570,6 +681,16 @@ Rect ScrollingFrame::getVisibleFrame()
+@@ -570,6 +680,16 @@ Rect ScrollingFrame::getVisibleFrame()
      return frame;
  }
  
