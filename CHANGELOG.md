@@ -199,6 +199,37 @@ its screenshots; where we deviate from it, the entry says so.
   immediately; a link that then fails to play is dropped from the cache so the
   retry asks for a fresh one.
 
+### Not ported, and why
+
+Every NuvioTV setting that maps onto something this app has is now here. What
+is left needs something we do not have, and the reason is the same in each
+case rather than a shortage of effort:
+
+- **Tracking and Integrations** (Trakt, Simkl, MDBList, TMDB, Debrid accounts)
+  — ruled out.
+- **Trailers** (autoplay trailer, trailer delay, expand-on-focus) and **blur**
+  (blur unwatched, blur next up, sidebar blur, the blur episode overlay) —
+  no trailer source and no blur in borealis.
+- **Auto frame rate and resolution matching** — an Android display API with no
+  counterpart on this hardware.
+- **ExoPlayer's buffer, cache and network sliders**, its decoder priority, its
+  downmix and skip-silence, and the **player engine** picker — they drive a
+  player this app does not run. The mpv options NuvioTV sets on ITS mpv engine
+  are here (see above); these are the other engine's.
+- **External player**, **P2P/torrent streams**, and **app icon / launcher
+  artwork** — none of the three exists here.
+- **Fonts** — needs the reference's own font assets.
+- **Stream size badges** and **episode ratings** — neither number is ours to
+  show: the size is baked into an addon's own description text, and episode
+  ratings are not fetched.
+- **Audio "Original" language** — needs TMDB's `original_language`, which no
+  backend here carries.
+- **Alternative home layouts** (Classic, Grid, Custom), **alternative settings
+  layouts** (Minimal, Top Bar), **landscape posters**, **card depth**, the
+  **Continue Watching card shapes** and the **collapsing sidebar** — these are
+  whole alternative UI systems rather than settings over this one, and every
+  one of them is off by default there. This app draws the reference's defaults.
+
 ## [1.1.0] - 2026-07-17
 
 ### Added
