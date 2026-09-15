@@ -180,6 +180,9 @@ public:
     /// autoSkipSegmentTypes, which the reference keeps as a SET of segment
     /// types rather than one switch: skipping a recap and skipping the credits
     /// are not the same appetite.
+    /// playback_osd_clock. On, as the reference has it.
+    inline static bool OSD_CLOCK = true;
+
     inline static bool AUTO_SKIP_INTRO = false;
     inline static bool AUTO_SKIP_RECAP = false;
     inline static bool AUTO_SKIP_OUTRO = false;

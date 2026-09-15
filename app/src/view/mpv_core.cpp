@@ -222,6 +222,23 @@ void MPVCore::init() {
     // face reads better beside it. Both stay adjustable from the subtitle
     // panel, whose steppers start from these.
     mpv_set_option_string(mpv, "sub-font-size", "48");
+    // The reference's own mpv engine sets these four, and they matter here for
+    // the same reasons (NuvioMpvSurfaceView.initOptions):
+    //   ass-override no      an ASS/SSA track keeps the styling it shipped
+    //                        with, which is the whole point of shipping it.
+    //                        Plain-text subtitles are unaffected — mpv builds
+    //                        those from the sub-* options either way, so the
+    //                        face below still applies to them.
+    //   codepage auto:utf-8  a non-UTF-8 srt decodes instead of turning to
+    //                        mojibake.
+    //   use-margins +        without these two, sub-pos is ignored for ASS,
+    //   ass-force-margins    which is most of anime and a good deal else —
+    //                        i.e. the vertical offset setting would silently
+    //                        do nothing on exactly the files that need it.
+    mpv_set_option_string(mpv, "sub-ass-override", "no");
+    mpv_set_option_string(mpv, "sub-codepage", "auto:utf-8");
+    mpv_set_option_string(mpv, "sub-use-margins", "yes");
+    mpv_set_option_string(mpv, "sub-ass-force-margins", "yes");
     // Everything below is the viewer's, from Playback settings, and matches
     // PlayerSettingsDataStore's own units: a size in percent, an offset in
     // percent UP FROM THE BOTTOM (mpv counts down from the top, hence 100 -),
@@ -245,10 +262,14 @@ void MPVCore::init() {
     }
 
     if (MPVCore::INMEMORY_CACHE) {
-        // cache
+        // cache. The reference gives the back buffer the SAME budget as the
+        // forward one (NuvioMpvSurfaceView sets both to 64 MiB) rather than
+        // half of it, which is what seeking backwards out of the cache costs:
+        // ours was handing back half as much as it read ahead.
         brls::Logger::info("set memory cache: {}MB", MPVCore::INMEMORY_CACHE);
-        mpv_set_option_string(mpv, "demuxer-max-bytes", fmt::format("{}MiB", MPVCore::INMEMORY_CACHE).c_str());
-        mpv_set_option_string(mpv, "demuxer-max-back-bytes", fmt::format("{}MiB", MPVCore::INMEMORY_CACHE / 2).c_str());
+        std::string bytes = fmt::format("{}MiB", MPVCore::INMEMORY_CACHE);
+        mpv_set_option_string(mpv, "demuxer-max-bytes", bytes.c_str());
+        mpv_set_option_string(mpv, "demuxer-max-back-bytes", bytes.c_str());
     } else {
         mpv_set_option_string(mpv, "cache", "no");
     }

@@ -253,6 +253,11 @@ void SettingTab::onCreate() {
         conf.setItem(AppConfig::OSD_ON_TOGGLE, value);
     });
 
+    btnOsdClock->init("main/setting/playback/osd_clock"_i18n, MPVCore::OSD_CLOCK, [&conf](bool value) {
+        MPVCore::OSD_CLOCK = value;
+        conf.setItem(AppConfig::OSD_CLOCK, value);
+    });
+
     btnLoadingScreen->init("main/setting/playback/loading_screen"_i18n, MPVCore::LOADING_SCREEN, [&conf](bool value) {
         MPVCore::LOADING_SCREEN = value;
         conf.setItem(AppConfig::LOADING_SCREEN, value);

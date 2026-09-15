@@ -202,6 +202,8 @@
                             <brls:BooleanCell
                                 id="setting/player/osd_on_toggle" />
                             <brls:BooleanCell
+                                id="setting/player/osd_clock" />
+                            <brls:BooleanCell
                                 id="setting/player/loading_screen" />
                             <brls:BooleanCell
                                 id="setting/player/loading_stages" />

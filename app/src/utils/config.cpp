@@ -92,6 +92,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
+    {OSD_CLOCK, {"osd_clock"}},
     {AMOLED_MODE, {"amoled_mode"}},
     {AMOLED_SURFACES, {"amoled_surfaces"}},
     {SUB_SIZE, {"sub_size"}},
@@ -125,8 +126,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {PLAYER_INMEMORY_CACHE,
         {
             "player_inmemory_cache",
-            {"0MB", "10MB", "20MB", "50MB", "100MB", "200MB", "500MB"},
-            {0, 10, 20, 50, 100, 200, 500},
+            // 64 is the reference's own (NuvioMpvSurfaceView's 64 MiB).
+            {"0MB", "10MB", "20MB", "50MB", "64MB", "100MB", "200MB", "500MB"},
+            {0, 10, 20, 50, 64, 100, 200, 500},
         }},
     {PLAYER_SPEED,
         {
@@ -410,6 +412,7 @@ bool AppConfig::init() {
     MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
     MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
     MPVCore::INTRODB = this->getItem(INTRODB, true);
+    MPVCore::OSD_CLOCK = this->getItem(OSD_CLOCK, true);
     MPVCore::AUTO_SKIP_INTRO = this->getItem(AUTO_SKIP_INTRO, false);
     MPVCore::AUTO_SKIP_RECAP = this->getItem(AUTO_SKIP_RECAP, false);
     MPVCore::AUTO_SKIP_OUTRO = this->getItem(AUTO_SKIP_OUTRO, false);

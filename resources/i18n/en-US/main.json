@@ -411,6 +411,7 @@
             "hwdec": "Hardware decode",
             "force_directplay": "Force direct play",
             "osd_on_toggle": "Show OSD when paused",
+            "osd_clock": "Show the clock on the player",
             "loading_screen": "Loading screen",
             "loading_stages": "Show loading steps",
             "pause_screen": "Pause screen",

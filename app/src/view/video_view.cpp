@@ -426,12 +426,15 @@ void VideoView::applySourceLine() {
 void VideoView::updateTime(double positionSec, double durationSec) {
     this->timeLabel->setText(fmt::format("{} / {}", misc::sec2Time(positionSec), misc::sec2Time(durationSec)));
 
+    // The "ends at" line below shares `now` and `buf`, so they stay out here;
+    // only the wall clock itself answers to the setting.
     std::time_t now = std::time(nullptr);
     std::tm lt {};
     localtime_r(&now, &lt);
     char buf[16];
     std::strftime(buf, sizeof(buf), "%H:%M", &lt);
     this->clockLabel->setText(buf);
+    this->clockLabel->setVisibility(MPVCore::OSD_CLOCK ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
 
     double remaining = durationSec - positionSec;
     if (durationSec <= 0 || remaining < 0) {

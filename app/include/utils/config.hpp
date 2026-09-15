@@ -182,6 +182,8 @@ public:
         ///   SUB_OUTLINE_W 1..5 (sub-border-size)
         /// amoledMode / amoledSurfacesMode: pure black backgrounds, and
         /// optionally pure black cards and panels with them.
+        /// playback_osd_clock: the wall clock on the player's bar.
+        OSD_CLOCK,
         AMOLED_MODE,
         AMOLED_SURFACES,
         SUB_SIZE,
