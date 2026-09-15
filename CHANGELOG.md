@@ -204,6 +204,20 @@ its screenshots; where we deviate from it, the entry says so.
   immediately; a link that then fails to play is dropped from the cache so the
   retry asks for a fresh one.
 
+- **Appearance: App Font.** NuvioTV's own three — Inter, DM Sans, Open Sans —
+  each in the four cuts a label can ask for, instanced from the very variable
+  fonts it bundles at the same weights (`scripts/make-ui-fonts.py`, and the
+  private-use cmap entries stripped so the controller glyphs still resolve).
+  Inter by default, as there. This was previously listed as not portable
+  "because it needs the reference's own font assets" — it needed instancing,
+  not different assets.
+- **A far wider language list.** The subtitle/audio language catalogue was 32
+  endonyms; it is now the reference's own 78 languages, its codes, its English
+  names and its alphabetical order — including the regional variants (Chinese
+  Simplified/Traditional, Brazilian Portuguese, Latin American Spanish) it
+  distinguishes and we did not. The alias table that matches whatever an addon
+  or a muxed track calls a language is kept and extended.
+
 ### Not ported, and why
 
 Every NuvioTV setting that maps onto something this app has is now here. What
@@ -223,7 +237,6 @@ case rather than a shortage of effort:
   are here (see above); these are the other engine's.
 - **External player**, **P2P/torrent streams**, and **app icon / launcher
   artwork** — none of the three exists here.
-- **Fonts** — needs the reference's own font assets.
 - **Stream size badges** and **episode ratings** — neither number is ours to
   show: the size is baked into an addon's own description text, and episode
   ratings are not fetched.

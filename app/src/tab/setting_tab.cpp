@@ -770,6 +770,13 @@ void SettingTab::onCreate() {
             });
     }
 
+    // AppFont. The reference's own three families and its own order, each name
+    // printed as it prints it. The stash is filled once, as the window comes
+    // up, so this lands on the next launch (the cell's own quitApp prompt).
+    selectorFont->init("main/setting/ui/font"_i18n, {"Inter", "DM Sans", "Open Sans"},
+        std::clamp(conf.getItem(AppConfig::APPEARANCE_FONT, 0), 0, 2),
+        [&conf](int selected) { conf.setItem(AppConfig::APPEARANCE_FONT, selected); });
+
     auto& threadOpt = conf.getOptions(AppConfig::REQUEST_THREADS);
     auto thIt = std::find(threadOpt.values.begin(), threadOpt.values.end(), ThreadPool::max_thread_num);
     size_t thIndex = thIt != threadOpt.values.end() ? thIt - threadOpt.values.begin() : 0;

@@ -118,6 +118,9 @@
                                 id="setting/ui/scale"
                                 quitApp="true" />
                             <SelectorCell
+                                id="setting/ui/font"
+                                quitApp="true" />
+                            <SelectorCell
                                 id="setting/language"
                                 quitApp="true" />
                             <SelectorCell

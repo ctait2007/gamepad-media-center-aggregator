@@ -155,6 +155,26 @@ index 0236dfe..8dbc815 100644
      }
  
      /**
+diff --git a/library/include/borealis/core/font.hpp b/library/include/borealis/core/font.hpp
+index 3efeb7c..ecf6eb3 100644
+--- a/library/include/borealis/core/font.hpp
++++ b/library/include/borealis/core/font.hpp
+@@ -40,6 +40,15 @@ typedef std::unordered_map<std::string, int> FontStash;
+ class FontLoader
+ {
+   public:
++    // GMCA: the UI typeface, in the four cuts a Label can ask for. NuvioTV
++    // offers three families (Appearance > App Font) and this is how the chosen
++    // one reaches the loader — set before createWindow(), since the stash is
++    // filled once as the window comes up.
++    inline static std::string FAMILY_REGULAR  = BRLS_ASSET("font/inter.ttf");
++    inline static std::string FAMILY_MEDIUM   = BRLS_ASSET("font/inter_medium.ttf");
++    inline static std::string FAMILY_SEMIBOLD = BRLS_ASSET("font/inter_semibold.ttf");
++    inline static std::string FAMILY_BOLD     = BRLS_ASSET("font/inter_bold.ttf");
++
+     inline static std::string USER_FONT_PATH = BRLS_ASSET("font/font.ttf");
+     inline static std::string USER_ICON_PATH = BRLS_ASSET("font/icon.ttf");
+     inline static std::string USER_EMOJI_PATH;
 diff --git a/library/include/borealis/core/notification_manager.hpp b/library/include/borealis/core/notification_manager.hpp
 index 6f92431..024a5df 100644
 --- a/library/include/borealis/core/notification_manager.hpp
@@ -1107,19 +1127,21 @@ index 59ec77b..b588c34 100644
      this->registerStringXMLAttribute("title", [this](std::string value) {
          this->getAppletFrameItem()->title = value;
 diff --git a/library/lib/platforms/desktop/desktop_font.cpp b/library/lib/platforms/desktop/desktop_font.cpp
-index ddac8a5..43d6eb4 100644
+index ddac8a5..d45ef7a 100644
 --- a/library/lib/platforms/desktop/desktop_font.cpp
 +++ b/library/lib/platforms/desktop/desktop_font.cpp
-@@ -21,7 +21,7 @@
+@@ -21,7 +21,9 @@
  #include <borealis/core/assets.hpp>
  #include <borealis/platforms/desktop/desktop_font.hpp>
  
 -#define INTER_FONT_PATH BRLS_ASSET("font/switch_font.ttf")
-+#define INTER_FONT_PATH BRLS_ASSET("font/inter.ttf")
++// The chosen family's regular cut (FontLoader::FAMILY_REGULAR), not a fixed
++// path: NuvioTV's App Font setting picks between Inter, DM Sans and Open Sans.
++#define INTER_FONT_PATH FontLoader::FAMILY_REGULAR
  #define INTER_ICON_PATH BRLS_ASSET("font/switch_icons.ttf")
  
  namespace brls
-@@ -75,6 +75,18 @@ void DesktopFontLoader::loadFonts()
+@@ -75,6 +77,18 @@ void DesktopFontLoader::loadFonts()
          }
      }
  
@@ -1138,7 +1160,7 @@ index ddac8a5..43d6eb4 100644
      if (loadFont(FONT_CHINESE_SIMPLIFIED, BRLS_ASSET("font/chinese_fallback.ttf")))
      {
          nvgAddFallbackFontId(vg, Application::getFont(FONT_REGULAR), Application::getFont(FONT_CHINESE_SIMPLIFIED));
-@@ -120,6 +132,32 @@ void DesktopFontLoader::loadFonts()
+@@ -120,6 +134,32 @@ void DesktopFontLoader::loadFonts()
      {
          Logger::error("switch: could not load Material icons font from resources");
      }
@@ -1148,10 +1170,10 @@ index ddac8a5..43d6eb4 100644
 +    // displays Bold; only body text is Regular). Each needs the same fallback
 +    // chain as the regular face, otherwise a bold label loses CJK, emoji and
 +    // the controller glyphs.
-+    static const std::pair<const char*, const char*> kWeights[] = {
-+        { "inter_medium", BRLS_ASSET("font/inter_medium.ttf") },
-+        { "inter_semibold", BRLS_ASSET("font/inter_semibold.ttf") },
-+        { "inter_bold", BRLS_ASSET("font/inter_bold.ttf") },
++    const std::pair<const char*, std::string> kWeights[] = {
++        { "inter_medium", FontLoader::FAMILY_MEDIUM },
++        { "inter_semibold", FontLoader::FAMILY_SEMIBOLD },
++        { "inter_bold", FontLoader::FAMILY_BOLD },
 +    };
 +    for (auto& w : kWeights)
 +    {

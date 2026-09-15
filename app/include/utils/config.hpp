@@ -187,6 +187,10 @@ public:
         /// theintrodb.org markers, and whether they skip themselves.
         INTRODB,
         INTRODB_AUTO_SKIP,
+        /// AppFont: the UI typeface. 0 Inter, 1 DM Sans, 2 Open Sans — the
+        /// reference's own three, in its own order, Inter by default. Read
+        /// before the window is made, since the font stash is filled once.
+        APPEARANCE_FONT,
         /// modernLandscapePostersEnabled: the catalog rows carry 16:9 cards
         /// showing the backdrop, with the item's logo (or its title) over the
         /// bottom left, instead of 2:3 posters. Off, as it is there; read once,

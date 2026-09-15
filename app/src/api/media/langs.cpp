@@ -1,9 +1,15 @@
 /*
     GMCA — subtitle language helpers (see api/media/langs.hpp).
 
-    A single ordered catalog of common subtitle languages, each with a canonical
-    ISO 639-1 code, an endonym label, and every alias we want to recognize (639-1,
-    639-2/B and /T, common OpenSubtitles variants, and a few English names). An
+    The catalog is NuvioTV's own (AVAILABLE_SUBTITLE_LANGUAGES): its 78
+    languages, its codes, its English display names and its alphabetical order,
+    so the picker reads exactly as the reference's does. It used to be a
+    shorter list of endonyms, which showed a viewer fewer languages than the
+    app could actually match.
+
+    Each row also carries the aliases we want to RECOGNISE — 639-2/B and /T,
+    common OpenSubtitles variants and the English name — because an addon or a
+    muxed track names its language in whichever of those it feels like. An
     alias -> index map is built once on first use for O(1) lookups.
 */
 
@@ -17,68 +23,121 @@ namespace media {
 
 namespace {
 
-/// One catalog row: canonical code, endonym, and the aliases that map onto it.
+/// One catalog row: canonical code, English name, and the aliases that map onto it.
 struct LangRow {
     const char* code;
     const char* display;
     std::vector<const char*> aliases;
 };
 
-// Ordered roughly by global prevalence so the preference picker stays friendly.
-// Aliases are lowercase; the 2-letter `code` is matched implicitly too.
+// The reference's own order: alphabetical by English name, with its regional
+// variants sitting beside their parent (Chinese, Portuguese, Spanish).
+// Aliases are lowercase; the `code` itself is matched implicitly too.
 const std::vector<LangRow>& rows() {
     static const std::vector<LangRow> table = {
-        {"en", "English", {"eng"}},
-        {"es", "Español", {"spa", "spl", "spn", "spanish", "es-419"}},
-        {"fr", "Français", {"fre", "fra", "fr-ca", "french"}},
-        {"de", "Deutsch", {"ger", "deu", "german"}},
-        {"it", "Italiano", {"ita", "italian"}},
-        {"pt", "Português", {"por", "pob", "pt-br", "pt-pt", "portuguese"}},
-        {"ru", "Русский", {"rus", "russian"}},
-        {"ar", "العربية", {"ara", "arabic"}},
-        {"zh", "中文", {"chi", "zho", "zht", "zhe", "cn", "chinese"}},
-        {"ja", "日本語", {"jpn", "japanese"}},
-        {"ko", "한국어", {"kor", "korean"}},
-        {"nl", "Nederlands", {"dut", "nld", "dutch"}},
-        {"pl", "Polski", {"pol", "polish"}},
-        {"tr", "Türkçe", {"tur", "turkish"}},
-        {"sv", "Svenska", {"swe", "swedish"}},
-        {"da", "Dansk", {"dan", "danish"}},
-        {"no", "Norsk", {"nor", "nob", "nno", "norwegian"}},
-        {"fi", "Suomi", {"fin", "finnish"}},
-        {"cs", "Čeština", {"cze", "ces", "czech"}},
-        {"el", "Ελληνικά", {"gre", "ell", "greek"}},
-        {"he", "עברית", {"heb", "iw", "hebrew"}},
-        {"hi", "हिन्दी", {"hin", "hindi"}},
-        {"id", "Bahasa Indonesia", {"ind", "in", "indonesian"}},
-        {"th", "ไทย", {"tha", "thai"}},
-        {"uk", "Українська", {"ukr", "ukrainian"}},
-        {"ro", "Română", {"rum", "ron", "romanian"}},
-        {"hu", "Magyar", {"hun", "hungarian"}},
-        {"vi", "Tiếng Việt", {"vie", "vietnamese"}},
-        {"bg", "Български", {"bul", "bulgarian"}},
-        {"hr", "Hrvatski", {"hrv", "scr", "croatian"}},
-        {"sr", "Српски", {"srp", "scc", "serbian"}},
-        {"sk", "Slovenčina", {"slo", "slk", "slovak"}},
+        {"af", "Afrikaans", {"afr", "afrikaans"}},
+        {"sq", "Albanian", {"alb", "sqi", "albanian"}},
+        {"am", "Amharic", {"amh", "amharic"}},
+        {"ar", "Arabic", {"ara", "arabic"}},
+        {"hy", "Armenian", {"arm", "hye", "armenian"}},
+        {"az", "Azerbaijani", {"aze", "azerbaijani"}},
+        {"eu", "Basque", {"baq", "eus", "basque"}},
+        {"be", "Belarusian", {"bel", "belarusian"}},
+        {"bn", "Bengali", {"ben", "bengali"}},
+        {"bs", "Bosnian", {"bos", "bosnian"}},
+        {"bg", "Bulgarian", {"bul", "bulgarian"}},
+        {"my", "Burmese", {"bur", "mya", "burmese"}},
+        {"ca", "Catalan", {"cat", "catalan"}},
+        {"zh", "Chinese", {"chi", "zho", "zhe", "cn", "chinese"}},
+        {"zh-CN", "Chinese (Simplified)", {"zh-hans", "zh_cn", "zhs", "chs", "simplified chinese"}},
+        {"zh-TW", "Chinese (Traditional)", {"zh-hant", "zh_tw", "zht", "cht", "traditional chinese"}},
+        {"hr", "Croatian", {"hrv", "scr", "croatian"}},
+        {"cs", "Czech", {"cze", "ces", "czech"}},
+        {"da", "Danish", {"dan", "danish"}},
+        {"nl", "Dutch", {"dut", "nld", "dutch"}},
+        {"en", "English", {"eng", "english"}},
+        {"et", "Estonian", {"est", "estonian"}},
+        {"tl", "Filipino", {"tgl", "fil", "filipino", "tagalog"}},
+        {"fi", "Finnish", {"fin", "finnish"}},
+        {"fr", "French", {"fre", "fra", "fr-ca", "french"}},
+        {"gl", "Galician", {"glg", "galician"}},
+        {"ka", "Georgian", {"geo", "kat", "georgian"}},
+        {"de", "German", {"ger", "deu", "german"}},
+        {"el", "Greek", {"gre", "ell", "greek"}},
+        {"gu", "Gujarati", {"guj", "gujarati"}},
+        {"he", "Hebrew", {"heb", "iw", "hebrew"}},
+        {"hi", "Hindi", {"hin", "hindi"}},
+        {"hu", "Hungarian", {"hun", "hungarian"}},
+        {"is", "Icelandic", {"ice", "isl", "icelandic"}},
+        {"id", "Indonesian", {"ind", "in", "indonesian"}},
+        {"ga", "Irish", {"gle", "irish"}},
+        {"it", "Italian", {"ita", "italian"}},
+        {"ja", "Japanese", {"jpn", "japanese"}},
+        {"kn", "Kannada", {"kan", "kannada"}},
+        {"kk", "Kazakh", {"kaz", "kazakh"}},
+        {"km", "Khmer", {"khm", "khmer", "cambodian"}},
+        {"ko", "Korean", {"kor", "korean"}},
+        {"lo", "Lao", {"lao", "laotian"}},
+        {"lv", "Latvian", {"lav", "latvian"}},
+        {"lt", "Lithuanian", {"lit", "lithuanian"}},
+        {"mk", "Macedonian", {"mac", "mkd", "macedonian"}},
+        {"ms", "Malay", {"may", "msa", "malay"}},
+        {"ml", "Malayalam", {"mal", "malayalam"}},
+        {"mt", "Maltese", {"mlt", "maltese"}},
+        {"mr", "Marathi", {"mar", "marathi"}},
+        {"mn", "Mongolian", {"mon", "mongolian"}},
+        {"ne", "Nepali", {"nep", "nepali"}},
+        {"no", "Norwegian", {"nor", "nob", "nno", "norwegian"}},
+        {"pa", "Punjabi", {"pan", "punjabi", "panjabi"}},
+        {"fa", "Persian", {"per", "fas", "persian", "farsi"}},
+        {"pl", "Polish", {"pol", "polish"}},
+        {"pt", "Portuguese (Portugal)", {"por", "pt-pt", "portuguese"}},
+        {"pt-br", "Portuguese (Brazil)", {"pob", "pt_br", "brazilian portuguese"}},
+        {"ro", "Romanian", {"rum", "ron", "romanian", "moldavian"}},
+        {"ru", "Russian", {"rus", "russian"}},
+        {"sr", "Serbian", {"srp", "scc", "serbian"}},
+        {"si", "Sinhala", {"sin", "sinhala", "sinhalese"}},
+        {"sk", "Slovak", {"slo", "slk", "slovak"}},
+        {"sl", "Slovenian", {"slv", "slovenian", "slovene"}},
+        {"es", "Spanish", {"spa", "spl", "spn", "spanish"}},
+        {"es-419", "Spanish (Latin America)", {"es_419", "spanish (latin america)", "latin american spanish"}},
+        {"sw", "Swahili", {"swa", "swahili"}},
+        {"sv", "Swedish", {"swe", "swedish"}},
+        {"ta", "Tamil", {"tam", "tamil"}},
+        {"te", "Telugu", {"tel", "telugu"}},
+        {"th", "Thai", {"tha", "thai"}},
+        {"tr", "Turkish", {"tur", "turkish"}},
+        {"uk", "Ukrainian", {"ukr", "ukrainian"}},
+        {"ur", "Urdu", {"urd", "urdu"}},
+        {"uz", "Uzbek", {"uzb", "uzbek"}},
+        {"vi", "Vietnamese", {"vie", "vietnamese"}},
+        {"cy", "Welsh", {"wel", "cym", "welsh"}},
+        {"zu", "Zulu", {"zul", "zulu"}},
     };
     return table;
 }
 
-/// alias/code -> row index, built once.
+/// Trim + lowercase.
+std::string normalize(const std::string& raw);
+
+/// alias/code -> row index, built once. The CODE is normalised on the way in
+/// as well as the aliases: the catalog spells its regional variants the way the
+/// reference does ("zh-CN"), lookups arrive lowercased, and an unnormalised key
+/// would miss — sending "zh-cn" down the prefix fallback to plain Chinese and
+/// losing the Simplified/Traditional distinction entirely.
 const std::unordered_map<std::string, size_t>& aliasIndex() {
     static const std::unordered_map<std::string, size_t> map = [] {
         std::unordered_map<std::string, size_t> m;
         const auto& t = rows();
         for (size_t i = 0; i < t.size(); ++i) {
-            m[t[i].code] = i;
-            for (const char* a : t[i].aliases) m[a] = i;
+            m[normalize(t[i].code)] = i;
+            for (const char* a : t[i].aliases) m[normalize(a)] = i;
         }
         return m;
     }();
     return map;
 }
 
-/// Trim + lowercase.
 std::string normalize(const std::string& raw) {
     size_t b = 0, e = raw.size();
     while (b < e && std::isspace((unsigned char)raw[b])) ++b;

@@ -188,6 +188,23 @@ int main(int argc, char* argv[]) {
     // Return directly to the desktop when closing the application (only for NX)
     brls::Application::getPlatform()->exitToHomeMode(true);
 
+    // AppFont, before the window: the font stash is filled as it comes up, so
+    // the family has to be chosen first. The reference's own three, in its own
+    // order. Each ships in the four cuts a Label can ask for — instanced from
+    // the very variable fonts NuvioTV bundles, at the same weights.
+    {
+        static const char* kFamilies[] = { "inter", "dmsans", "opensans" };
+        int picked = std::clamp(conf.getItem(AppConfig::APPEARANCE_FONT, 0), 0, 2);
+        const std::string stem = kFamilies[picked];
+        // BRLS_ASSET concatenates string LITERALS (it is romfs "@res/" or the
+        // resources dir), so the prefix is built by it and the rest appended.
+        const std::string dir = BRLS_ASSET("font/");
+        brls::FontLoader::FAMILY_REGULAR = dir + stem + ".ttf";
+        brls::FontLoader::FAMILY_MEDIUM = dir + stem + "_medium.ttf";
+        brls::FontLoader::FAMILY_SEMIBOLD = dir + stem + "_semibold.ttf";
+        brls::FontLoader::FAMILY_BOLD = dir + stem + "_bold.ttf";
+    }
+
     brls::Application::createWindow(fmt::format("{} for {}", AppVersion::getPackageName(), AppVersion::getPlatform()));
 
     // Have the application register an action on every activity that will quit when you press BUTTON_START

@@ -133,6 +133,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {AUTO_SKIP_OUTRO, {"auto_skip_outro"}},
     {LAYOUT_POSTER_WIDTH, {"layout_poster_width"}},
     {LAYOUT_POSTER_RADIUS, {"layout_poster_radius"}},
+    {APPEARANCE_FONT, {"appearance_font"}},
     {LAYOUT_LANDSCAPE_POSTERS, {"layout_landscape_posters"}},
     {LAYOUT_HIDE_UNRELEASED, {"layout_hide_unreleased"}},
     {NEXT_EPISODE_MODE, {"next_episode_mode"}},

@@ -571,6 +571,7 @@
                 "1080p": "1080p"
             },
             "vsync": "Vertical Sync",
+            "font": "App Font",
             "amoled": "AMOLED mode",
             "amoled_surfaces": "Pure black surfaces",
             "show_fps": "Show FPS"
