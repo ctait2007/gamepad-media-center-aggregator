@@ -549,7 +549,13 @@ void AutoTabFrame::pushDetailView(brls::View* detail) {
     this->addView(detail);  // calls willAppear
     // hidden WITHOUT being destroyed: state (scroll, data, inner focus) intact
     if (covered) covered->setVisibility(brls::Visibility::GONE);
+    bool first = this->detailStack.empty();
     this->detailStack.push_back(entry);
+    // NuvioTV's detail screen is full-bleed: its sidebar is gated on
+    // `currentRoute in rootRoutes` (Home, Search, Library, Settings and
+    // Discover), and MetaDetails is not one of them. The rail stays on every
+    // root tab here too -- it is only a detail page that takes the screen.
+    if (first) this->setSidebarVisible(false);
 
     // the focus may not resolve for several frames: a freshly pushed
     // detail sometimes has NOTHING focusable until its request has
@@ -571,8 +577,13 @@ void AutoTabFrame::retryDetailFocus(brls::View* detail, int attemptsLeft) {
     brls::Application::giveFocus(detail);
     focus = brls::Application::getCurrentFocus();
     if (focus && isDescendantOf(focus, detail)) return;  // resolved
-    if (!focus || !isDescendantOf(focus, this->sidebar)) brls::Application::giveFocus(this->sidebar);
-    if (attemptsLeft <= 0) return;  // healthy state (sidebar), stop here
+    // Only when the rail is actually on screen. On a detail page it is not, and
+    // parking focus on a GONE view is the ghost-halo bug this guard exists to
+    // avoid, one level up.
+    bool railUp = this->sidebarHolder && this->sidebarHolder->getVisibility() == brls::Visibility::VISIBLE;
+    if (railUp && (!focus || !isDescendantOf(focus, this->sidebar)))
+        brls::Application::giveFocus(this->sidebar);
+    if (attemptsLeft <= 0) return;  // healthy state, stop here
     ASYNC_RETAIN
     brls::sync([ASYNC_TOKEN, detail, attemptsLeft]() {
         ASYNC_RELEASE
@@ -588,6 +599,8 @@ bool AutoTabFrame::popDetailView() {
 
     brls::View* uncovered = this->detailStack.empty() ? this->activeTab : this->detailStack.back().view;
     if (uncovered) uncovered->setVisibility(brls::Visibility::VISIBLE);
+    // Back on a root tab: the rail comes back with it.
+    if (this->detailStack.empty()) this->setSidebarVisible(true);
 
     // detaches the page; freeView (via removeView) defers destruction to
     // end of frame (deletionPool) — safe even from this page's own B action
@@ -641,6 +654,19 @@ void AutoTabFrame::clearDetailViews() {
     }
     this->detailStack.clear();
     if (this->activeTab) this->activeTab->setVisibility(brls::Visibility::VISIBLE);
+    this->setSidebarVisible(true);
+}
+
+/// The icon rail, on for a root tab and off for a detail page. Hides the
+/// HOLDER rather than the tab list: in vertical mode that is the column
+/// carrying the sidebar's background, and leaving it up would hold the
+/// content's left inset open around nothing.
+void AutoTabFrame::setSidebarVisible(bool visible) {
+    brls::View* rail = this->sidebarHolder ? this->sidebarHolder : (brls::View*)this->sidebar;
+    if (!rail) return;
+    brls::Visibility want = visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE;
+    if (rail->getVisibility() == want) return;
+    rail->setVisibility(want);
 }
 
 void ui::presentDetail(brls::View* from, brls::View* detail) {

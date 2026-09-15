@@ -267,6 +267,9 @@ public:
     bool popDetailView();
 
     bool hasDetailView();
+    /// Show or hide the icon rail. Off while a detail page is up, as the
+    /// reference gates its sidebar on the route being a root one.
+    void setSidebarVisible(bool visible);
 
     brls::View* getTopDetailView();
 

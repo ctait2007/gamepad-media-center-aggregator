@@ -1170,6 +1170,7 @@ void AppConfig::initThemes() {
         brls::getStyle().addMetric("app/grid/2", 1);
         brls::getStyle().addMetric("brls/tab_frame/content_padding_sides", 30);
         brls::getStyle().addMetric("main/content_padding_sides", 15);
+        brls::getStyle().addMetric("main/detail_padding_sides", 24);
         brls::getStyle().addMetric("main/content_padding_top_bottom", 20);
         // the 1080p rail scaled to this panel (a fixed 144 would eat a quarter
         // of a 960-wide screen)
@@ -1257,6 +1258,12 @@ void AppConfig::initThemes() {
         // Every other panel keeps the 40 it had, its rail being narrower.
         brls::getStyle().addMetric(
             "main/content_padding_sides", brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080 ? 68 : 40);
+        // The detail page has no icon rail to clear (AutoTabFrame hides it
+        // while one is up), so its own inset is the reference's own screen
+        // margin rather than the rail's width plus a gutter: HeroSection.kt
+        // pads by spacing.xxxl, 48dp, which is 96 here.
+        brls::getStyle().addMetric(
+            "main/detail_padding_sides", brls::Application::ORIGINAL_WINDOW_HEIGHT == 1080 ? 96 : 56);
         // 44: the reference's screens start their title there (its 24dp safe
         // area, less the leading its own label carries).
         brls::getStyle().addMetric(

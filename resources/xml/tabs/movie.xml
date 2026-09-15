@@ -63,8 +63,8 @@
                     positionBottom="0"
                     positionLeft="0"
                     width="100%"
-                    paddingLeft="@style/main/content_padding_sides"
-                    paddingRight="@style/main/content_padding_sides"
+                    paddingLeft="@style/main/detail_padding_sides"
+                    paddingRight="@style/main/detail_padding_sides"
                     paddingBottom="32">
 
                     <brls:Box
@@ -300,8 +300,8 @@
                 axis="column"
                 visibility="gone"
                 marginTop="16"
-                marginLeft="@style/main/content_padding_sides"
-                marginRight="@style/main/content_padding_sides" />
+                marginLeft="@style/main/detail_padding_sides"
+                marginRight="@style/main/detail_padding_sides" />
 
             <!-- full-width rows under the poster block: insets inside the
                  scroll, the cards slide up to the edges;
@@ -309,8 +309,8 @@
             <brls:Header
                 marginTop="28"
                 marginBottom="28"
-                marginLeft="@style/main/content_padding_sides"
-                marginRight="@style/main/content_padding_sides"
+                marginLeft="@style/main/detail_padding_sides"
+                marginRight="@style/main/detail_padding_sides"
                 id="movie/label/people"
                 title="@i18n/main/media/cast" />
 
@@ -321,8 +321,8 @@
                 itemWidth="200"
                 itemSpace="100"
                 marginBottom="28"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides"
+                paddingLeft="@style/main/detail_padding_sides"
+                paddingRight="@style/main/detail_padding_sides"
                 id="movie/people" />
 
             <brls:Box

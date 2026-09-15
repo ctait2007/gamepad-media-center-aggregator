@@ -43,7 +43,6 @@ brls::View* HomeTab::create() { return new HomeTab(); }
 /// so a user-chosen position applies to Continue Watching exactly like any
 /// other row instead of it always being pinned first.
 void HomeTab::doRequest() {
-    this->lastCatalogFetch = brls::getCPUTimeUsec();
 
     // drop any previous offline empty overlay -> back to the scrollable list
     if (this->offlineEmpty) {
@@ -144,7 +143,6 @@ void HomeTab::willAppear(bool resetState) {
     if (NetworkState::isOffline() || this->loading) return;
     if (this->resumeRow) {
         this->refreshResumeRow();
-        this->refreshCatalogsIfStale();
     } else {
         this->doRequest();
     }
@@ -154,23 +152,20 @@ void HomeTab::willAppear(bool resetState) {
 /// into doRequest(), so every "back out of a show" rebuilt every row on the
 /// screen. The reference does not: its catalogs live in the view model and
 /// survive the trip, and only Continue Watching has anything new to say.
+///
+/// NOTHING here re-pulls the catalogs, not even on a timer. A staleness TTL
+/// used to, and on a long session it fired on every player close and rebuilt
+/// every row -- dozens of catalogs and their posters -- at the one moment the
+/// player's own buffers had not been handed back yet. That is where the
+/// std::bad_alloc in a PS4 log came from: the refresh and the teardown were
+/// bidding for the same heap. Triangle is the refresh, as it was asked to be.
 void HomeTab::onVideoClose() {
     if (NetworkState::isOffline() || this->loading) return;
     if (this->resumeRow) {
         this->refreshResumeRow();
-        this->refreshCatalogsIfStale();
     } else {
         this->doRequest();
     }
-}
-
-void HomeTab::refreshCatalogsIfStale() {
-    // 15 minutes, as the reference's HOME_CATALOG_REFRESH_TTL_MS. Anything
-    // sooner and the rows are as fresh as they were when the user left them.
-    constexpr int64_t kCatalogTTLus = 15LL * 60 * 1000000;
-    if (this->lastCatalogFetch && brls::getCPUTimeUsec() - this->lastCatalogFetch < kCatalogTTLus) return;
-    brls::Logger::debug("HomeTab: catalogs are stale, pulling them again");
-    this->doRequest();
 }
 
 void HomeTab::fetchResume() {

@@ -65,8 +65,8 @@
                     positionBottom="0"
                     positionLeft="0"
                     width="100%"
-                    paddingLeft="@style/main/content_padding_sides"
-                    paddingRight="@style/main/content_padding_sides"
+                    paddingLeft="@style/main/detail_padding_sides"
+                    paddingRight="@style/main/detail_padding_sides"
                     paddingBottom="32">
 
                     <!-- Nuvio's detail hero has no poster: the backdrop IS the
@@ -309,8 +309,8 @@
                 axis="row"
                 marginTop="28"
                 marginBottom="14"
-                marginLeft="@style/main/content_padding_sides"
-                marginRight="@style/main/content_padding_sides"
+                marginLeft="@style/main/detail_padding_sides"
+                marginRight="@style/main/detail_padding_sides"
                 alignItems="center" />
 
             <!-- The reference fits about three of these across a 1080p
@@ -321,14 +321,14 @@
                 itemWidth="640"
                 itemSpace="20"
                 marginBottom="28"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides"
+                paddingLeft="@style/main/detail_padding_sides"
+                paddingRight="@style/main/detail_padding_sides"
                 id="series/episodes" />
 
             <brls:Header
                 marginBottom="28"
-                marginLeft="@style/main/content_padding_sides"
-                marginRight="@style/main/content_padding_sides"
+                marginLeft="@style/main/detail_padding_sides"
+                marginRight="@style/main/detail_padding_sides"
                 id="series/label/people"
                 title="@i18n/main/media/cast" />
 
@@ -339,14 +339,14 @@
                 itemWidth="200"
                 itemSpace="100"
                 marginBottom="28"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides"
+                paddingLeft="@style/main/detail_padding_sides"
+                paddingRight="@style/main/detail_padding_sides"
                 id="series/people" />
 
             <brls:Header
                 marginBottom="28"
-                marginLeft="@style/main/content_padding_sides"
-                marginRight="@style/main/content_padding_sides"
+                marginLeft="@style/main/detail_padding_sides"
+                marginRight="@style/main/detail_padding_sides"
                 id="series/label/special"
                 title="@i18n/main/media/special" />
 
@@ -355,8 +355,8 @@
                 itemWidth="250"
                 itemSpace="18"
                 marginBottom="28"
-                paddingLeft="@style/main/content_padding_sides"
-                paddingRight="@style/main/content_padding_sides"
+                paddingLeft="@style/main/detail_padding_sides"
+                paddingRight="@style/main/detail_padding_sides"
                 id="series/special" />
 
             <brls:Box

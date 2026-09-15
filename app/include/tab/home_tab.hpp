@@ -107,7 +107,6 @@ private:
     void refreshResumeRow();
     /// The catalogs, but only if they have gone stale (the reference's
     /// HOME_CATALOG_REFRESH_TTL_MS). Triangle still forces a full refresh.
-    void refreshCatalogsIfStale();
     void tryRestoreFocus();
 
     // set when a refresh destroys the focused row (e.g. after closing the
@@ -132,7 +131,6 @@ private:
     // races the first and double-adds every row (build report: rows "loop")
     bool loading = false;
     /// When doRequest() last pulled the catalogs (brls::getCPUTimeUsec()).
-    int64_t lastCatalogFetch = 0;
     // true once renderRows() has actually run for the current doRequest()
     // cycle — guards against the fallback timeout (below) and the real
     // fetchResume()/fetchHubs() completion both trying to render

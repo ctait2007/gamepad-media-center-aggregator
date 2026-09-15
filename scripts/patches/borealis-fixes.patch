@@ -2122,7 +2122,7 @@ index 8e6acb3..76c9249 100644
          layouted = true;
          reloadData();
 diff --git a/library/lib/views/scrolling_frame.cpp b/library/lib/views/scrolling_frame.cpp
-index 61978bd..96b5246 100644
+index 61978bd..24ccdf9 100644
 --- a/library/lib/views/scrolling_frame.cpp
 +++ b/library/lib/views/scrolling_frame.cpp
 @@ -18,6 +18,7 @@
@@ -2315,23 +2315,36 @@ index 61978bd..96b5246 100644
          return currentFocus;
  
      return this;
-@@ -536,17 +601,44 @@ bool ScrollingFrame::updateScrolling(bool animated)
+@@ -536,17 +601,63 @@ bool ScrollingFrame::updateScrolling(bool animated)
      float itemHeight  = focusedView ? focusedView->getHeight() : 0.0f;
      View* parent      = focusedView ? focusedView->getParent() : nullptr;
  
-+    // Where the block that owns the focused view (a media row and its title,
-+    // a section and its header) starts inside the scrolling content.
-+    float blockY = localY;
++    // The outermost thing still inside the scrolling content that owns the
++    // focused view: a media row and its title, a settings page and its header.
++    View* block = focusedView;
 +
      while (parent && dynamic_cast<ScrollingFrame*>(parent->getParent()) == nullptr)
      {
-+        blockY = parent->getLocalY();
          localY += parent->getLocalY();
++        block = parent;
          parent = parent->getParent();
      }
  
 -    int currentSelectionMiddleOnScreen = localY + itemHeight / 2;
 -    float newScroll                    = currentSelectionMiddleOnScreen - this->getHeight() / 2;
++    // Where that block starts inside the content. Summed, not just the block's
++    // own offset: its ancestors up to the content view carry offsets too, and
++    // reading only one of them put the "keep the block's top on screen" clamp
++    // below at a Y that had nothing to do with the block.
++    float blockY = 0.0f;
++    for (View* v = block; v != nullptr; v = v->getParent())
++    {
++        blockY += v->getLocalY();
++        if (dynamic_cast<ScrollingFrame*>(v->getParent()) != nullptr)
++            break;
++    }
++    float blockHeight = block ? block->getHeight() : 0.0f;
++
 +    float viewportHeight = this->effectiveScrollHeight();
 +    float newScroll;
 +    if (focusedView && focusedView == this->scrollTopAnchor)
@@ -2353,7 +2366,13 @@ index 61978bd..96b5246 100644
 +        // block's own top instead, which is where the reference anchors it.
 +        // A block that comfortably fits is centered as before: its top is
 +        // then below the centered offset and this never binds.
-+        if (newScroll > blockY)
++        //
++        // ONLY for a block that fits. A block TALLER than the viewport cannot
++        // be held whole on screen, and clamping to its top then pins the frame
++        // at that top forever -- which is what happened to a settings page,
++        // one block hundreds of rows long: every row below the fold was
++        // focusable but nothing ever scrolled to it.
++        if (blockHeight > 0.0f && blockHeight <= viewportHeight && newScroll > blockY)
 +            newScroll = blockY;
 +    }
  
@@ -2363,7 +2382,7 @@ index 61978bd..96b5246 100644
  
      if (newScroll < 0)
          newScroll = 0;
-@@ -570,6 +662,16 @@ Rect ScrollingFrame::getVisibleFrame()
+@@ -570,6 +681,16 @@ Rect ScrollingFrame::getVisibleFrame()
      return frame;
  }
  
