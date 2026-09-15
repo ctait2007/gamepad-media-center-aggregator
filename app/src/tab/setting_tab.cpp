@@ -204,6 +204,13 @@ void SettingTab::onCreate() {
         conf.getItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, false),
         [&conf](bool value) { conf.setItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, value); });
 
+    // useForcedSubtitles. Auto-selection only, and only when the audio is
+    // already in the preferred subtitle language — see PlayerView::
+    // autoSelectSubtitle. The picker still lists everything.
+    btnSubUseForced->init("main/setting/playback/sub_use_forced"_i18n,
+        conf.getItem(AppConfig::SUB_USE_FORCED, true),
+        [&conf](bool value) { conf.setItem(AppConfig::SUB_USE_FORCED, value); });
+
     btnDirectPlay->init("main/setting/playback/force_directplay"_i18n, MPVCore::FORCE_DIRECTPLAY, [&conf](bool value) {
         if (MPVCore::FORCE_DIRECTPLAY == value) return;
         MPVCore::FORCE_DIRECTPLAY = value;
@@ -526,6 +533,31 @@ void SettingTab::onCreate() {
         std::clamp(MPVCore::NEXT_EPISODE_MINUTES, 0, 7), [&conf](int selected) {
             MPVCore::NEXT_EPISODE_MINUTES = selected;
             conf.setItem(AppConfig::NEXT_EPISODE_MINUTES, selected);
+        });
+
+    // streamAutoPlayNextEpisodeEnabled — the card starts the next episode
+    // itself rather than offering it.
+    btnNextEpisodeAutoplay->init("main/setting/playback/next_episode_autoplay"_i18n,
+        MPVCore::NEXT_EPISODE_AUTOPLAY, [&conf](bool value) {
+            MPVCore::NEXT_EPISODE_AUTOPLAY = value;
+            conf.setItem(AppConfig::NEXT_EPISODE_AUTOPLAY, value);
+        });
+
+    // stillWatchingEnabled. Only ever reached with auto-play on, as the
+    // reference's shouldEnterStillWatchingPrompt requires both — on its own it
+    // would be asking about episodes the viewer chose one by one.
+    btnStillWatching->init("main/setting/playback/still_watching"_i18n, MPVCore::STILL_WATCHING,
+        [&conf](bool value) {
+            MPVCore::STILL_WATCHING = value;
+            conf.setItem(AppConfig::STILL_WATCHING, value);
+        });
+
+    std::vector<std::string> thresholdOptions;
+    for (int n = 2; n <= 6; n++) thresholdOptions.push_back(fmt::format("{}", n));
+    selectorStillWatchingThreshold->init("main/setting/playback/still_watching_threshold"_i18n, thresholdOptions,
+        std::clamp(MPVCore::STILL_WATCHING_THRESHOLD, 2, 6) - 2, [&conf](int selected) {
+            MPVCore::STILL_WATCHING_THRESHOLD = 2 + selected;
+            conf.setItem(AppConfig::STILL_WATCHING_THRESHOLD, MPVCore::STILL_WATCHING_THRESHOLD);
         });
 
     btnTouchGesture->init("main/setting/playback/touch_gesture"_i18n, MPVCore::TOUCH_GESTURE, [&conf](bool value) {

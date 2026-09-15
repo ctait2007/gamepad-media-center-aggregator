@@ -183,6 +183,14 @@ public:
     /// playback_osd_clock. On, as the reference has it.
     inline static bool OSD_CLOCK = true;
 
+    /// streamAutoPlayNextEpisodeEnabled: "up next" starts the next episode by
+    /// itself instead of offering it. Off, as it is there.
+    inline static bool NEXT_EPISODE_AUTOPLAY = false;
+    /// stillWatchingEnabled, and its 2..6 episode threshold (default 3). Only
+    /// reachable with auto-play on — the reference requires both.
+    inline static bool STILL_WATCHING = false;
+    inline static int STILL_WATCHING_THRESHOLD = 3;
+
     /// playerStatsHudEnabled: whether the Stream Information panel carries the
     /// row that turns the live readings overlay on. Off, as it is there — the
     /// reference calls it a diagnostic and does not put it in front of anyone

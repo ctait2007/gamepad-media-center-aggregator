@@ -95,6 +95,20 @@ public:
     /// What select on the card does. Called once, by VideoView.
     void onPlay(std::function<void()> cb);
 
+    /// What "Exit" does in still-watching mode. Called once, by VideoView.
+    void onExit(std::function<void()> cb);
+
+    /// PostPlayMode: AutoPlay (false) or StillWatching (true). The reference
+    /// draws both in the same card — only the kicker, the countdown line and
+    /// the second pill differ — so this swaps those rather than building a
+    /// second view. In still-watching mode the two pills take focus instead of
+    /// the card, because there are now two answers rather than one.
+    void setStillWatching(bool on);
+    bool isStillWatching() const { return this->stillWatching; }
+
+    /// "Stopping in N" under the episode name. Still-watching mode only.
+    void setCountdown(int seconds);
+
     /// Focus lands on the card itself rather than anything inside it.
     brls::View* getDefaultFocus() override;
 
@@ -109,7 +123,12 @@ public:
 private:
     brls::Box* card = nullptr;
     brls::Image* still = nullptr;
+    brls::Label* kickerLabel = nullptr;
     brls::Label* titleLabel = nullptr;
+    brls::Label* statusLabel = nullptr;
+    brls::Box* playPill = nullptr;
+    brls::Box* exitPill = nullptr;
+    bool stillWatching = false;
 };
 
 /// "Skip Intro" / "Skip Recap" / "Skip Ending": NuvioTV's SkipIntroButton, at

@@ -92,6 +92,7 @@ private:
     BRLS_BIND(brls::BooleanCell, btnSubStripSdh, "setting/player/sub_strip_sdh");
     BRLS_BIND(brls::SelectorCell, selectorSubSecondaryLang, "setting/playback/sub_secondary_lang");
     BRLS_BIND(brls::BooleanCell, btnSubOnlyPreferred, "setting/player/sub_only_preferred");
+    BRLS_BIND(brls::BooleanCell, btnSubUseForced, "setting/player/sub_use_forced");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipIntro, "setting/player/auto_skip_intro");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipRecap, "setting/player/auto_skip_recap");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipOutro, "setting/player/auto_skip_outro");
@@ -106,6 +107,9 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMode, "setting/player/next_episode_mode");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodePercent, "setting/player/next_episode_percent");
     BRLS_BIND(brls::SelectorCell, selectorNextEpisodeMinutes, "setting/player/next_episode_minutes");
+    BRLS_BIND(brls::BooleanCell, btnNextEpisodeAutoplay, "setting/player/next_episode_autoplay");
+    BRLS_BIND(brls::BooleanCell, btnStillWatching, "setting/player/still_watching");
+    BRLS_BIND(brls::SelectorCell, selectorStillWatchingThreshold, "setting/player/still_watching_threshold");
     BRLS_BIND(brls::BooleanCell, btnTouchGesture, "setting/player/touch_gesture");
     BRLS_BIND(brls::BooleanCell, btnTvOsdMode, "setting/player/tv_model");
     BRLS_BIND(brls::BooleanCell, btnClipPoint, "setting/player/clip_point");

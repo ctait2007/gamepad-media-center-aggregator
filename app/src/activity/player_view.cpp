@@ -688,14 +688,26 @@ void PlayerView::autoSelectSubtitle() {
         return;
     }
 
+    // useForcedSubtitles, on as it is there: "prefer forced subtitles when
+    // audio matches subtitle language; if unavailable, select nothing". The
+    // reference only takes this branch when it can see the chosen audio track
+    // (AUTO_SUB defers until then) — you are watching in the language you asked
+    // subtitles for, so the only ones wanted are the signs and the foreign
+    // dialogue. A full track would be a transcript of what is already audible.
+    std::string audioLang = MPVCore::instance().getString("current-tracks/audio/lang");
+    bool forcedOnly = AppConfig::instance().getItem(AppConfig::SUB_USE_FORCED, true) &&
+                      !audioLang.empty() && audioLang.substr(0, 2) == pref.substr(0, 2);
+
     for (size_t i = 0; i < subs.size(); i++) {
         if (subs[i].languageTag != pref) continue;
+        if (forcedOnly != subs[i].forced) continue;
         this->autoSubTried = true;
         this->attachSubtitle((int)i);
         return;
     }
-    // Nothing in the preferred language: stop looking for this load rather than
-    // re-scanning on every event.
+    // Nothing that fits: stop looking for this load rather than re-scanning on
+    // every event. Under the forced rule this is deliberate — the reference
+    // selects nothing rather than falling back to a full track.
     this->autoSubTried = true;
 }
 

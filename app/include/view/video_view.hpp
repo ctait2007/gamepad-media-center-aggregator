@@ -195,6 +195,10 @@ private:
     bool nextCardShown();
     void hideNextEpisodeCard();
     void tickSkipButton(double positionSec, double durationSec);
+    /// The still-watching prompt: put it up, count it down, take it away.
+    void enterStillWatching();
+    void tickStillWatching();
+    void leaveStillWatching(bool play);
     void updateSkipCountdown();
     void takeSkipInterval();
     void hideSkipButton();
@@ -265,6 +269,16 @@ private:
     bool nextCardArmed = false;
     /// Circle put the card away for this episode.
     bool nextCardDismissed = false;
+    /// consecutiveAutoPlayCount: episodes played one after another WITHOUT
+    /// being asked for. The reference's rule exactly — one more for an
+    /// auto-play, back to zero for anything the viewer chose.
+    int consecutiveAutoPlay = 0;
+    /// Set just before this view advances by itself, read by setPlayIndex.
+    bool advancingAutomatically = false;
+    /// The still-watching countdown's deadline, on the CPU clock. 0 = no
+    /// prompt up.
+    brls::Time stillWatchingUntil = 0;
+    int stillWatchingShown = -1;
     /// When the current pause began, on the same clock as the OSD's own
     /// auto-hide. 0 = not waiting for anything.
     brls::Time pausedSince = 0;

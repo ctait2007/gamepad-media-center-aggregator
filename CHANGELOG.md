@@ -90,6 +90,21 @@ its screenshots; where we deviate from it, the entry says so.
   reference lets you drop. The screen itself stays either way: here it is what
   covers the server probe and holds input off while it runs, not decoration
   over an already-built UI.
+- **Playback: auto-play the next episode.** With it on, "up next" starts the
+  next episode itself instead of offering it, which is what NuvioTV's
+  `streamAutoPlayNextEpisodeEnabled` does. Off, as it is there.
+- **Playback: "Are you still watching?"** — its own prompt, in the same card
+  and at the same numbers: after a run of episodes nobody asked for (2–6,
+  default 3) the card asks instead of advancing, stops playback behind itself,
+  and closes the player after a minute with no answer. Only ever reached with
+  auto-play on, as its `shouldEnterStillWatchingPrompt` requires both — on its
+  own it would be asking about episodes chosen one by one. Play continues and
+  resets the run; Exit, circle, or the minute running out all leave.
+- **Playback: use forced subtitles** (`useForcedSubtitles`, on as it is there).
+  When the audio is already in the language subtitles were asked for, automatic
+  selection takes a forced track — signs and foreign dialogue — or nothing at
+  all, rather than a full transcript of what is audible. The picker still lists
+  every track.
 - **Advanced: playback stats overlay**, under its own "Diagnostics" heading.
   With it on, Stream Information carries a row that opens the live readings —
   which is exactly what the setting does there, the overlay itself being

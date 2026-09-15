@@ -48,7 +48,13 @@ VideoView::VideoView() {
             // Circle on a screen that is up is "put that away", not "leave".
             // Checked before everything else, since they are up over all of it.
             if (this->nextCard && this->nextCard->shown()) {
-                this->dismissNextEpisodeCard();
+                // While the card is ASKING, circle is one of the two answers —
+                // onDismissStillWatchingPrompt, which exits exactly as the
+                // countdown running out does.
+                if (this->nextCard->isStillWatching())
+                    this->leaveStillWatching(false);
+                else
+                    this->dismissNextEpisodeCard();
                 return true;
             }
             if (this->skipButton && this->skipButton->shown()) {
@@ -143,7 +149,8 @@ VideoView::VideoView() {
             // there is nothing above the card, as there is nothing above its
             // Card — which is also why this comes before waking the bar.
             if (this->nextCard && this->nextCard->shown()) {
-                if (!this->nextCardHasFocus()) brls::Application::giveFocus(this->nextCard);
+                if (!this->nextCardHasFocus())
+                    brls::Application::giveFocus(this->nextCard->getDefaultFocus());
                 return true;
             }
             // d-pad with the OSD hidden: wake it and focus the controls
@@ -366,9 +373,16 @@ VideoView::VideoView() {
     // Select ON THE CARD plays the next episode: registered on the card, so it
     // only ever fires while the card holds focus.
     this->nextCard->onPlay([this]() {
+        if (this->nextCard->isStillWatching()) {
+            this->leaveStillWatching(true);
+            return;
+        }
         this->dismissNextEpisodeCard();
         this->playIndexEvent.fire(this->playIndex + 1);
     });
+    // "Exit" only exists while the card is asking, and means the same as
+    // letting its minute run out.
+    this->nextCard->onExit([this]() { this->leaveStillWatching(false); });
     // Down off the card is the volumeDown handler's own "d-pad with the OSD
     // hidden" case, and up back onto it is the volumeUp one's — both below,
     // where the player already decides what the d-pad means.
@@ -460,6 +474,15 @@ void VideoView::setList(const std::vector<std::string>& values, int index) {
 }
 
 void VideoView::setPlayIndex(int index) {
+    // nextConsecutiveAutoPlayCount: one more when this view advanced by itself,
+    // zero the moment the viewer picks anything. The still-watching prompt only
+    // ever asks about a run nobody asked for.
+    this->consecutiveAutoPlay = this->advancingAutomatically ? this->consecutiveAutoPlay + 1 : 0;
+    this->advancingAutomatically = false;
+    this->stillWatchingUntil = 0;
+    this->stillWatchingShown = -1;
+    if (this->nextCard) this->nextCard->setStillWatching(false);
+
     this->playIndex = index;
     // New episode: the card owes it a fresh offer, and the arming has to see a
     // position away from the end again before it will make one.
@@ -644,6 +667,10 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     // added to this box is invisible until it is named here.
     if (loadingScreen->getVisibility() == brls::Visibility::VISIBLE) loadingScreen->frame(ctx);
     if (pauseScreen->getVisibility() == brls::Visibility::VISIBLE) pauseScreen->frame(ctx);
+    // Playback is stopped while the still-watching prompt is up, so its
+    // countdown cannot be driven off mpv's progress — it runs on the frame
+    // clock, like the skip button's.
+    this->tickStillWatching();
     if (nextCard->getVisibility() == brls::Visibility::VISIBLE) nextCard->frame(ctx);
     // The countdown is redrawn EVERY frame, not on mpv's once-a-second progress
     // tick -- off that it advanced in ten visible steps instead of sweeping.
@@ -825,6 +852,10 @@ void VideoView::toggleOSD() {
 }
 
 void VideoView::showOSD(bool autoHide) {
+    // The still-watching prompt owns the screen while it is asking, as the
+    // reference's own showControls = false says. It stops playback itself, and
+    // the pause that follows would otherwise bring the bar up over it.
+    if (this->stillWatchingUntil > 0) return;
     // ANY interaction takes the pause screen down — the reference's
     // onUserInteraction does the same. Everything that wakes the bar (a seek,
     // the volume, a button, cross) comes through here, so this is the one
@@ -1007,12 +1038,84 @@ void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
             ? fmt::format("{:.1f} min before end", MPVCore::NEXT_EPISODE_MINUTES / 2.0)
             : fmt::format("{:.1f}%", MPVCore::NEXT_EPISODE_PERCENT / 2.0));
 
+    // shouldEnterStillWatchingPrompt: only with auto-play on, and only once a
+    // run of episodes nobody asked for is long enough. Otherwise the card comes
+    // up as it always has — and, with auto-play on, the next episode starts
+    // behind it rather than waiting to be told.
+    if (MPVCore::STILL_WATCHING && MPVCore::NEXT_EPISODE_AUTOPLAY &&
+        this->consecutiveAutoPlay >= MPVCore::STILL_WATCHING_THRESHOLD) {
+        this->enterStillWatching();
+        return;
+    }
+
+    this->nextCard->setStillWatching(false);
     this->nextCard->setOsdVisible(this->isOsdShown);
     this->nextCard->show();
     // The reference's onPlaced: the card takes focus as it appears, but only
     // with the controls down. With them up it waits to be navigated to, so
     // that the card arriving cannot pull focus off a control mid-press.
     if (!this->isOsdShown) brls::Application::giveFocus(this->nextCard);
+
+    if (MPVCore::NEXT_EPISODE_AUTOPLAY) {
+        brls::Logger::info("VideoView: auto-play, episode {} of {}", this->playIndex + 2, this->playListSize);
+        this->nextCardDismissed = true;
+        this->advancingAutomatically = true;
+        this->playIndexEvent.fire(this->playIndex + 1);
+    }
+}
+
+/// PostPlayMode.StillWatching. The card keeps its place and its artwork and
+/// asks instead of offering; playback stops behind it, as the reference's
+/// pauseForStillWatchingPrompt does, and after its minute with no answer the
+/// player closes.
+void VideoView::enterStillWatching() {
+    if (this->stillWatchingUntil > 0) return;
+    constexpr int kCountdownSec = 60;  // STILL_WATCHING_COUNTDOWN_SECONDS
+    brls::Logger::info("VideoView: still watching? after {} auto-played episode(s)", this->consecutiveAutoPlay);
+
+    auto& mpv = MPVCore::instance();
+    if (!mpv.isPaused()) mpv.togglePlay();
+    this->hideOSD();
+
+    this->stillWatchingUntil = brls::getCPUTimeUsec() + (brls::Time)kCountdownSec * 1000000;
+    this->stillWatchingShown = -1;
+    this->nextCard->setStillWatching(true);
+    this->nextCard->setCountdown(kCountdownSec);
+    this->nextCard->setOsdVisible(false);
+    this->nextCard->show();
+    brls::Application::giveFocus(this->nextCard->getDefaultFocus());
+}
+
+void VideoView::tickStillWatching() {
+    if (this->stillWatchingUntil == 0) return;
+    brls::Time now = brls::getCPUTimeUsec();
+    if (now >= this->stillWatchingUntil) {
+        this->leaveStillWatching(false);
+        return;
+    }
+    // Repainted only when the whole second changes — the label is rebuilt from
+    // a format string and this runs on every frame.
+    int remaining = (int)((this->stillWatchingUntil - now) / 1000000);
+    if (remaining == this->stillWatchingShown) return;
+    this->stillWatchingShown = remaining;
+    this->nextCard->setCountdown(remaining);
+}
+
+void VideoView::leaveStillWatching(bool play) {
+    if (this->stillWatchingUntil == 0) return;
+    this->stillWatchingUntil = 0;
+    this->stillWatchingShown = -1;
+    // Either answer ends the run: onStillWatchingContinue and exitFromStillWatching
+    // both zero the count there.
+    this->consecutiveAutoPlay = 0;
+    this->nextCard->setStillWatching(false);
+    this->dismissNextEpisodeCard();
+    if (play) {
+        this->playIndexEvent.fire(this->playIndex + 1);
+        return;
+    }
+    brls::Logger::info("VideoView: still watching? answered no (or not at all) — closing the player");
+    VideoView::close();
 }
 
 void VideoView::setNextEpisode(const plex::Item& ep) { this->nextCard->setEpisode(ep); }
@@ -1186,6 +1289,9 @@ void VideoView::dismissNextEpisodeCard() {
 void VideoView::schedulePauseScreen() {
     this->pausedSince = 0;
     if (!MPVCore::PAUSE_SCREEN || !this->firstFrameSeen) return;
+    // The still-watching prompt stopped playback itself, and owns the screen
+    // while it is asking. This is not a pause the viewer made.
+    if (this->stillWatchingUntil > 0) return;
     // WHEN THE PAUSE STARTED, not a deadline — tickPauseScreen re-derives how
     // long it has lasted on every frame, and re-checks that it is still
     // running. A stored deadline only has to be wrong once (a stale one left

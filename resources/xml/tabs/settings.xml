@@ -191,6 +191,8 @@
                                 id="setting/playback/sub_secondary_lang" />
                             <brls:BooleanCell
                                 id="setting/player/sub_only_preferred" />
+                            <brls:BooleanCell
+                                id="setting/player/sub_use_forced" />
 
                             <brls:Header
                                 width="auto"
@@ -237,6 +239,12 @@
                                 id="setting/player/next_episode_percent" />
                             <brls:SelectorCell
                                 id="setting/player/next_episode_minutes" />
+                            <brls:BooleanCell
+                                id="setting/player/next_episode_autoplay" />
+                            <brls:BooleanCell
+                                id="setting/player/still_watching" />
+                            <brls:SelectorCell
+                                id="setting/player/still_watching_threshold" />
                             <brls:BooleanCell
                                 id="setting/player/touch_gesture" />
                             <brls:BooleanCell

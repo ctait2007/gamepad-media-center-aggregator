@@ -165,6 +165,17 @@ public:
         NEXT_EPISODE_CARD,
         /// When it comes up (nextEpisodeThresholdMode / ...Percent /
         /// ...MinutesBeforeEnd). See MPVCore for the doubled-integer encoding.
+        /// streamAutoPlayNextEpisodeEnabled: the next episode starts by itself
+        /// the moment "up next" comes up, rather than waiting to be told. Off,
+        /// as it is there.
+        NEXT_EPISODE_AUTOPLAY,
+        /// stillWatchingEnabled + stillWatchingEpisodeThreshold (2..6, default
+        /// 3): after that many episodes played one after another WITHOUT being
+        /// asked for, the card asks instead of advancing, and stops the player
+        /// if nobody answers. Only ever reached with auto-play on, as the
+        /// reference's own shouldEnterStillWatchingPrompt requires.
+        STILL_WATCHING,
+        STILL_WATCHING_THRESHOLD,
         /// theintrodb.org markers, and whether they skip themselves.
         INTRODB,
         INTRODB_AUTO_SKIP,
@@ -203,6 +214,10 @@ public:
         /// showOnlyPreferredLanguages: hide every other language from the
         /// picker, bar whichever one is currently selected.
         SUB_ONLY_PREFERRED_LANGS,
+        /// useForcedSubtitles: when the audio you are hearing is already in the
+        /// language you asked subtitles for, auto-selection takes a FORCED
+        /// track — signs and foreign dialogue — or nothing. On, as it is there.
+        SUB_USE_FORCED,
         OSD_CLOCK,
         /// playerStatsHudEnabled: whether the Stream Information panel offers
         /// a row that turns the live readings overlay on. The reference's own

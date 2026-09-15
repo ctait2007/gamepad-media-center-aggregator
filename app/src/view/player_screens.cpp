@@ -359,6 +359,39 @@ constexpr float kNextPadX = 20, kNextPadY = 18;
 constexpr float kNextStillWidth = 224, kNextStillHeight = 128, kNextStillRadius = 18;
 constexpr float kNextRight = 52, kNextBottomOsd = 244, kNextBottomBare = 60;
 constexpr float kNextPillWidth = 200;
+
+/// One of the reference's PostPlayPillButtons: a bordered capsule with a glyph
+/// and a label. `alpha` is how bright the label and glyph are — its Exit pill
+/// is dimmer than its Play one.
+brls::Box* pillButton(const std::string& icon, const std::string& text, int alpha) {
+    auto* pill = new brls::Box();
+    pill->setAxis(brls::Axis::ROW);
+    pill->setAlignItems(brls::AlignItems::CENTER);
+    pill->setJustifyContent(brls::JustifyContent::CENTER);
+    pill->setHeight(56);
+    pill->setShrink(0);
+    pill->setPadding(0, 20, 0, 20);
+    pill->setMarginLeft(16);
+    pill->setCornerRadius(28);
+    pill->setHighlightCornerRadius(28);
+    pill->setBorderThickness(2);
+    pill->setBorderColor(nvgRGBA(255, 255, 255, 51));  // white 20%
+    // focusedContainerColor: white 15%, under the ring rather than replaced by
+    // borealis' own highlight fill.
+    pill->setHideHighlightBackground(true);
+
+    auto* glyph = new SVGImage();
+    glyph->setWidth(28);
+    glyph->setHeight(28);
+    glyph->setMarginRight(6);
+    glyph->setImageFromSVGRes(icon);
+    pill->addView(glyph);
+
+    auto* l = label(24, nvgRGBA(255, 255, 255, alpha));
+    l->setText(text);
+    pill->addView(l);
+    return pill;
+}
 }  // namespace
 
 NextEpisodeCard::NextEpisodeCard() {
@@ -421,10 +454,10 @@ NextEpisodeCard::NextEpisodeCard() {
     column->setGrow(1);
     this->card->addView(column);
 
-    auto* kicker = label(22, nvgRGBA(255, 255, 255, 204));
-    kicker->setFontWeight("medium");
-    kicker->setText("main/player/up_next/label"_i18n);
-    column->addView(kicker);
+    this->kickerLabel = label(22, nvgRGBA(255, 255, 255, 204));
+    this->kickerLabel->setFontWeight("medium");
+    this->kickerLabel->setText("main/player/up_next/label"_i18n);
+    column->addView(this->kickerLabel);
 
     this->titleLabel = label(28, nvgRGB(255, 255, 255));
     this->titleLabel->setFontWeight("semibold");
@@ -435,41 +468,72 @@ NextEpisodeCard::NextEpisodeCard() {
     this->titleLabel->setWidth(kNextCardWidth - kNextPadX * 2 - kNextStillWidth - 20 - kNextPillWidth);
     column->addView(this->titleLabel);
 
-    // The "Play" pill: a bordered capsule, as the reference draws it.
-    auto* pill = new brls::Box();
-    pill->setAxis(brls::Axis::ROW);
-    pill->setAlignItems(brls::AlignItems::CENTER);
-    pill->setJustifyContent(brls::JustifyContent::CENTER);
-    pill->setHeight(56);
-    pill->setShrink(0);
-    pill->setPadding(0, 20, 0, 20);
-    pill->setMarginLeft(16);
-    pill->setCornerRadius(28);
-    pill->setBorderThickness(2);
-    pill->setBorderColor(nvgRGBA(255, 255, 255, 51));  // white 20%
-    this->card->addView(pill);
+    // "Stopping in 47" — the reference's NextEpisodeStatusLine, only ever drawn
+    // in still-watching mode.
+    this->statusLabel = label(22, nvgRGBA(255, 255, 255, 178));
+    this->statusLabel->setSingleLine(true);
+    this->statusLabel->setMarginTop(4);
+    this->statusLabel->setVisibility(brls::Visibility::GONE);
+    column->addView(this->statusLabel);
 
-    auto* glyph = new SVGImage();
-    glyph->setWidth(28);
-    glyph->setHeight(28);
-    glyph->setMarginRight(6);
-    glyph->setImageFromSVGRes("icon/ico-play.svg");
-    pill->addView(glyph);
+    // The two pills, both bordered capsules as the reference draws them. Only
+    // "Play" is on the card in auto-play mode, and it is decoration there — the
+    // card itself is what takes focus and what select acts on. In
+    // still-watching mode there are two answers, so the pills become the
+    // focusable things and the card stops being one.
+    this->playPill = pillButton("icon/ico-play.svg", "main/player/up_next/play"_i18n, 255);
+    this->card->addView(this->playPill);
 
-    auto* play = label(24, nvgRGB(255, 255, 255));
-    play->setText("main/player/up_next/play"_i18n);
-    pill->addView(play);
+    this->exitPill = pillButton("icon/ico-close.svg", "main/player/still_watching/exit"_i18n, 184);
+    this->exitPill->setMarginLeft(12);
+    this->exitPill->setVisibility(brls::Visibility::GONE);
+    this->card->addView(this->exitPill);
 }
 
-void NextEpisodeCard::onPlay(std::function<void()> cb) {
-    this->card->registerClickAction([cb](brls::View*) {
+void NextEpisodeCard::onExit(std::function<void()> cb) {
+    this->exitPill->registerClickAction([cb](brls::View*) {
         cb();
         return true;
     });
-    this->card->addGestureRecognizer(new brls::TapGestureRecognizer(this->card));
+    this->exitPill->addGestureRecognizer(new brls::TapGestureRecognizer(this->exitPill));
 }
 
-brls::View* NextEpisodeCard::getDefaultFocus() { return this->card; }
+void NextEpisodeCard::setStillWatching(bool on) {
+    this->stillWatching = on;
+    this->kickerLabel->setText(
+        on ? "main/player/still_watching/title"_i18n : "main/player/up_next/label"_i18n);
+    this->statusLabel->setVisibility(on ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    this->exitPill->setVisibility(on ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+    // Two answers or one: whichever is true decides what the d-pad lands on.
+    this->card->setFocusable(!on);
+    this->playPill->setFocusable(on);
+    this->exitPill->setFocusable(on);
+    // The title has one pill beside it, or two.
+    // The Exit pill is the narrower of the two — one short word rather than a
+    // glyph and "Play" — so the second one costs less room than the first.
+    this->titleLabel->setWidth(
+        kNextCardWidth - kNextPadX * 2 - kNextStillWidth - 20 - kNextPillWidth - (on ? 140 : 0));
+}
+
+void NextEpisodeCard::setCountdown(int seconds) {
+    this->statusLabel->setText(fmt::format(fmt::runtime("main/player/still_watching/countdown"_i18n), seconds));
+}
+
+void NextEpisodeCard::onPlay(std::function<void()> cb) {
+    for (brls::Box* target : {this->card, this->playPill}) {
+        target->registerClickAction([cb](brls::View*) {
+            cb();
+            return true;
+        });
+        target->addGestureRecognizer(new brls::TapGestureRecognizer(target));
+    }
+}
+
+brls::View* NextEpisodeCard::getDefaultFocus() {
+    // "Play" is what the reference focuses in either mode — its own
+    // continueFocusRequester asks for focus as the still-watching body appears.
+    return this->stillWatching ? (brls::View*)this->playPill : (brls::View*)this->card;
+}
 
 void NextEpisodeCard::setEpisode(const plex::Item& ep) {
     // "S2 E2 • Fake ID" — the reference's season_episode_format and its own

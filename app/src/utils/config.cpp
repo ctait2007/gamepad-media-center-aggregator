@@ -90,6 +90,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {LOADING_STAGES, {"loading_stages"}},
     {PAUSE_SCREEN, {"pause_screen"}},
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
+    {NEXT_EPISODE_AUTOPLAY, {"next_episode_autoplay"}},
+    {STILL_WATCHING, {"still_watching"}},
+    {STILL_WATCHING_THRESHOLD, {"still_watching_threshold"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
     {LAYOUT_FULL_RELEASE_DATE, {"layout_full_release_date"}},
@@ -99,6 +102,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {SUB_STRIP_SDH, {"sub_strip_sdh"}},
     {SUB_SECONDARY_LANG, {"sub_secondary_lang"}},
     {SUB_ONLY_PREFERRED_LANGS, {"sub_only_preferred_langs"}},
+    {SUB_USE_FORCED, {"sub_use_forced"}},
     {OSD_CLOCK, {"osd_clock"}},
     {PLAYER_STATS_HUD, {"player_stats_hud"}},
     {STARTUP_SPLASH, {"startup_splash"}},
@@ -422,6 +426,9 @@ bool AppConfig::init() {
     MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
     MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
     MPVCore::INTRODB = this->getItem(INTRODB, true);
+    MPVCore::NEXT_EPISODE_AUTOPLAY = this->getItem(NEXT_EPISODE_AUTOPLAY, false);
+    MPVCore::STILL_WATCHING = this->getItem(STILL_WATCHING, false);
+    MPVCore::STILL_WATCHING_THRESHOLD = this->getItem(STILL_WATCHING_THRESHOLD, 3);
     MPVCore::OSD_CLOCK = this->getItem(OSD_CLOCK, true);
     MPVCore::PLAYER_STATS_HUD = this->getItem(PLAYER_STATS_HUD, false);
     MPVCore::SKIP_INTRO_ENABLED = this->getItem(SKIP_INTRO_ENABLED, true);
