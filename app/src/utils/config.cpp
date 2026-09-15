@@ -49,6 +49,8 @@ constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
 #include "api/nuvio/backend.hpp"
 #include "api/http.hpp"
 #include "utils/config.hpp"
+
+#include <cmath>
 #include "utils/theme_palette.hpp"
 #include "utils/keybind.hpp"
 #include "utils/misc.hpp"
@@ -90,6 +92,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
+    {LAYOUT_POSTER_WIDTH, {"layout_poster_width"}},
+    {LAYOUT_POSTER_RADIUS, {"layout_poster_radius"}},
+    {LAYOUT_HIDE_UNRELEASED, {"layout_hide_unreleased"}},
     {NEXT_EPISODE_MODE, {"next_episode_mode"}},
     {NEXT_EPISODE_PERCENT, {"next_episode_percent"}},
     {NEXT_EPISODE_MINUTES, {"next_episode_minutes"}},
@@ -1014,7 +1019,15 @@ void AppConfig::applyThemeVariant(brls::ThemeVariant tv, const plenx::ThemePalet
 
     // VARIANT tokens (the per-backend accent surface).
     theme.addColor("brls/accent", accent);
-    theme.addColor("brls/highlight/color1", accent);
+    // The focus ring is its own colour in the reference, NOT the accent fill:
+    // every ThemeColorPalette carries `secondary` for fills and a separate
+    // `focusRing` one step lighter for the ring (White: neutral100 vs pure
+    // white; Ocean: blue500 vs blue300; Emerald: green500 vs green300). Our
+    // accentGlowTop is already that lighter step for every palette, so the ring
+    // routes to it. BOTH stops: the reference's focusRingGradient defaults to
+    // listOf(focusRing), i.e. a flat ring, and color2 is only the sheen
+    // borealis lays over color1.
+    theme.addColor("brls/highlight/color1", glow);
     theme.addColor("brls/highlight/color2", glow);
     theme.addColor("brls/sidebar/active_item", accent);
     theme.addColor("brls/button/primary_enabled_background", accent);
@@ -1190,16 +1203,27 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/video/height", 340);
             // Poster: the 126x189dp base card, scaled by the 0.84 x 1.08 the
             // reference's home applies to it (ModernHomeContent) = 114.3 x
-            // 171.5dp -> 229 x 343, + the label block under it.
-            brls::getStyle().addMetric("app/card/poster/width", 229);
-            brls::getStyle().addMetric("app/card/poster/row", 443);
+            // 171.5dp -> 229 x 343, + the label block under it. The base is the
+            // viewer's "Width" preset (Layout > Poster Card Style), which is
+            // what posterCardWidthDp is there; 126 = its Balanced default.
+            {
+                double baseDp = (double)this->getItem(LAYOUT_POSTER_WIDTH, 126);
+                // ModernHomeContent's own two factors, then dp -> px.
+                int w = (int)std::lround(baseDp * 0.84 * 1.08 * 2);
+                // 189/126 = 1.5, the card's aspect, + the 100 label block.
+                int h = (int)std::lround(w * 1.5) + 100;
+                brls::getStyle().addMetric("app/card/poster/width", w);
+                brls::getStyle().addMetric("app/card/poster/row", h);
+            }
             // Continue Watching tile ("card" style): 126dp x 1.24 x 1.34
             // across, 16:9. Its text prints over the artwork, so no labels.
             brls::getStyle().addMetric("app/card/wide/width", 419);
             brls::getStyle().addMetric("app/card/wide/row", 336);
             brls::getStyle().addMetric("app/card/item_space", 24);
-            // posterCard radius, 12dp
-            brls::getStyle().addMetric("app/card/corner_radius", 24);
+            // posterCard radius: the viewer's "Corner Radius" preset, 12dp
+            // (Rounded) by default — posterCardCornerRadiusDp, which the
+            // reference likewise threads into every card's shape.
+            brls::getStyle().addMetric("app/card/corner_radius", this->getItem(LAYOUT_POSTER_RADIUS, 12) * 2);
             // The label block: 16 above the title (the reference's 8dp gap),
             // a 24sp line for it, then a 12sp line + its 2dp spacer.
             brls::getStyle().addMetric("app/card/label/top", 16);
@@ -1311,8 +1335,15 @@ void AppConfig::initThemes() {
     }
     brls::getStyle().addMetric("brls/highlight/stroke_width", 4);
     // The halo is drawn ~5 px outside the frame, so its arc has to be wider
-    // than the posters' own cornerRadius (24 = the reference's 12dp) to hug it.
-    brls::getStyle().addMetric("brls/highlight/corner_radius", 28);
+    // than the posters' own cornerRadius to hug it. It TRACKS that radius
+    // rather than being fixed at the 12dp default's 28: the reference shapes a
+    // card's focused border with the very same posterCardStyle.cornerRadius it
+    // shapes the card with, so picking Sharp and keeping a rounded ring around
+    // a square poster is its own kind of wrong. Squared off stays squared off.
+    {
+        int cardRadius = (int)brls::getStyle().getMetric("app/card/corner_radius");
+        brls::getStyle().addMetric("brls/highlight/corner_radius", cardRadius > 0 ? cardRadius + 4 : 0);
+    }
 
     // Every */row metric above is "poster height + kCardLabelHeight of title
     // block". With the labels off (video_card.xml collapses the block, see

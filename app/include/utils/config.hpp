@@ -168,6 +168,12 @@ public:
         /// theintrodb.org markers, and whether they skip themselves.
         INTRODB,
         INTRODB_AUTO_SKIP,
+        /// Poster Card Style (posterCardWidthDp / posterCardCornerRadiusDp),
+        /// both in the reference's dp. Read into the style metrics at startup.
+        LAYOUT_POSTER_WIDTH,
+        LAYOUT_POSTER_RADIUS,
+        /// hide_unreleased_content: drop anything not out yet from the rows.
+        LAYOUT_HIDE_UNRELEASED,
         NEXT_EPISODE_MODE,
         NEXT_EPISODE_PERCENT,
         NEXT_EPISODE_MINUTES,

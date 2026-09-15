@@ -223,6 +223,11 @@ void HomeTab::fetchHubs() {
                     if (item.type == plex::mediaTypePlaylist && item.playlistType != "video") continue;
                     items.push_back(item);
                 }
+                // "Hide Unreleased Content": the reference filters its CATALOG
+                // ROWS by this (filterReleasedItems), not Continue Watching —
+                // something you are part-way through is by definition out.
+                if (AppConfig::instance().getItem(AppConfig::LAYOUT_HIDE_UNRELEASED, false))
+                    media::filterReleased(items);
                 if (items.empty()) continue;
 
                 RowData row;

@@ -604,6 +604,48 @@ void SettingTab::onCreate() {
             [key](bool value) { AppConfig::instance().setItem(key, value); });
     }
 
+    // hide_unreleased_content, which the reference starts OFF — so it cannot
+    // join the loop above, whose toggles all default on.
+    btnHideUnreleased->init("main/setting/layout/hide_unreleased"_i18n,
+        conf.getItem(AppConfig::LAYOUT_HIDE_UNRELEASED, false),
+        [&conf](bool value) { conf.setItem(AppConfig::LAYOUT_HIDE_UNRELEASED, value); });
+
+    // Poster Card Style. The reference offers named presets rather than a free
+    // slider, and these are its own six widths and five radii, in its dp.
+    struct Preset {
+        const char* label;
+        int dp;
+    };
+    static const std::vector<Preset> kWidths = {
+        {"main/setting/layout/preset/compact", 104}, {"main/setting/layout/preset/dense", 112},
+        {"main/setting/layout/preset/standard", 120}, {"main/setting/layout/preset/balanced", 126},
+        {"main/setting/layout/preset/comfort", 134}, {"main/setting/layout/preset/large", 140},
+    };
+    static const std::vector<Preset> kRadii = {
+        {"main/setting/layout/preset/sharp", 0}, {"main/setting/layout/preset/subtle", 4},
+        {"main/setting/layout/preset/classic", 8}, {"main/setting/layout/preset/rounded", 12},
+        {"main/setting/layout/preset/pill", 16},
+    };
+    // Generic in the cell so it takes the BRLS_BIND wrapper directly.
+    auto initPresets = [&conf](auto&& cell, const std::vector<Preset>& presets, AppConfig::Item key, int fallback,
+                           const char* label) {
+        std::vector<std::string> labels;
+        int index = 0;
+        int current = conf.getItem(key, fallback);
+        for (size_t i = 0; i < presets.size(); i++) {
+            labels.push_back(brls::getStr(presets[i].label));
+            if (presets[i].dp == current) index = (int)i;
+        }
+        cell->init(brls::getStr(label), labels, index, [&presets, key](int selected) {
+            AppConfig::instance().setItem(key, presets[selected].dp);
+            // Card widths and row heights are computed once, in initThemes, so
+            // this lands on the next launch — the same deal poster titles get.
+            Dialog::quitApp();
+        });
+    };
+    initPresets(selectorCardWidth, kWidths, AppConfig::LAYOUT_POSTER_WIDTH, 126, "main/setting/layout/card_width");
+    initPresets(selectorCardRadius, kRadii, AppConfig::LAYOUT_POSTER_RADIUS, 12, "main/setting/layout/card_radius");
+
     this->buildCategories();
 }
 

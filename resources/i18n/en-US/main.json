@@ -358,7 +358,23 @@
             "catalog_addon_name": "Show addon name",
             "catalog_type": "Show catalog type",
             "stream_addon_logo": "Addon logo on sources",
-            "episode_overlay_art": "Episode artwork behind the options menu"
+            "episode_overlay_art": "Episode artwork behind the options menu",
+            "hide_unreleased": "Hide unreleased content",
+            "card_width": "Poster width (restart required)",
+            "card_radius": "Poster corner radius (restart required)",
+            "preset": {
+                "compact": "Compact",
+                "dense": "Dense",
+                "standard": "Standard",
+                "balanced": "Balanced",
+                "comfort": "Comfort",
+                "large": "Large",
+                "sharp": "Sharp",
+                "subtle": "Subtle",
+                "classic": "Classic",
+                "rounded": "Rounded",
+                "pill": "Pill"
+            }
         },
         "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",
         "name": "Name",

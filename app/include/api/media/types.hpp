@@ -22,6 +22,9 @@
 #include <cstring>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+#include <ctime>
+
 namespace media {
 
 /// ---- Generic media type strings (Item::type) -------------------------------
@@ -591,6 +594,37 @@ inline void from_json(const nlohmann::json& j, Container<T>& r) {
     }
     r.StartIndex = (long)jint(mc, "offset");
     r.TotalRecordCount = (long)jint(mc, "totalSize", jint(mc, "size", r.Items.size()));
+}
+
+/// NuvioTV's MetaPreview.isUnreleased (ReleaseInfoUtils.kt), which its
+/// "Hide Unreleased Content" toggle filters catalog rows by.
+///
+/// Its order matters: an explicit release DATE decides it outright, and only
+/// when there is no usable date does it fall back to comparing the YEAR — an
+/// item dated later this year is still unreleased, while one with nothing but
+/// a year matching this one is left alone.
+inline bool isUnreleased(const Item& item) {
+    const std::string& raw = item.originallyAvailableAt;
+    // YYYY-MM-DD, the one shape every backend here emits.
+    if (raw.size() >= 10 && raw[4] == '-' && raw[7] == '-') {
+        std::tm tm {};
+        tm.tm_year = atoi(raw.substr(0, 4).c_str()) - 1900;
+        tm.tm_mon = atoi(raw.substr(5, 2).c_str()) - 1;
+        tm.tm_mday = atoi(raw.substr(8, 2).c_str());
+        tm.tm_isdst = -1;
+        std::time_t at = std::mktime(&tm);
+        if (at != (std::time_t)-1) return at > std::time(nullptr);
+    }
+    if (item.year <= 0) return false;
+    std::time_t now = std::time(nullptr);
+    std::tm* local = std::localtime(&now);
+    return local && item.year > local->tm_year + 1900;
+}
+
+/// Drop what is not out yet, in place. A no-op with the setting off.
+inline void filterReleased(std::vector<Item>& items) {
+    items.erase(std::remove_if(items.begin(), items.end(), [](const Item& i) { return isUnreleased(i); }),
+        items.end());
 }
 
 }  // namespace media
