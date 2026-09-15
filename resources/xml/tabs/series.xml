@@ -135,7 +135,7 @@
                                  trailer buttons beside the reference's Play -->
                             <IconButton
                                 id="series/watchlist"
-                                icon="@res/icon/ico-bookmark-light.svg"
+                                icon="@res/icon/ico-plus.svg"
                                 buttonStyle="icon"
                                 iconOnly="true"
                                 visibility="gone"

@@ -128,7 +128,26 @@
 
                             <IconButton
                                 id="movie/watchlist"
-                                icon="@res/icon/ico-bookmark-light.svg"
+                                icon="@res/icon/ico-plus.svg"
+                                buttonStyle="icon"
+                                iconOnly="true"
+                                visibility="gone"
+                                width="96"
+                                height="96"
+                                cornerRadius="48"
+                                highlightCornerRadius="52"
+                                paddingLeft="0"
+                                paddingRight="0"
+                                iconSize="44"
+                                marginLeft="24" />
+
+                            <!-- NuvioTV's third hero action, movies only: mark
+                                 watched. An eye when it is, an eye with a
+                                 stroke when it is not, and the disc inverts
+                                 while it is on. -->
+                            <IconButton
+                                id="movie/watched"
+                                icon="@res/icon/ico-eye-off-light.svg"
                                 buttonStyle="icon"
                                 iconOnly="true"
                                 visibility="gone"

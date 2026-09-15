@@ -301,6 +301,42 @@ void MediaMovie::initWatchlist(const media::Item& item) {
         });
 }
 
+/// NuvioTV's third hero action, movies only: mark watched. Wired here rather
+/// than left to the context menu because the reference puts it on the hero, and
+/// a film is the one thing whose watched state is a single decision.
+void MediaMovie::initWatched(const media::Item& item) {
+    if (!AppConfig::instance().backend().caps().markWatched) return;
+    this->movieWatched = item.played();
+    this->updateWatchedButton();
+    this->btnWatched->registerClickAction([this](...) {
+        this->toggleWatched();
+        return true;
+    });
+    this->btnWatched->setVisibility(brls::Visibility::VISIBLE);
+    if (this->btnWatched->getParent())
+        this->btnWatched->getParent()->setVisibility(brls::Visibility::VISIBLE);
+}
+
+void MediaMovie::toggleWatched() {
+    bool add = !this->movieWatched;
+    auto& be = AppConfig::instance().backend();
+    if (add)
+        be.markWatched(this->itemId);
+    else
+        be.markUnwatched(this->itemId);
+    this->movieWatched = add;
+    this->updateWatchedButton();
+    brls::Application::notify(add ? "main/media/marked_watched"_i18n : "main/media/marked_unwatched"_i18n);
+}
+
+void MediaMovie::updateWatchedButton() {
+    // An eye once it has been seen, an eye with a stroke through it until then;
+    // and the disc inverts while it is on, as the reference's selected state.
+    this->btnWatched->setIcon(
+        this->movieWatched ? "@res/icon/ico-eye-light.svg" : "@res/icon/ico-eye-off-light.svg");
+    this->btnWatched->setSelected(this->movieWatched);
+}
+
 void MediaMovie::toggleWatchlist() {
     bool add = !this->watchlisted;
     media::ListKind kind = personal::kind();
@@ -320,9 +356,11 @@ void MediaMovie::toggleWatchlist() {
 }
 
 void MediaMovie::updateWatchlistButton() {
-    // filled bookmark = already in the Watchlist (Plex convention)
+    // NuvioTV's own pair, not a bookmark: a PLUS to add (its
+    // library_add_plus.svg is literally a plus) and a CHECK once it is in.
+    // "Add to library" reads as an action; a filled bookmark reads as a state.
     this->btnWatchlist->setIcon(
-        this->watchlisted ? "@res/icon/ico-bookmark-fill-light.svg" : "@res/icon/ico-bookmark-light.svg");
+        this->watchlisted ? "@res/icon/ico-check-light.svg" : "@res/icon/ico-plus.svg");
 }
 
 void MediaMovie::doRequest() {
@@ -546,7 +584,10 @@ void MediaMovie::applyMovie(const media::Item& item) {
     }
 
     // the personal list (watchlist/favorite) needs the account — online only
-    if (!NetworkState::isOffline()) this->initWatchlist(item);
+    if (!NetworkState::isOffline()) {
+        this->initWatchlist(item);
+        this->initWatched(item);
+    }
 
     // Open the detail at the TOP. "centered" auto-centers the focused Play button
     // on first appear, which scrolls the page down for no reason — hiding the

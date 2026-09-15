@@ -872,9 +872,11 @@ void MediaSeries::toggleWatchlist() {
 }
 
 void MediaSeries::updateWatchlistButton() {
-    // filled bookmark = already in the Watchlist (Plex convention)
+    // NuvioTV's own pair, not a bookmark: a PLUS to add (its
+    // library_add_plus.svg is literally a plus) and a CHECK once it is in.
+    // "Add to library" reads as an action; a filled bookmark reads as a state.
     this->btnWatchlist->setIcon(
-        this->watchlisted ? "@res/icon/ico-bookmark-fill-light.svg" : "@res/icon/ico-bookmark-light.svg");
+        this->watchlisted ? "@res/icon/ico-check-light.svg" : "@res/icon/ico-plus.svg");
 }
 
 void MediaSeries::doSeries() {

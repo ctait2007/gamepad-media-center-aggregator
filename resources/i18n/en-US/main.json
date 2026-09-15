@@ -149,6 +149,8 @@
         "name": "Name",
         "mark_played": "Mark played",
         "mark_unplayed": "Mark unplayed",
+        "marked_watched": "Marked as watched",
+        "marked_unwatched": "Marked as unwatched",
         "play": "Play",
         "open": "Open",
         "replay": "Play again",

@@ -21,6 +21,10 @@ public:
     /// a D-pad user can land on it and trigger the "why is this unavailable" help
     /// (the alternative — hiding it — strands the focus highlight on a gone view).
     void setMuted(bool muted);
+    /// NuvioTV's ActionIconButton `selected`: the round hero action that is
+    /// currently ON inverts — a white disc with a dark glyph — rather than
+    /// swapping its icon alone. Only meaningful for the "icon" style.
+    void setSelected(bool selected);
 
     static brls::View* create();
 
@@ -39,4 +43,5 @@ private:
     bool iconOnly = false;
     bool focused = false;
     bool muted = false;
+    bool selected = false;
 };

@@ -94,6 +94,12 @@ void IconButton::setMuted(bool muted) {
     this->applyStyle();
 }
 
+void IconButton::setSelected(bool selected) {
+    if (this->selected == selected) return;
+    this->selected = selected;
+    this->applyStyle();
+}
+
 void IconButton::applyStyle() {
     auto theme = brls::Application::getTheme();
     if (this->muted) {
@@ -112,10 +118,17 @@ void IconButton::applyStyle() {
         this->setBorderThickness(3);
         this->label->setTextColor(theme.getColor("brls/text"));
     } else if (this->styleName == "icon") {
-        // NuvioTV's round hero action: a filled card-coloured disc, no outline.
-        this->setBackgroundColor(theme.getColor("color/surface"));
+        // NuvioTV's round hero action: a filled card-coloured disc, no outline
+        // — inverted to a white disc with a dark glyph while it is the action
+        // that is currently ON (its selectedContainerColor/ContentColor).
+        this->setBackgroundColor(
+            this->selected ? nvgRGB(255, 255, 255) : theme.getColor("color/surface"));
         this->setBorderThickness(0);
         this->label->setTextColor(theme.getColor("brls/text"));
+        if (this->selected)
+            this->icon->setGlyphColor(nvgRGB(0, 0, 0));
+        else
+            this->icon->clearGlyphColor();
     } else if (this->styleName == "primary") {
         this->setBackgroundColor(theme.getColor("color/app"));
         this->setBorderThickness(0);

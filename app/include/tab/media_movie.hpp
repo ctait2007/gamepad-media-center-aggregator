@@ -55,6 +55,7 @@ private:
     BRLS_BIND(IconButton, btnPlay, "movie/play");
     BRLS_BIND(IconButton, btnDownload, "movie/download");
     BRLS_BIND(IconButton, btnWatchlist, "movie/watchlist");
+    BRLS_BIND(IconButton, btnWatched, "movie/watched");
     BRLS_BIND(brls::View, peopleHeader, "movie/label/people");
     BRLS_BIND(HRecyclerFrame, people, "movie/people");
     BRLS_BIND(brls::Box, boxRelated, "movie/related/box");
@@ -80,6 +81,10 @@ private:
     /// reveals the personal-list button (watchlist/favorite) once its state is known
     void initWatchlist(const media::Item& item);
     void toggleWatchlist();
+    /// NuvioTV's hero "mark watched" action, movies only.
+    void initWatched(const media::Item& item);
+    void toggleWatched();
+    void updateWatchedButton();
     void updateWatchlistButton();
 
     DownloadManager::ProgressEvent::Subscription progressSub;
@@ -92,6 +97,7 @@ private:
     media::Item listItem;  // item backing the personal-list (watchlist/favorite) button
     bool localContext = false;  // opened from the offline downloads area
     bool watchlisted = false;
+    bool movieWatched = false;
     /// selected version (item.media[]) — no effect in v1 (playback = first
     /// accessible version, cf. activity/player_view.cpp)
     size_t selectedVersion = 0;
