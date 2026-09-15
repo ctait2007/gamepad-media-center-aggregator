@@ -92,6 +92,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
     {INTRODB, {"introdb"}},
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
+    {AMOLED_MODE, {"amoled_mode"}},
+    {AMOLED_SURFACES, {"amoled_surfaces"}},
     {SUB_SIZE, {"sub_size"}},
     {SUB_OFFSET, {"sub_offset"}},
     {SUB_BOLD, {"sub_bold"}},
@@ -1029,6 +1031,32 @@ void AppConfig::applyTheme(std::optional<media::BackendType> type) {
         chosen ? *chosen : (type ? plenx::backendPalette(*type) : plenx::defaultPalette());
     this->applyThemeVariant(brls::ThemeVariant::DARK, tc.dark);
     this->applyThemeVariant(brls::ThemeVariant::LIGHT, tc.light);
+    // LAST, so it wins over both the structural pass and the accent one.
+    this->applyAmoled();
+}
+
+/// NuvioColorScheme's amoledMode / amoledSurfacesMode.
+///
+/// Its rule, exactly: amoledMode alone takes the BACKGROUND to pure black,
+/// and only with amoledSurfacesMode as well do the cards, panels, fields and
+/// menus follow. The overlays and the divider are left alone in both cases —
+/// a scrim over video has nothing to do with the panel behind the UI.
+///
+/// Dark only, which is what the reference means by it too.
+void AppConfig::applyAmoled() {
+    if (!this->getItem(AMOLED_MODE, false)) return;
+    auto& dark = brls::Theme::getDarkTheme();
+    const NVGcolor black = nvgRGB(0, 0, 0);
+
+    for (const char* name : {"brls/clear", "brls/background", "brls/sidebar/background", "color/nav_bg",
+             "color/fade_1"})
+        dark.addColor(name, black);
+    dark.addColor("color/fade_0", nvgRGBA(0, 0, 0, 0));
+    // The hero's own fade keeps its opacity and only loses its tint.
+    dark.addColor("color/hero_scrim", nvgRGBA(0, 0, 0, 216));
+
+    if (!this->getItem(AMOLED_SURFACES, false)) return;
+    for (const char* name : {"color/surface", "color/grey_1", "brls/dropdown/background"}) dark.addColor(name, black);
 }
 
 void AppConfig::applyThemeVariant(brls::ThemeVariant tv, const plenx::ThemePalette& p) {

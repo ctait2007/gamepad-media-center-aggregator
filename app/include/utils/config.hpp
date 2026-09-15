@@ -180,6 +180,10 @@ public:
         ///   SUB_SIZE      percent, 50..200 (sub-scale)
         ///   SUB_OFFSET    percent up from the bottom, -20..50 (sub-pos)
         ///   SUB_OUTLINE_W 1..5 (sub-border-size)
+        /// amoledMode / amoledSurfacesMode: pure black backgrounds, and
+        /// optionally pure black cards and panels with them.
+        AMOLED_MODE,
+        AMOLED_SURFACES,
         SUB_SIZE,
         SUB_OFFSET,
         SUB_BOLD,
@@ -290,6 +294,8 @@ public:
     /// used on pre-connection screens. Structural chrome is left untouched.
     /// Must run BEFORE the activity that will read the colors is (re)built.
     void applyTheme(std::optional<media::BackendType> type);
+    /// Pure-black overrides, applied after every theme pass. No-op when off.
+    void applyAmoled();
     void save();
     bool checkLogin();
 

@@ -284,6 +284,22 @@ void SettingTab::onCreate() {
         if (!value) introdb::clearCache();
     });
 
+    // AMOLED, from the reference's Appearance section. Applied straight away
+    // (applyTheme reruns the whole pass and applyAmoled has the last word), so
+    // no relaunch — the surfaces switch only does anything with the first on,
+    // which is the reference's own `amoledMode && amoledSurfacesMode`.
+    btnAmoled->init("main/setting/ui/amoled"_i18n, conf.getItem(AppConfig::AMOLED_MODE, false), [](bool value) {
+        auto& c = AppConfig::instance();
+        c.setItem(AppConfig::AMOLED_MODE, value);
+        c.applyTheme(c.backend().type());
+    });
+    btnAmoledSurfaces->init("main/setting/ui/amoled_surfaces"_i18n, conf.getItem(AppConfig::AMOLED_SURFACES, false),
+        [](bool value) {
+            auto& c = AppConfig::instance();
+            c.setItem(AppConfig::AMOLED_SURFACES, value);
+            c.applyTheme(c.backend().type());
+        });
+
     // autoSkipSegmentTypes: a flag per segment type, not one switch. All three
     // start off, as the reference's set starts empty.
     struct AutoSkip {

@@ -110,6 +110,10 @@
                             <SelectorCell
                                 id="setting/ui/theme"
                                 quitApp="true" />
+                            <brls:BooleanCell
+                                id="setting/ui/amoled" />
+                            <brls:BooleanCell
+                                id="setting/ui/amoled_surfaces" />
                             <SelectorCell
                                 id="setting/ui/scale"
                                 quitApp="true" />

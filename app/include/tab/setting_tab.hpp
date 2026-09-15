@@ -82,6 +82,8 @@ private:
     BRLS_BIND(brls::SelectorCell, selectorCardWidth, "setting/layout/card_width");
     BRLS_BIND(brls::SelectorCell, selectorCardRadius, "setting/layout/card_radius");
     BRLS_BIND(brls::BooleanCell, btnIntroDb, "setting/player/introdb");
+    BRLS_BIND(brls::BooleanCell, btnAmoled, "setting/ui/amoled");
+    BRLS_BIND(brls::BooleanCell, btnAmoledSurfaces, "setting/ui/amoled_surfaces");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipIntro, "setting/player/auto_skip_intro");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipRecap, "setting/player/auto_skip_recap");
     BRLS_BIND(brls::BooleanCell, btnAutoSkipOutro, "setting/player/auto_skip_outro");
