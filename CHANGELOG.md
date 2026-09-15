@@ -162,6 +162,48 @@ its screenshots; where we deviate from it, the entry says so.
   which is exactly what the setting does there, the overlay itself being
   reachable by its keybind either way. Off, as it is there.
 
+- **Appearance: App Font.** NuvioTV's own three — Inter, DM Sans, Open Sans —
+  each in the four cuts a label can ask for, instanced from the very variable
+  fonts it bundles at the same weights (`scripts/make-ui-fonts.py`, and the
+  private-use cmap entries stripped so the controller glyphs still resolve).
+  Inter by default, as there. This was previously listed as not portable
+  "because it needs the reference's own font assets" — it needed instancing,
+  not different assets.
+- **A far wider language list.** The subtitle/audio language catalogue was 32
+  endonyms; it is now the reference's own 78 languages, its codes, its English
+  names and its alphabetical order — including the regional variants (Chinese
+  Simplified/Traditional, Brazilian Portuguese, Latin American Spanish) it
+  distinguishes and we did not. The alias table that matches whatever an addon
+  or a muxed track calls a language is kept and extended.
+
+- **The settings screen redrawn as NuvioTV's.** Its rows are a leading Material
+  glyph, a title over a subtitle, and then either a value and a chevron or a
+  46x24dp toggle pill; focus is a pill-shaped ring and does NOT change the
+  fill, which is what `containerColor == focusedContainerColor` means in
+  `SettingsDesignSystem.kt`. Ours were one line, right-aligned an accent
+  value, filled on focus and ruled a hairline under every row. Borealis' cells
+  are re-skinned in place rather than forked, so nothing that talks to them
+  had to change.
+- **Settings sections that open and close** (`playbackCollapsibleSection`): a
+  header reading Open/Closed with an ExpandMore/ChevronRight, its rows, and a
+  hairline closing it off. Playback is General, Skipping, Player & Stream
+  Selection, Audio & Video and Subtitles; Layout is Home Layout, Home Content,
+  Detail Page, Streams and Continue Watching; Appearance and Advanced get the
+  same treatment. Names and subtitle text are the reference's own strings
+  wherever it has an equivalent row.
+- **One picker for the whole app** (`SettingsSingleChoiceDialog`). The bottom
+  sheet Borealis slides up over the row you were reading is gone; every choice
+  is now the reference's centred 420dp panel of cards, the chosen one lifted,
+  tinted and ticked, with the row's subtitle under the title and a description
+  per option where the reference writes one.
+- **Playback: subtitle text opacity** (`subtitle_style_text_opacity`). Kept
+  separate from the colour swatch, as it is there, so picking a colour does
+  not undo it.
+- **Detail: an "add to library" button.** NuvioTV's hero action row in order —
+  Play, the library toggle, and (for a film) mark-watched — as circular icon
+  buttons beside the labelled Play pill, the selected mark-watched inverting
+  to a white disc with a black glyph the way its `ActionIconButton` does.
+
 ### Changed
 
 - **The player's subtitle panel writes its changes down.** Its steppers moved
@@ -203,20 +245,6 @@ its screenshots; where we deviate from it, the entry says so.
   source for fifteen minutes and a 429 is backed off rather than retried
   immediately; a link that then fails to play is dropped from the cache so the
   retry asks for a fresh one.
-
-- **Appearance: App Font.** NuvioTV's own three — Inter, DM Sans, Open Sans —
-  each in the four cuts a label can ask for, instanced from the very variable
-  fonts it bundles at the same weights (`scripts/make-ui-fonts.py`, and the
-  private-use cmap entries stripped so the controller glyphs still resolve).
-  Inter by default, as there. This was previously listed as not portable
-  "because it needs the reference's own font assets" — it needed instancing,
-  not different assets.
-- **A far wider language list.** The subtitle/audio language catalogue was 32
-  endonyms; it is now the reference's own 78 languages, its codes, its English
-  names and its alphabetical order — including the regional variants (Chinese
-  Simplified/Traditional, Brazilian Portuguese, Latin American Spanish) it
-  distinguishes and we did not. The alias table that matches whatever an addon
-  or a muxed track calls a language is kept and extended.
 
 ### Not ported, and why
 

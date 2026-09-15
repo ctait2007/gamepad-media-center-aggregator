@@ -224,6 +224,10 @@ public:
     inline static std::string SUB_TEXT_COLOR = "#FFFFFFFF";
     inline static std::string SUB_BG_COLOR = "#00000000";
     inline static std::string SUB_OUTLINE_COLOR = "#FF000000";
+    /// NuvioTV's subtitle_style_text_opacity, as a percentage. It rides on top
+    /// of the chosen text colour rather than being part of it, so changing the
+    /// colour does not reset it.
+    inline static int SUB_TEXT_OPACITY = 100;
 
     inline static int NEXT_EPISODE_MODE = 0;
     inline static int NEXT_EPISODE_PERCENT = 198;  // 99 %

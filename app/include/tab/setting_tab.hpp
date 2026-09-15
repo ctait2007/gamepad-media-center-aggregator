@@ -110,6 +110,7 @@ private:
     BRLS_BIND(BooleanCell, btnSubOutline, "setting/player/sub_outline");
     BRLS_BIND(SelectorCell, selectorSubOutlineWidth, "setting/player/sub_outline_width");
     BRLS_BIND(SelectorCell, selectorSubTextColor, "setting/player/sub_text_color");
+    BRLS_BIND(SelectorCell, selectorSubOpacity, "setting/player/sub_opacity");
     BRLS_BIND(SelectorCell, selectorSubBgColor, "setting/player/sub_bg_color");
     BRLS_BIND(SelectorCell, selectorSubOutlineColor, "setting/player/sub_outline_color");
     BRLS_BIND(SelectorCell, selectorNextEpisodeMode, "setting/player/next_episode_mode");

@@ -479,9 +479,9 @@
                 "bold": "Bold",
                 "outline": "Outline",
                 "outline_width": "Outline Width",
-                "text_color": "Text colour",
-                "bg_color": "Background colour",
-                "outline_color": "Outline colour",
+                "text_color": "Text Color",
+                "bg_color": "Background Color",
+                "outline_color": "Outline Color",
                 "strip_sdh": "Strip SDH subtitles",
                 "color": {
                     "white": "White",
@@ -499,7 +499,8 @@
                     "near_black": "Near black",
                     "charcoal": "Charcoal",
                     "graphite": "Graphite"
-                }
+                },
+                "opacity": "Text Opacity"
             },
             "next_episode_mode": "Next Episode Threshold Mode",
             "next_episode_percent": "Threshold Percentage",
@@ -766,9 +767,9 @@
             "player_sub_bold": "Use bold font weight for subtitles.",
             "player_sub_outline": "Add outline around subtitle text for better visibility.",
             "player_sub_outline_width": "How thick the outline around subtitle text is drawn.",
-            "player_sub_text_color": "The colour of the subtitle text.",
-            "player_sub_bg_color": "The colour of the box behind the subtitle text.",
-            "player_sub_outline_color": "The colour of the outline around the subtitle text.",
+            "player_sub_text_color": "The color of the subtitle text.",
+            "player_sub_bg_color": "The color of the box behind the subtitle text.",
+            "player_sub_outline_color": "The color of the outline around the subtitle text.",
             "layout_show_hero": "Display hero carousel at top of home.",
             "layout_fullscreen_hero": "Expand the hero backdrop to fill the entire screen.",
             "layout_landscape_posters": "Switch between portrait and landscape cards.",
@@ -821,7 +822,8 @@
             "connections": "Add, switch or remove a server or addon connection.",
             "about": "Version, licences and the people behind the app.",
             "changelog": "What changed in this release and the ones before it.",
-            "release_checker": "Look for a newer release and install it."
+            "release_checker": "Look for a newer release and install it.",
+            "player_sub_opacity": "How solid the subtitle text is drawn over the picture."
         }
     },
     "hints": {

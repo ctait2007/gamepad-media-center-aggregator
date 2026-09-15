@@ -517,6 +517,22 @@ void SettingTab::onCreate() {
     };
     initSwatches(selectorSubTextColor, kTextColors, AppConfig::SUB_TEXT_COLOR, &MPVCore::SUB_TEXT_COLOR,
         "main/setting/playback/sub/text_color");
+    // NuvioTV keeps opacity separate from the colour swatch (subtitle_style_
+    // text_opacity), so picking a colour does not undo a chosen opacity.
+    std::vector<std::string> opacityLabels;
+    std::vector<int> opacityValues;
+    for (int v = 100; v >= 30; v -= 10) {
+        opacityLabels.push_back(fmt::format("{} %", v));
+        opacityValues.push_back(v);
+    }
+    selectorSubOpacity->init("main/setting/playback/sub/opacity"_i18n, opacityLabels,
+        indexOf(opacityValues, std::clamp(MPVCore::SUB_TEXT_OPACITY, 30, 100)),
+        [&conf, opacityValues, applySubs](int selected) {
+            MPVCore::SUB_TEXT_OPACITY = opacityValues[selected];
+            conf.setItem(AppConfig::SUB_TEXT_OPACITY, MPVCore::SUB_TEXT_OPACITY);
+            applySubs();
+        });
+
     initSwatches(selectorSubBgColor, kBgColors, AppConfig::SUB_BG_COLOR, &MPVCore::SUB_BG_COLOR,
         "main/setting/playback/sub/bg_color");
     initSwatches(selectorSubOutlineColor, kOutlineColors, AppConfig::SUB_OUTLINE_COLOR,

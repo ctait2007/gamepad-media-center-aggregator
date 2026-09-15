@@ -128,6 +128,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {SUB_TEXT_COLOR, {"sub_text_color"}},
     {SUB_BG_COLOR, {"sub_bg_color"}},
     {SUB_OUTLINE_COLOR, {"sub_outline_color"}},
+    {SUB_TEXT_OPACITY, {"sub_text_opacity"}},
     {AUTO_SKIP_INTRO, {"auto_skip_intro"}},
     {AUTO_SKIP_RECAP, {"auto_skip_recap"}},
     {AUTO_SKIP_OUTRO, {"auto_skip_outro"}},
@@ -458,6 +459,7 @@ bool AppConfig::init() {
     MPVCore::SUB_TEXT_COLOR = this->getItem(SUB_TEXT_COLOR, std::string("#FFFFFFFF"));
     MPVCore::SUB_BG_COLOR = this->getItem(SUB_BG_COLOR, std::string("#00000000"));
     MPVCore::SUB_OUTLINE_COLOR = this->getItem(SUB_OUTLINE_COLOR, std::string("#FF000000"));
+    MPVCore::SUB_TEXT_OPACITY = this->getItem(SUB_TEXT_OPACITY, 100);
     MPVCore::NEXT_EPISODE_MODE = this->getItem(NEXT_EPISODE_MODE, 0);
     MPVCore::NEXT_EPISODE_PERCENT = this->getItem(NEXT_EPISODE_PERCENT, 198);
     MPVCore::NEXT_EPISODE_MINUTES = this->getItem(NEXT_EPISODE_MINUTES, 4);

@@ -286,6 +286,7 @@ public:
         SUB_TEXT_COLOR,
         SUB_BG_COLOR,
         SUB_OUTLINE_COLOR,
+        SUB_TEXT_OPACITY,
         /// autoSkipSegmentTypes, one flag per AutoSkipSegmentType.
         AUTO_SKIP_INTRO,
         AUTO_SKIP_RECAP,

@@ -160,7 +160,14 @@ void MPVCore::applySubtitleStyle() {
     set("sub-pos", fmt::format("{}", 100 - std::clamp(SUB_OFFSET, -20, 50)));
     set("sub-bold", SUB_BOLD ? "yes" : "no");
     set("sub-border-size", SUB_OUTLINE ? fmt::format("{}", std::clamp(SUB_OUTLINE_WIDTH, 1, 5)) : "0");
-    set("sub-color", SUB_TEXT_COLOR);
+    // The swatches are opaque #AARRGGBB; the opacity setting replaces that
+    // alpha, so the two are independent the way the reference keeps them.
+    std::string textColor = SUB_TEXT_COLOR;
+    if (textColor.size() == 9) {
+        int alpha = std::clamp(SUB_TEXT_OPACITY, 10, 100) * 255 / 100;
+        textColor = fmt::format("#{:02X}{}", alpha, textColor.substr(3));
+    }
+    set("sub-color", textColor);
     set("sub-back-color", SUB_BG_COLOR);
     set("sub-border-color", SUB_OUTLINE_COLOR);
 }

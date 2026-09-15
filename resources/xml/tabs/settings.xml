@@ -477,6 +477,10 @@
                                     icon="palette"
                                     subtitle="@i18n/main/setting/sub/player_sub_text_color" />
                                 <SelectorCell
+                                    id="setting/player/sub_opacity"
+                                    icon="palette"
+                                    subtitle="@i18n/main/setting/sub/player_sub_opacity" />
+                                <SelectorCell
                                     id="setting/player/sub_bg_color"
                                     icon="palette"
                                     subtitle="@i18n/main/setting/sub/player_sub_bg_color" />
