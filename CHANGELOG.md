@@ -229,6 +229,13 @@ case rather than a shortage of effort:
   ratings are not fetched.
 - **Audio "Original" language** — needs TMDB's `original_language`, which no
   backend here carries.
+- **Where Discover lives** (`discoverLocation`: In Sidebar / In Search / Off).
+  This app puts Discover in the sidebar, which is one of the reference's three
+  — but not the one it defaults to, which is inside Search. Moving it there
+  means the Search screen hosting Discover's own filter pills and paginated
+  grid, and it changes navigation the viewer uses every day, so it is left as
+  it is rather than changed unasked. Worth a decision rather than an
+  assumption.
 - **Alternative home layouts** (Classic, Grid, Custom), **alternative settings
   layouts** (Minimal, Top Bar), **card depth**, the **Continue Watching card
   shapes**, the **expand-on-focus poster** and the **collapsing sidebar** —
