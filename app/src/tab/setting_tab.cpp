@@ -253,6 +253,19 @@ void SettingTab::onCreate() {
         conf.setItem(AppConfig::OSD_ON_TOGGLE, value);
     });
 
+    // AudioLanguageOption, minus its "original": that one reads TMDB's
+    // original_language, which nothing here carries.
+    int audioLangIdx = conf.getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default")) == "device" ? 1 : 0;
+    selectorAudioLang->init("main/setting/playback/audio_lang"_i18n,
+        {
+            "main/setting/playback/audio_lang_option/default"_i18n,
+            "main/setting/playback/audio_lang_option/device"_i18n,
+        },
+        audioLangIdx, [](int selected) {
+            AppConfig::instance().setItem(
+                AppConfig::PLAYER_AUDIO_LANG, std::string(selected == 1 ? "device" : "default"));
+        });
+
     btnOsdClock->init("main/setting/playback/osd_clock"_i18n, MPVCore::OSD_CLOCK, [&conf](bool value) {
         MPVCore::OSD_CLOCK = value;
         conf.setItem(AppConfig::OSD_CLOCK, value);

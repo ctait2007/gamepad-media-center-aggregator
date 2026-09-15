@@ -421,6 +421,11 @@
             "clip_point": "Show clip point of chapter",
             "transcodec": "Codec",
             "audio_channels": "Audio Channels",
+            "audio_lang": "Preferred audio language",
+            "audio_lang_option": {
+                "default": "The file's own",
+                "device": "App language"
+            },
             "video_quality": "Video Quality",
             "subsync": "Subtitle Sync",
             "next_episode_card": "Show \"up next\" near the end of an episode",

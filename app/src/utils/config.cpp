@@ -94,6 +94,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
     {LAYOUT_FULL_RELEASE_DATE, {"layout_full_release_date"}},
     {LAYOUT_CW_EPISODE_THUMBS, {"layout_cw_episode_thumbs"}},
+    {PLAYER_AUDIO_LANG, {"player_audio_lang", {"default", "device"}}},
     {OSD_CLOCK, {"osd_clock"}},
     {AMOLED_MODE, {"amoled_mode"}},
     {AMOLED_SURFACES, {"amoled_surfaces"}},

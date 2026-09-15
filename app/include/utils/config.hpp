@@ -188,6 +188,10 @@ public:
         /// use_episode_thumbnails_in_cw: an episode's own still on the
         /// Continue Watching tile, or the show's backdrop when off.
         LAYOUT_CW_EPISODE_THUMBS,
+        /// AudioLanguageOption: "default" (the file's own) or "device" (the
+        /// app's language). Its third, "original", wants TMDB's
+        /// original_language, which no backend here carries.
+        PLAYER_AUDIO_LANG,
         OSD_CLOCK,
         AMOLED_MODE,
         AMOLED_SURFACES,

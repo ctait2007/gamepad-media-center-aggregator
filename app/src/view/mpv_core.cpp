@@ -215,6 +215,15 @@ void MPVCore::init() {
     mpv_set_option_string(mpv, "video-timing-offset", "0");  // 60fps
     mpv_set_option_string(mpv, "reset-on-next-file", "speed,pause");
     mpv_set_option_string(mpv, "subs-fallback", SUBS_FALLBACK ? "yes" : "no");
+    // AudioLanguageOption. "default" leaves the file's own choice alone, which
+    // is why alang goes unset rather than being set to something; "device" asks
+    // for the app's language first and falls back to the file's when the track
+    // is not there, which is mpv's own behaviour for an unmatched alang.
+    if (AppConfig::instance().getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default")) == "device") {
+        std::string locale = brls::Application::getLocale();
+        std::string two = locale.substr(0, locale.find('-'));
+        if (!two.empty()) mpv_set_option_string(mpv, "alang", two.c_str());
+    }
     // SUBTITLE FACE. mpv's own defaults are a 55 px face with a 3 px outline,
     // which on a TV at this distance is a heavy black-edged wall of text. The
     // reference asks libass for an outline of 1 on everything that is not
