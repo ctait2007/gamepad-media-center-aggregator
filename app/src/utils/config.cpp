@@ -88,6 +88,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {LOADING_STAGES, {"loading_stages"}},
     {PAUSE_SCREEN, {"pause_screen"}},
     {NEXT_EPISODE_CARD, {"next_episode_card"}},
+    {INTRODB, {"introdb"}},
+    {INTRODB_AUTO_SKIP, {"introdb_auto_skip"}},
     {NEXT_EPISODE_MODE, {"next_episode_mode"}},
     {NEXT_EPISODE_PERCENT, {"next_episode_percent"}},
     {NEXT_EPISODE_MINUTES, {"next_episode_minutes"}},
@@ -389,6 +391,8 @@ bool AppConfig::init() {
     MPVCore::LOADING_STAGES = this->getItem(LOADING_STAGES, true);
     MPVCore::PAUSE_SCREEN = this->getItem(PAUSE_SCREEN, true);
     MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
+    MPVCore::INTRODB = this->getItem(INTRODB, true);
+    MPVCore::INTRODB_AUTO_SKIP = this->getItem(INTRODB_AUTO_SKIP, false);
     MPVCore::NEXT_EPISODE_MODE = this->getItem(NEXT_EPISODE_MODE, 0);
     MPVCore::NEXT_EPISODE_PERCENT = this->getItem(NEXT_EPISODE_PERCENT, 198);
     MPVCore::NEXT_EPISODE_MINUTES = this->getItem(NEXT_EPISODE_MINUTES, 4);

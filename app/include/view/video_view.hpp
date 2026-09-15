@@ -7,8 +7,12 @@
 #include <borealis.hpp>
 #include <utils/event.hpp>
 
+#include "api/introdb.hpp"
 #include "view/player_button.hpp"
 #include "view/player_screens.hpp"
+
+#include <set>
+#include <vector>
 
 class VideoProgressSlider;
 class SVGImage;
@@ -81,6 +85,11 @@ public:
     /// episode after this one by PlayerView; raised by tickNextEpisodeCard as
     /// the current one runs out.
     void setNextEpisode(const plex::Item& ep);
+
+    /// theintrodb.org's spans for the item playing now, handed over by
+    /// PlayerView once the lookup lands. Empty for anything the database has no
+    /// entry for, which is most things — every rule below falls back cleanly.
+    void setSkipIntervals(std::vector<introdb::SkipInterval> intervals);
 
     void hideVideoProgressSlider();
     void hideVideoQuality();
@@ -178,7 +187,12 @@ private:
 
     void tickNextEpisodeCard(double positionSec, double durationSec);
     bool nextCardHasFocus();
+    bool nextCardShown();
     void hideNextEpisodeCard();
+    void tickSkipButton(double positionSec, double durationSec);
+    void takeSkipInterval();
+    void hideSkipButton();
+    bool skipButtonHasFocus();
     void dismissNextEpisodeCard();
     bool toggleProfile();
     /// OSD
@@ -230,6 +244,18 @@ private:
     LoadingScreen* loadingScreen = nullptr;
     PauseScreen* pauseScreen = nullptr;
     NextEpisodeCard* nextCard = nullptr;
+    SkipButton* skipButton = nullptr;
+    /// The markers for the item playing now, in start order.
+    std::vector<introdb::SkipInterval> skipIntervals;
+    /// The span the position is inside, or -1. Index into skipIntervals.
+    int activeSkipIndex = -1;
+    /// Circle put the button away for this span.
+    bool skipDismissed = false;
+    /// When the button came up, for the reference's 10 s auto-hide.
+    brls::Time skipShownAt = 0;
+    /// Spans already auto-skipped, so seeking back into one does not fight the
+    /// viewer — the reference's autoSkippedIntervalKeys.
+    std::set<int> autoSkipped;
     /// The stream has reported a position away from its end at least once.
     bool nextCardArmed = false;
     /// Circle put the card away for this episode.

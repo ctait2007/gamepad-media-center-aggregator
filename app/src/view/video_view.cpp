@@ -51,6 +51,11 @@ VideoView::VideoView() {
                 this->dismissNextEpisodeCard();
                 return true;
             }
+            if (this->skipButton && this->skipButton->shown()) {
+                this->skipDismissed = true;
+                this->hideSkipButton();
+                return true;
+            }
             if (this->pauseScreenShown()) {
                 this->cancelPauseScreen();
                 // Still paused, so the bar it hands back is pinned open too.
@@ -355,6 +360,9 @@ VideoView::VideoView() {
     this->addView(this->pauseScreen);
     this->nextCard = new NextEpisodeCard();
     this->addView(this->nextCard);
+    this->skipButton = new SkipButton();
+    this->addView(this->skipButton);
+    this->skipButton->onSkip([this]() { this->takeSkipInterval(); });
     // Select ON THE CARD plays the next episode: registered on the card, so it
     // only ever fires while the card holds focus.
     this->nextCard->onPlay([this]() {
@@ -455,6 +463,13 @@ void VideoView::setPlayIndex(int index) {
     this->nextCardArmed = false;
     this->nextCardDismissed = false;
     if (this->nextCard) this->nextCard->hide();
+    // The markers belong to the file that was playing; PlayerView hands over
+    // the new ones when its lookup lands.
+    this->skipIntervals.clear();
+    this->activeSkipIndex = -1;
+    this->skipDismissed = false;
+    this->autoSkipped.clear();
+    if (this->skipButton) this->skipButton->hide();
     this->btnNext->setVisibility(
         index + 1 < this->playListSize ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
 }
@@ -555,10 +570,15 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
         // the card cannot tell the two apart and neither can the viewer.
         this->isOsdShown = false;
         if (this->nextCard) this->nextCard->setOsdVisible(false);
+        if (this->skipButton) this->skipButton->setOsdVisible(false);
         // 当焦点位于video组件内部重新赋予焦点，用来隐藏屏幕上的高亮框
         if (isChildFocused()) {
+            // "Up next" first: the reference suppresses the skip button's own
+            // focus request whenever the post-play card is up (its suppressFocus).
             if (this->nextCard && this->nextCard->shown())
                 brls::Application::giveFocus(this->nextCard);
+            else if (this->skipButton && this->skipButton->shown())
+                brls::Application::giveFocus(this->skipButton);
             else
                 brls::Application::giveFocus(this);
         }
@@ -622,6 +642,7 @@ void VideoView::draw(NVGcontext* vg, float x, float y, float w, float h, brls::S
     if (loadingScreen->getVisibility() == brls::Visibility::VISIBLE) loadingScreen->frame(ctx);
     if (pauseScreen->getVisibility() == brls::Visibility::VISIBLE) pauseScreen->frame(ctx);
     if (nextCard->getVisibility() == brls::Visibility::VISIBLE) nextCard->frame(ctx);
+    if (skipButton->getVisibility() == brls::Visibility::VISIBLE) skipButton->frame(ctx);
 }
 
 void VideoView::invalidate() { View::invalidate(); }
@@ -632,7 +653,7 @@ void VideoView::onChildFocusGained(View* directChild, View* focusedView) {
     // control at that point, as the reference's Card is. Without this the
     // bounce below takes the focus straight back off it and the card lights up
     // for a frame and then goes dead.
-    if (directChild == this->nextCard) return;
+    if (directChild == this->nextCard || directChild == this->skipButton) return;
     // 只有在全屏显示OSD时允许OSD组件获取焦点
     if (this->isOsdShown) {
         // 当弹幕按钮隐藏时不可获取焦点
@@ -715,6 +736,7 @@ void VideoView::registerMpvEvent() {
                 this->updateTime(mpv.video_progress, mpv.duration);
                 this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
             }
+            this->tickSkipButton(mpv.playback_time, mpv.duration);
             this->tickNextEpisodeCard(mpv.playback_time, mpv.duration);
             break;
         case MpvEventEnum::END_OF_FILE:
@@ -813,6 +835,7 @@ void VideoView::showOSD(bool autoHide) {
     // 122 dp bottom padding does. Set HERE rather than in draw(): showOSD marks
     // the bar shown itself, so draw's "it just came up" branch never runs.
     if (this->nextCard) this->nextCard->setOsdVisible(true);
+    if (this->skipButton) this->skipButton->setOsdVisible(true);
     if (autoHide) {
         this->osdLastShowTime = brls::getCPUTimeUsec() + VideoView::OSD_SHOW_TIME;
         this->osdState = OSDState::SHOWN;
@@ -871,26 +894,72 @@ namespace {
 constexpr double kNextNearEndSec = 0.5;
 constexpr double kNextEndEpsilonSec = 1.0;
 
-/// shouldShowNextEpisodeCard, no-marker branch.
-bool nextEpisodeThresholdMet(double positionSec, double durationSec) {
+/// OUTRO_SEGMENT_TYPES. introdb.cpp normalises v3's "credits" to "outro", so
+/// the reference's own set is the whole membership test.
+bool isOutro(const std::string& type) { return type == "outro" || type == "ed" || type == "mixed-ed"; }
+
+/// A span's end, with "runs to the end of the file" closed against the length
+/// mpv is reporting. theintrodb.org records most credits that way and nothing
+/// before the file is open knows the number — a Stremio episode carries no
+/// duration in its metadata at all.
+double skipEnd(const introdb::SkipInterval& iv, double durationSec) {
+    return iv.endTime < 0 ? durationSec : iv.endTime;
+}
+
+/// The threshold the viewer set, as seconds from the end.
+double userThresholdSec(double durationSec) {
+    if (MPVCore::NEXT_EPISODE_MODE == 1) return std::clamp(MPVCore::NEXT_EPISODE_MINUTES / 2.0, 0.0, 3.5) * 60.0;
+    double percent = std::clamp(MPVCore::NEXT_EPISODE_PERCENT / 2.0, 97.0, 100.0);
+    return (1.0 - percent / 100.0) * durationSec;
+}
+
+/// Whether the threshold alone says the card is due.
+bool thresholdMet(double positionSec, double durationSec) {
+    if (MPVCore::NEXT_EPISODE_MODE == 1) {
+        return durationSec - positionSec <= std::clamp(MPVCore::NEXT_EPISODE_MINUTES / 2.0, 0.0, 3.5) * 60.0;
+    }
+    double percent = std::clamp(MPVCore::NEXT_EPISODE_PERCENT / 2.0, 97.0, 100.0);
+    return positionSec / durationSec >= percent / 100.0;
+}
+
+/// shouldShowNextEpisodeCard, in full.
+///
+/// With outro markers it fires at the outro; without them it falls back to the
+/// threshold. The two-step inside the outro branch is the reference's own and
+/// is the point of the whole thing: when the credits end WELL BEFORE the file
+/// does (a stinger, a "next time on"), the gap after them is wider than the
+/// threshold and the card waits for the threshold as usual; when they run to
+/// the end of the file — which is what theintrodb.org records for most
+/// episodes, as an open-ended span — the gap is nothing and the card comes up
+/// the moment the credits START.
+bool nextEpisodeDue(
+    double positionSec, double durationSec, const std::vector<introdb::SkipInterval>& intervals) {
     if (durationSec <= 0) return false;
     // "A duration below the current position is not a valid end-of-video
     // signal" — mpv reports one every time a file is opened, before it knows
     // how long the new one is.
     if (positionSec > durationSec + kNextEndEpsilonSec) return false;
 
-    if (MPVCore::NEXT_EPISODE_MODE == 1) {
-        double minutes = std::clamp(MPVCore::NEXT_EPISODE_MINUTES / 2.0, 0.0, 3.5);
-        return durationSec - positionSec <= minutes * 60.0;
+    double latestOutroEnd = -1, earliestOutroStart = 0;
+    for (const auto& iv : intervals) {
+        if (!isOutro(iv.type)) continue;
+        if (latestOutroEnd < 0 || iv.startTime < earliestOutroStart) earliestOutroStart = iv.startTime;
+        latestOutroEnd = std::max(latestOutroEnd, skipEnd(iv, durationSec));
     }
-    double percent = std::clamp(MPVCore::NEXT_EPISODE_PERCENT / 2.0, 97.0, 100.0);
-    return positionSec / durationSec >= percent / 100.0;
+
+    if (latestOutroEnd >= 0) {
+        double postOutroGap = durationSec - latestOutroEnd;
+        if (postOutroGap > userThresholdSec(durationSec)) return thresholdMet(positionSec, durationSec);
+        return positionSec >= earliestOutroStart;
+    }
+    return thresholdMet(positionSec, durationSec);
 }
 
 /// isAwayFromEnd: a reading clearly before the end AND outside the window.
-bool nextEpisodeAwayFromEnd(double positionSec, double durationSec) {
+bool nextEpisodeAwayFromEnd(
+    double positionSec, double durationSec, const std::vector<introdb::SkipInterval>& intervals) {
     return durationSec > 0 && positionSec < durationSec - kNextNearEndSec &&
-           !nextEpisodeThresholdMet(positionSec, durationSec);
+           !nextEpisodeDue(positionSec, durationSec, intervals);
 }
 }  // namespace
 
@@ -907,14 +976,14 @@ void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
     // it a file whose first report lands at the duration — a resume at the very
     // end, an open before mpv knows the length — puts the card up as it opens.
     if (!this->nextCardArmed) {
-        if (nextEpisodeAwayFromEnd(positionSec, durationSec)) {
+        if (nextEpisodeAwayFromEnd(positionSec, durationSec, this->skipIntervals)) {
             this->nextCardArmed = true;
             brls::Logger::debug("VideoView: up next armed at {:.0f}/{:.0f}s", positionSec, durationSec);
         }
         return;
     }
 
-    if (!nextEpisodeThresholdMet(positionSec, durationSec)) {
+    if (!nextEpisodeDue(positionSec, durationSec, this->skipIntervals)) {
         // Seeking back out of the window takes the card away again — and hands
         // focus back, since it was holding it.
         this->hideNextEpisodeCard();
@@ -924,9 +993,13 @@ void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
     // Anything full-screen owns the screen while it is up.
     if (this->pauseScreenShown() || this->loadingScreen->shown()) return;
 
+    bool byOutro = false;
+    for (const auto& iv : this->skipIntervals) byOutro = byOutro || isOutro(iv.type);
     brls::Logger::debug("VideoView: up next at {:.0f}/{:.0f}s ({})", positionSec, durationSec,
-        MPVCore::NEXT_EPISODE_MODE == 1 ? fmt::format("{:.1f} min before end", MPVCore::NEXT_EPISODE_MINUTES / 2.0)
-                                        : fmt::format("{:.1f}%", MPVCore::NEXT_EPISODE_PERCENT / 2.0));
+        byOutro ? std::string("outro marker")
+        : MPVCore::NEXT_EPISODE_MODE == 1
+            ? fmt::format("{:.1f} min before end", MPVCore::NEXT_EPISODE_MINUTES / 2.0)
+            : fmt::format("{:.1f}%", MPVCore::NEXT_EPISODE_PERCENT / 2.0));
 
     this->nextCard->setOsdVisible(this->isOsdShown);
     this->nextCard->show();
@@ -937,6 +1010,118 @@ void VideoView::tickNextEpisodeCard(double positionSec, double durationSec) {
 }
 
 void VideoView::setNextEpisode(const plex::Item& ep) { this->nextCard->setEpisode(ep); }
+
+bool VideoView::nextCardShown() { return this->nextCard && this->nextCard->shown(); }
+
+/// ---- the skip button ------------------------------------------------------
+///
+/// SkipIntroButton.kt's rules: it appears while the position is inside a span,
+/// it takes itself away again after 10 seconds, circle puts it away for that
+/// span, and the controls coming up bring it back (and pause its countdown).
+
+void VideoView::setSkipIntervals(std::vector<introdb::SkipInterval> intervals) {
+    for (const auto& iv : intervals)
+        brls::Logger::debug("VideoView: marker {} {:.0f}s..{}", iv.type, iv.startTime,
+            iv.endTime < 0 ? std::string("end") : fmt::format("{:.0f}s", iv.endTime));
+    this->skipIntervals = std::move(intervals);
+    this->activeSkipIndex = -1;
+    this->skipDismissed = false;
+    this->autoSkipped.clear();
+    this->hideSkipButton();
+}
+
+bool VideoView::skipButtonHasFocus() {
+    if (!this->skipButton) return false;
+    for (brls::View* v = brls::Application::getCurrentFocus(); v; v = v->getParent())
+        if (v == this->skipButton) return true;
+    return false;
+}
+
+void VideoView::hideSkipButton() {
+    if (!this->skipButton || !this->skipButton->shown()) return;
+    bool hadFocus = this->skipButtonHasFocus();
+    this->skipButton->hide();
+    if (hadFocus) brls::Application::giveFocus(this);
+}
+
+/// Take the offer: seek to the end of the span, as the reference's skipInterval
+/// does, and put the button away without offering it again.
+void VideoView::takeSkipInterval() {
+    if (this->activeSkipIndex < 0 || this->activeSkipIndex >= (int)this->skipIntervals.size()) return;
+    const auto& iv = this->skipIntervals[this->activeSkipIndex];
+    double end = skipEnd(iv, MPVCore::instance().duration);
+    brls::Logger::debug("VideoView: skip {} -> {:.0f}s", iv.type, end);
+    this->autoSkipped.insert(this->activeSkipIndex);
+    this->skipDismissed = true;
+    this->hideSkipButton();
+    MPVCore::instance().seek((int64_t)end, "absolute");
+}
+
+void VideoView::tickSkipButton(double positionSec, double durationSec) {
+    if (!this->skipButton) return;
+    if (this->skipIntervals.empty()) {
+        this->hideSkipButton();
+        return;
+    }
+
+    // findActiveSkipInterval: the span the position is inside, if any.
+    int active = -1;
+    for (size_t i = 0; i < this->skipIntervals.size(); i++) {
+        const auto& iv = this->skipIntervals[i];
+        if (positionSec < iv.startTime || positionSec >= skipEnd(iv, durationSec)) continue;
+        active = (int)i;
+        break;
+    }
+
+    if (active != this->activeSkipIndex) {
+        // A new span resets the dismissal and the countdown, as the reference's
+        // LaunchedEffect(interval.startTime, interval.type) does.
+        this->activeSkipIndex = active;
+        this->skipDismissed = false;
+        this->skipShownAt = brls::getCPUTimeUsec();
+        this->hideSkipButton();
+        if (active >= 0) this->skipButton->setSegmentType(this->skipIntervals[active].type);
+    }
+    if (active < 0) return;
+
+    // Skip it outright when the viewer asked for that — autoSkipSegmentTypes,
+    // as one switch rather than a set, and once per span so that seeking back
+    // into one does not fight them.
+    if (MPVCore::INTRODB_AUTO_SKIP && !this->autoSkipped.count(active)) {
+        this->takeSkipInterval();
+        return;
+    }
+
+    // The 10 s auto-hide. It does not run while the controls are up — the
+    // reference gates its animation on !controlsVisible — and the controls
+    // coming up bring an auto-hidden button back.
+    constexpr int64_t kAutoHideUs = 10 * 1000000;
+    int64_t elapsed = brls::getCPUTimeUsec() - this->skipShownAt;
+    bool autoHidden = elapsed >= kAutoHideUs;
+    if (this->isOsdShown) {
+        // Pinned open: hold the countdown where it is rather than letting it
+        // run out behind the bar.
+        this->skipShownAt = brls::getCPUTimeUsec() - std::min(elapsed, kAutoHideUs);
+        autoHidden = false;
+    }
+
+    bool shouldShow = (!this->skipDismissed || this->isOsdShown) && (!autoHidden || this->isOsdShown);
+    if (!shouldShow) {
+        this->hideSkipButton();
+        return;
+    }
+
+    this->skipButton->setCountdownVisible(!this->isOsdShown && !this->skipDismissed);
+    this->skipButton->setProgress(this->isOsdShown ? 0.f : (float)elapsed / (float)kAutoHideUs);
+    if (this->skipButton->shown()) return;
+
+    if (this->pauseScreenShown() || this->loadingScreen->shown()) return;
+    this->skipButton->setOsdVisible(this->isOsdShown);
+    this->skipButton->show();
+    // Focus, unless "up next" has it — the reference's suppressFocus is exactly
+    // "the post-play card is up".
+    if (!this->isOsdShown && !this->nextCardShown()) brls::Application::giveFocus(this->skipButton);
+}
 
 /// Take the card down, and give focus back to the video if the card had it —
 /// leaving it on a hidden view is how the player stops answering buttons.
@@ -1007,6 +1192,15 @@ void VideoView::tickPauseScreen(brls::Time current) {
 void VideoView::hideOSD() {
     this->osdLastShowTime = 0;
     this->osdState = OSDState::HIDDEN;
+    if (this->skipButton) {
+        this->skipButton->setOsdVisible(false);
+        // The countdown is paused while the controls are up, as the reference
+        // pauses its animation; it restarts from where it stopped.
+        if (this->skipButton->shown() && !this->nextCardShown()) {
+            this->skipShownAt = brls::getCPUTimeUsec();
+            brls::Application::giveFocus(this->skipButton);
+        }
+    }
     if (!this->nextCard) return;
     this->nextCard->setOsdVisible(false);
     // The bar going away is the reference's controlsVisible turning false, and

@@ -8,6 +8,7 @@
 #include <cstdlib>
 
 #include "activity/player_view.hpp"
+#include "api/introdb.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
 #include "api/http.hpp"
@@ -235,6 +236,7 @@ void PlayerView::setSeries(const std::string& showRatingKey) {
             view->setList(values, index);
             this->episodes = std::move(r.Items);
             this->updateNextEpisode();
+            this->resolveSkipMarkers();
             // The sheet draws each episode's still, title, air date and
             // synopsis, so it needs the items themselves — which live here.
             std::string show = this->item.grandparentTitle.empty() ? this->item.title : this->item.grandparentTitle;
@@ -278,6 +280,7 @@ bool PlayerView::playIndex(int index) {
     this->preferredVersion = -1;  // binge: auto-pick the best source for the new episode
     this->playMedia(0);
     this->updateNextEpisode();
+    this->resolveSkipMarkers();
     view->setTitie(next.grandparentTitle.empty()
                        ? fmt::format("S{}E{} — {}", next.parentIndex, next.index, next.title)
                        : fmt::format("{} · S{}E{} — {}", next.grandparentTitle, next.parentIndex, next.index,
@@ -314,6 +317,7 @@ void PlayerView::switchTo(const plex::Item& ep, const std::vector<plex::Media>& 
     for (size_t i = 0; i < this->episodes.size(); i++)
         if (this->episodes[i].ratingKey == ep.ratingKey) this->view->setPlayIndex((int)i);
     this->updateNextEpisode();
+    this->resolveSkipMarkers();
 }
 
 /// Hand the player the episode after the one playing, for the "up next" card.
@@ -325,6 +329,27 @@ void PlayerView::updateNextEpisode() {
         this->view->setNextEpisode(this->episodes[i + 1]);
         return;
     }
+}
+
+/// Look the played item's intro/credits markers up on theintrodb.org.
+///
+/// Best effort and entirely off the critical path: the player starts without
+/// waiting, most items have no entry, and an item that does gets its skip
+/// button and its outro-accurate "up next" the moment the lookup lands.
+void PlayerView::resolveSkipMarkers() {
+    const std::string& key = this->item.ratingKey;
+    if (key.empty() || key == this->skipMarkersItem) return;
+    this->skipMarkersItem = key;
+    this->view->setSkipIntervals({});
+
+    ASYNC_RETAIN
+    introdb::fetch(this->item, this->item.duration / 1000.0,
+        [ASYNC_TOKEN, key](std::vector<introdb::SkipInterval> intervals) {
+            ASYNC_RELEASE
+            // A newer switch superseded this lookup -> its result is stale.
+            if (key != this->skipMarkersItem) return;
+            this->view->setSkipIntervals(std::move(intervals));
+        });
 }
 
 /// NuvioTV splits the player's identity across three lines rather than one

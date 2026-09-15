@@ -30,6 +30,7 @@
 #include "view/hub_visibility_manager.hpp"
 #include "view/settings_nav_item.hpp"
 #include "api/plex.hpp"
+#include "api/introdb.hpp"
 #include "api/media/langs.hpp"
 #include "utils/dialog.hpp"
 
@@ -271,6 +272,22 @@ void SettingTab::onCreate() {
         "main/setting/playback/next_episode_card"_i18n, MPVCore::NEXT_EPISODE_CARD, [&conf](bool value) {
             MPVCore::NEXT_EPISODE_CARD = value;
             conf.setItem(AppConfig::NEXT_EPISODE_CARD, value);
+        });
+
+    // theintrodb.org, the marker source behind the reference's skip button and
+    // the outro half of its "up next" rule. Its read API needs no key, so
+    // unlike the reference — which gates on a build-time INTRODB_API_URL — this
+    // is simply on.
+    btnIntroDb->init("main/setting/playback/introdb"_i18n, MPVCore::INTRODB, [&conf](bool value) {
+        MPVCore::INTRODB = value;
+        conf.setItem(AppConfig::INTRODB, value);
+        if (!value) introdb::clearCache();
+    });
+
+    btnIntroDbAutoSkip->init(
+        "main/setting/playback/introdb_auto_skip"_i18n, MPVCore::INTRODB_AUTO_SKIP, [&conf](bool value) {
+            MPVCore::INTRODB_AUTO_SKIP = value;
+            conf.setItem(AppConfig::INTRODB_AUTO_SKIP, value);
         });
 
     // When "up next" comes up: the reference's three PlayerSettingsDataStore

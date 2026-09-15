@@ -7,6 +7,7 @@
 */
 
 #include "view/player_screens.hpp"
+#include "view/player_button.hpp"
 #include "view/player_panel.hpp"
 #include "view/svg_image.hpp"
 #include "utils/image.hpp"
@@ -492,3 +493,148 @@ void NextEpisodeCard::setOsdVisible(bool visible) {
 void NextEpisodeCard::show() { this->setVisibility(brls::Visibility::VISIBLE); }
 
 void NextEpisodeCard::hide() { this->setVisibility(brls::Visibility::GONE); }
+
+// ---- SkipButton ---------------------------------------------------------
+//
+// SkipIntroButton.kt at its own numbers: 0xFF1E1E1E at 85% (the accent, with a
+// dark glyph and label on it, when focused), a 12 dp corner, 18 dp of
+// horizontal and 12 dp of vertical padding around a 20 dp glyph, an 8 dp gap
+// and a 14 sp label; then a 4 dp strip across the bottom, white at 15% behind
+// the elapsed part of the 10 s auto-hide.
+//
+// Bottom LEFT, where the reference puts it — opposite "up next", which is why
+// the two can be on screen together without either having to move.
+
+namespace {
+constexpr float kSkipRadius = 24, kSkipPadX = 36, kSkipPadY = 24;
+constexpr float kSkipGlyph = 40, kSkipStrip = 8;
+constexpr float kSkipLeft = 52, kSkipBottomOsd = 244, kSkipBottomBare = 60;
+
+std::string svgHex(NVGcolor c) {
+    auto to8 = [](float f) {
+        int v = (int)(f * 255.0f + 0.5f);
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    };
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", to8(c.r), to8(c.g), to8(c.b));
+    return buf;
+}
+}  // namespace
+
+SkipButton::SkipButton() {
+    this->setPositionType(brls::PositionType::ABSOLUTE);
+    this->setPositionTop(0);
+    this->setPositionLeft(0);
+    this->setWidth(brls::Application::contentWidth);
+    this->setHeight(brls::Application::contentHeight);
+    this->setVisibility(brls::Visibility::GONE);
+
+    this->button = new brls::Box();
+    this->button->setPositionType(brls::PositionType::ABSOLUTE);
+    this->button->setPositionLeft(kSkipLeft);
+    this->button->setPositionBottom(kSkipBottomBare);
+    this->button->setAxis(brls::Axis::COLUMN);
+    this->button->setCornerRadius(kSkipRadius);
+    this->button->setHighlightCornerRadius(kSkipRadius + 4);
+    this->button->setFocusable(true);
+    // The reference recolours the card itself on focus rather than ringing it,
+    // so borealis must not paint its own fill over ours.
+    this->button->setHideHighlightBackground(true);
+    this->addView(this->button);
+
+    auto* row = new brls::Box();
+    row->setAxis(brls::Axis::ROW);
+    row->setAlignItems(brls::AlignItems::CENTER);
+    row->setPadding(kSkipPadY, kSkipPadX, kSkipPadY, kSkipPadX);
+    this->button->addView(row);
+
+    this->glyph = new SVGImage();
+    this->glyph->setDimensions(kSkipGlyph, kSkipGlyph);
+    this->glyph->setShrink(0);
+    this->glyph->setMarginRight(16);
+    row->addView(this->glyph);
+
+    this->textLabel = label(28, nvgRGB(255, 255, 255));
+    this->textLabel->setFontWeight("medium");
+    row->addView(this->textLabel);
+
+    // The countdown, under the row and running its full width.
+    this->track = new brls::Box();
+    this->track->setHeight(kSkipStrip);
+    this->track->setBackgroundColor(nvgRGBA(255, 255, 255, 38));  // white 15 %
+    this->button->addView(this->track);
+
+    this->fill = new brls::Box();
+    this->fill->setHeight(kSkipStrip);
+    this->fill->setWidth(0);
+    this->fill->setBackgroundColor(nvgRGBA(0x1E, 0x1E, 0x1E, 217));
+    this->track->addView(this->fill);
+
+    this->render();
+}
+
+void SkipButton::render() {
+    NVGcolor accent = brls::Application::getTheme().getColor("color/app");
+    NVGcolor ink = this->focused ? nvgRGB(10, 10, 10) : nvgRGB(255, 255, 255);
+    this->button->setBackgroundColor(this->focused ? accent : nvgRGBA(0x1E, 0x1E, 0x1E, 217));
+    this->textLabel->setTextColor(ink);
+    char svg[512];
+    std::snprintf(svg, sizeof(svg),
+        R"(<svg width="24" height="24" viewBox="0 0 24 24"><path d="%s" fill="%s"/></svg>)",
+        player_icon::SKIP_NEXT, svgHex(ink).c_str());
+    this->glyph->setImageFromSVGString(svg);
+}
+
+void SkipButton::draw(
+    NVGcontext* vg, float x, float y, float w, float h, brls::Style style, brls::FrameContext* ctx) {
+    bool now = brls::Application::getCurrentFocus() == this->button;
+    if (now != this->focused) {
+        this->focused = now;
+        this->render();
+    }
+    brls::Box::draw(vg, x, y, w, h, style, ctx);
+}
+
+void SkipButton::setSegmentType(const std::string& type) {
+    // getSkipLabel's own mapping, over the vocabulary SkipIntroRepository
+    // normalises every provider into.
+    std::string key = "main/player/skip/generic";
+    if (type == "intro" || type == "op" || type == "mixed-op" || type == "opening")
+        key = "main/player/skip/intro";
+    else if (type == "outro" || type == "ed" || type == "mixed-ed" || type == "credits" || type == "ending")
+        key = "main/player/skip/ending";
+    else if (type == "recap")
+        key = "main/player/skip/recap";
+    this->textLabel->setText(brls::getStr(key));
+}
+
+void SkipButton::setProgress(float progress) {
+    if (progress < 0) progress = 0;
+    if (progress > 1) progress = 1;
+    // Against the button's measured width rather than a percentage of it: the
+    // row decides how wide this is and yoga has already sized it by now.
+    float width = this->button->getWidth();
+    this->fill->setWidth(width > 0 ? width * progress : 0);
+}
+
+void SkipButton::setCountdownVisible(bool visible) {
+    this->track->setVisibility(visible ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+}
+
+void SkipButton::onSkip(std::function<void()> cb) {
+    this->button->registerClickAction([cb](brls::View*) {
+        cb();
+        return true;
+    });
+    this->button->addGestureRecognizer(new brls::TapGestureRecognizer(this->button));
+}
+
+brls::View* SkipButton::getDefaultFocus() { return this->button; }
+
+void SkipButton::setOsdVisible(bool visible) {
+    this->button->setPositionBottom(visible ? kSkipBottomOsd : kSkipBottomBare);
+}
+
+void SkipButton::show() { this->setVisibility(brls::Visibility::VISIBLE); }
+
+void SkipButton::hide() { this->setVisibility(brls::Visibility::GONE); }

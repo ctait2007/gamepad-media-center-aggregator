@@ -22,6 +22,7 @@
 
 #include <borealis.hpp>
 #include <api/plex/types.hpp>
+#include <view/svg_image.hpp>
 
 #include <functional>
 #include <string>
@@ -109,4 +110,49 @@ private:
     brls::Box* card = nullptr;
     brls::Image* still = nullptr;
     brls::Label* titleLabel = nullptr;
+};
+
+/// "Skip Intro" / "Skip Recap" / "Skip Ending": NuvioTV's SkipIntroButton, at
+/// its own numbers — bottom left, 0xFF1E1E1E at 85% going to the accent on
+/// focus, a 12 dp corner, a skip-next glyph and a 14 sp label, and under them
+/// the countdown strip that runs the 10 s it stays up for.
+///
+/// Focusable, like "up next" and for the same reason: it takes focus while the
+/// controls are down, because it is the only control on the screen then.
+class SkipButton : public brls::Box {
+public:
+    SkipButton();
+
+    /// Which span is being offered — sets the wording, as the reference's
+    /// getSkipLabel does off the same vocabulary.
+    void setSegmentType(const std::string& type);
+
+    /// 0..1 of the auto-hide elapsed; drives the strip. The reference stops the
+    /// countdown while the controls are up, so the caller decides when to move.
+    void setProgress(float progress);
+    /// The strip is only drawn while the button is counting itself down.
+    void setCountdownVisible(bool visible);
+
+    void onSkip(std::function<void()> cb);
+    brls::View* getDefaultFocus() override;
+
+    /// Above the OSD while it is up, at the frame edge while it is not.
+    void setOsdVisible(bool visible);
+
+    void show();
+    void hide();
+    bool shown() { return this->getVisibility() == brls::Visibility::VISIBLE; }
+
+    void draw(NVGcontext* vg, float x, float y, float w, float h, brls::Style style,
+        brls::FrameContext* ctx) override;
+
+private:
+    void render();
+
+    brls::Box* button = nullptr;
+    SVGImage* glyph = nullptr;
+    brls::Label* textLabel = nullptr;
+    brls::Box* track = nullptr;
+    brls::Box* fill = nullptr;
+    bool focused = false;
 };

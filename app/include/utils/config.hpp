@@ -165,6 +165,9 @@ public:
         NEXT_EPISODE_CARD,
         /// When it comes up (nextEpisodeThresholdMode / ...Percent /
         /// ...MinutesBeforeEnd). See MPVCore for the doubled-integer encoding.
+        /// theintrodb.org markers, and whether they skip themselves.
+        INTRODB,
+        INTRODB_AUTO_SKIP,
         NEXT_EPISODE_MODE,
         NEXT_EPISODE_PERCENT,
         NEXT_EPISODE_MINUTES,

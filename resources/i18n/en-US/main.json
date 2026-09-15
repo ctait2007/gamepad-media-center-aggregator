@@ -113,6 +113,12 @@
         "up_next": {
             "label": "Next Episode",
             "play": "Play"
+        },
+        "skip": {
+            "intro": "Skip Intro",
+            "ending": "Skip Ending",
+            "recap": "Skip Recap",
+            "generic": "Skip"
         }
     },
     "media": {
@@ -399,6 +405,8 @@
             "video_quality": "Video Quality",
             "subsync": "Subtitle Sync",
             "next_episode_card": "Show \"up next\" near the end of an episode",
+            "introdb": "Use theintrodb.org for intro and credits markers",
+            "introdb_auto_skip": "Skip intros and credits automatically",
             "next_episode_mode": "Next episode threshold mode",
             "next_episode_percent": "Threshold percentage",
             "next_episode_minutes": "Threshold minutes",

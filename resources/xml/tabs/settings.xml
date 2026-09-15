@@ -199,6 +199,10 @@
                                 id="setting/player/pause_screen" />
                             <brls:BooleanCell
                                 id="setting/player/next_episode_card" />
+                            <brls:BooleanCell
+                                id="setting/player/introdb" />
+                            <brls:BooleanCell
+                                id="setting/player/introdb_auto_skip" />
                             <brls:SelectorCell
                                 id="setting/player/next_episode_mode" />
                             <brls:SelectorCell

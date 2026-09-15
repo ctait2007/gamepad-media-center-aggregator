@@ -169,6 +169,14 @@ public:
     ///   MODE     0 = percentage of the episode, 1 = minutes before the end
     ///   PERCENT  halves of a percent, clamped 194..200 -> 97..100 %
     ///   MINUTES  halves of a minute, clamped 0..7 -> 0..3.5 min
+    /// Look intro/outro markers up on theintrodb.org. Its read API takes no
+    /// key; this is the reference's own INTRODB_API_URL gate, as a setting
+    /// rather than a build flag.
+    inline static bool INTRODB = true;
+    /// Skip an intro/recap/outro as soon as it starts, instead of offering the
+    /// button. Off, as the reference's autoSkipSegmentTypes starts empty.
+    inline static bool INTRODB_AUTO_SKIP = false;
+
     inline static int NEXT_EPISODE_MODE = 0;
     inline static int NEXT_EPISODE_PERCENT = 198;  // 99 %
     inline static int NEXT_EPISODE_MINUTES = 4;    // 2 min
