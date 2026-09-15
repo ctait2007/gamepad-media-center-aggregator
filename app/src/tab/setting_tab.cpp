@@ -736,6 +736,32 @@ void SettingTab::onCreate() {
         MPVCore::instance().restart();
     });
 
+    // ---- Advanced / Performance & navigation, and Advanced / Diagnostics,
+    // the reference's own two groups (AdvancedSettingsContent).
+
+    // fastHorizontalNavigationEnabled. The gate is read once, at startup, the
+    // way the reference reads it into its composition local — so this lands on
+    // the next launch, like poster titles and card width.
+    btnFastHorizontalNav->init("main/setting/advanced/fast_horizontal_nav"_i18n,
+        conf.getItem(AppConfig::FAST_HORIZONTAL_NAV, false), [&conf](bool value) {
+            conf.setItem(AppConfig::FAST_HORIZONTAL_NAV, value);
+            Dialog::quitApp();
+        });
+
+    // startupSplashEnabled. Read by LoadingActivity as it is built, so no
+    // restart is needed — but the screen it affects is only shown at startup.
+    btnStartupSplash->init("main/setting/advanced/startup_splash"_i18n,
+        conf.getItem(AppConfig::STARTUP_SPLASH, true),
+        [&conf](bool value) { conf.setItem(AppConfig::STARTUP_SPLASH, value); });
+
+    // playerStatsHudEnabled — the row in Stream Information, not the overlay
+    // itself, which keeps its own keybind either way.
+    btnPlayerStatsHud->init("main/setting/advanced/player_stats_hud"_i18n, MPVCore::PLAYER_STATS_HUD,
+        [&conf](bool value) {
+            MPVCore::PLAYER_STATS_HUD = value;
+            conf.setItem(AppConfig::PLAYER_STATS_HUD, value);
+        });
+
     btnReleaseChecker->title->setText(
         fmt::format("{} ({}: {})", "main/setting/others/release"_i18n, "hints/current"_i18n, AppVersion::getVersion()));
     btnReleaseChecker->registerClickAction([](...) -> bool {

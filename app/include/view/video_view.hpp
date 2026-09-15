@@ -69,6 +69,11 @@ public:
 
     VideoProfile* getProfile() { return this->profile; }
 
+    /// The live readings overlay, on or off. Public because the Stream
+    /// Information panel offers it as a row when the reference's
+    /// playerStatsHudEnabled is on, as well as it having its own keybind.
+    bool toggleProfile();
+
     /// ---- the two full-screen states (see view/player_screens.hpp) --------
 
     /// Put the startup screen up with this item's artwork behind it. Called
@@ -195,7 +200,6 @@ private:
     void hideSkipButton();
     bool skipButtonHasFocus();
     void dismissNextEpisodeCard();
-    bool toggleProfile();
     /// OSD
     void toggleOSD();
     bool toggleVolume(brls::View* view);

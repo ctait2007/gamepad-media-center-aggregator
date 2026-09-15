@@ -97,7 +97,8 @@
             "channels": "Channels",
             "samplerate": "Sample rate",
             "language": "Language",
-            "name": "Name"
+            "name": "Name",
+            "stats_hud": "Playback stats overlay"
         },
         "ends_at": "Ends at {}",
         "pause": {
@@ -511,6 +512,13 @@
             "proxy": "Proxy Setting",
             "host": "Host",
             "port": "Port"
+        },
+        "advanced": {
+            "performance": "Performance & navigation",
+            "diagnostics": "Diagnostics",
+            "fast_horizontal_nav": "Fast Horizontal Navigation",
+            "startup_splash": "Startup Splash",
+            "player_stats_hud": "Playback stats overlay"
         },
         "ui": {
             "header": "UI",

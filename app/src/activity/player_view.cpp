@@ -116,7 +116,8 @@ PlayerView::PlayerView(const plex::Item& item, const int64_t seekMs, int version
         return true;
     });
     view->registerStreamInfo([this](...) {
-        player_panels::showStreamInfo(&this->stream, this->stream.addonName);
+        player_panels::showStreamInfo(&this->stream, this->stream.addonName,
+            [this]() { this->view->toggleProfile(); });
         return true;
     });
     // transcode stream failed to play -> retry once in direct play before the

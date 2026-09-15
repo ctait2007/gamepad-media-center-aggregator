@@ -193,6 +193,14 @@ int main(int argc, char* argv[]) {
     // Have the application register an action on every activity that will quit when you press BUTTON_START
     brls::Application::setGlobalQuit(false);
 
+    // D-pad auto-repeat, at NuvioTV's own gates (DpadThrottleModifier): a row
+    // repeats faster than a column, and "fast horizontal navigation" takes the
+    // row faster still. borealis had one flat 100 ms for every direction, which
+    // made a row of posters feel slower than the reference and a settings
+    // column faster.
+    brls::Application::setRepeatDelay(
+        conf.getItem(AppConfig::FAST_HORIZONTAL_NAV, false) ? 48000 : 80000, 112000);
+
     // Register custom views (including tabs, which are views)
     brls::Application::registerXMLView("SVGImage", SVGImage::create);
     brls::Application::registerXMLView("DisclosureCell", DisclosureCell::create);

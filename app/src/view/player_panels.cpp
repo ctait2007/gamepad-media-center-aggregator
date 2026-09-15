@@ -1013,7 +1013,7 @@ brls::Box* section(brls::Box* parent, const std::string& title) {
 
 }  // namespace
 
-void showStreamInfo(const plex::Media* src, const std::string& addonName) {
+void showStreamInfo(const plex::Media* src, const std::string& addonName, std::function<void()> onToggleStats) {
     auto& mpv = MPVCore::instance();
 
     // Top-anchored like the other two. It reads as a page of fields, and a
@@ -1072,6 +1072,20 @@ void showStreamInfo(const plex::Media* src, const std::string& addonName) {
         addField(row, "main/player/panel/name"_i18n, mpv.getString("current-tracks/sub/title"));
         addField(row, "main/player/panel/codec"_i18n, mpv.getString("current-tracks/sub/codec"));
         addField(row, "main/player/panel/language"_i18n, mpv.getString("current-tracks/sub/lang"));
+    }
+
+    // DIAGNOSTICS — the reference's playerStatsHudEnabled puts a button here
+    // and nowhere else, so this row exists only while that setting is on. The
+    // fields above are a snapshot; the overlay it opens is the live version of
+    // the same numbers, and the panel gets out of the way so they can be read.
+    if (MPVCore::PLAYER_STATS_HUD && onToggleStats) {
+        auto* rail = new PlayerRail("", 640, 200, false);
+        rail->setMarginTop(32);  // spacing.lg, as between the sections above
+        rail->addSetting("main/player/panel/stats_hud"_i18n, "", [onToggleStats]() {
+            brls::Application::popActivity(brls::TransitionAnimation::NONE, [onToggleStats]() { onToggleStats(); });
+        });
+        col->addView(rail);
+        overlay->setFocusTarget(rail->focusTarget());
     }
 
     overlay->present();

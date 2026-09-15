@@ -183,6 +183,12 @@ public:
     /// playback_osd_clock. On, as the reference has it.
     inline static bool OSD_CLOCK = true;
 
+    /// playerStatsHudEnabled: whether the Stream Information panel carries the
+    /// row that turns the live readings overlay on. Off, as it is there — the
+    /// reference calls it a diagnostic and does not put it in front of anyone
+    /// who has not gone looking.
+    inline static bool PLAYER_STATS_HUD = false;
+
     /// skipIntroEnabled: whether the skip button is offered at all. Separate
     /// from INTRODB, which is whether the markers are fetched — those also
     /// decide when "up next" comes up, so switching the button off must not

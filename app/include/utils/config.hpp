@@ -204,6 +204,19 @@ public:
         /// picker, bar whichever one is currently selected.
         SUB_ONLY_PREFERRED_LANGS,
         OSD_CLOCK,
+        /// playerStatsHudEnabled: whether the Stream Information panel offers
+        /// a row that turns the live readings overlay on. The reference's own
+        /// wording — "show a button in stream info to toggle live … readings
+        /// during playback" — is exactly what this gates; the overlay itself
+        /// stays on its keybind either way.
+        PLAYER_STATS_HUD,
+        /// startupSplashEnabled: the splash between launch and the first
+        /// screen. On by default there, as here.
+        STARTUP_SPLASH,
+        /// fastHorizontalNavigationEnabled: takes the d-pad repeat gate in a
+        /// row from the reference's 80 ms down to its 48 ms. The vertical gate
+        /// (112 ms) is not a setting there and is not one here.
+        FAST_HORIZONTAL_NAV,
         AMOLED_MODE,
         AMOLED_SURFACES,
         SUB_SIZE,

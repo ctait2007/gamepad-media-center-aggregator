@@ -4,6 +4,7 @@
     headerHidden="true"
     footerHidden="true">
     <brls:Box
+        id="loading/splash"
         width="100%"
         height="100%"
         axis="column"

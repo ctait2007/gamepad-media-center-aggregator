@@ -80,6 +80,20 @@ its screenshots; where we deviate from it, the entry says so.
 - **Layout: hide unreleased content**, **show full release date**, and
   **episode stills in Continue Watching** — three more of its Layout toggles,
   at its defaults.
+- **Advanced: fast horizontal navigation**, under its own "Performance &
+  navigation" heading. NuvioTV throttles held-d-pad repeats per axis —
+  112 ms down a column, 80 ms along a row, and 48 ms along a row with this on —
+  where borealis had one flat 100 ms for every direction, which made a row of
+  posters slower than the reference and a settings column faster. Off, as it is
+  there; takes effect on the next launch.
+- **Advanced: startup splash.** The logo and spinner on the way in, which the
+  reference lets you drop. The screen itself stays either way: here it is what
+  covers the server probe and holds input off while it runs, not decoration
+  over an already-built UI.
+- **Advanced: playback stats overlay**, under its own "Diagnostics" heading.
+  With it on, Stream Information carries a row that opens the live readings —
+  which is exactly what the setting does there, the overlay itself being
+  reachable by its keybind either way. Off, as it is there.
 
 ### Changed
 

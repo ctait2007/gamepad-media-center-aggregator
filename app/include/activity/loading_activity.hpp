@@ -16,5 +16,8 @@ public:
 
     LoadingActivity();
 
+    /// Drops the logo and spinner when startupSplashEnabled is off.
+    void onContentAvailable() override;
+
     ~LoadingActivity() override;
 };

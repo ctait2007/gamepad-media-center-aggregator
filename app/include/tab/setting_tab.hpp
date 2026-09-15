@@ -114,6 +114,9 @@ private:
     BRLS_BIND(brls::BooleanCell, btnSingle, "setting/single");
     BRLS_BIND(brls::BooleanCell, btnOverClock, "setting/overclock");
     BRLS_BIND(brls::BooleanCell, btnDebug, "setting/debug");
+    BRLS_BIND(brls::BooleanCell, btnFastHorizontalNav, "setting/advanced/fast_horizontal_nav");
+    BRLS_BIND(brls::BooleanCell, btnStartupSplash, "setting/advanced/startup_splash");
+    BRLS_BIND(brls::BooleanCell, btnPlayerStatsHud, "setting/advanced/player_stats_hud");
     BRLS_BIND(brls::BooleanCell, btnSync, "setting/sync");
     BRLS_BIND(brls::SelectorCell, inputThreads, "setting/network/threads");
     BRLS_BIND(brls::SelectorCell, selectorTimeout, "setting/network/timeout");

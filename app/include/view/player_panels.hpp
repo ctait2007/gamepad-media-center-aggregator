@@ -65,6 +65,12 @@ void showEpisodes(const std::string& subtitle, const std::vector<plex::Item>& ep
     std::function<void(int)> onPick);
 
 /// Everything the player knows about what is on screen right now.
-void showStreamInfo(const plex::Media* src, const std::string& addonName);
+///
+/// `onToggleStats` turns the live readings overlay on and off. It is offered
+/// as a row at the foot of the panel only when the reference's
+/// playerStatsHudEnabled is on — which is what that setting means there too:
+/// "show a button in stream info to toggle live … readings during playback".
+void showStreamInfo(const plex::Media* src, const std::string& addonName,
+    std::function<void()> onToggleStats = nullptr);
 
 }  // namespace player_panels

@@ -298,6 +298,26 @@
                                 width="auto"
                                 height="auto"
                                 marginTop="20"
+                                title="@i18n/main/setting/advanced/performance"
+                                marginBottom="0px" />
+                            <brls:BooleanCell
+                                id="setting/advanced/fast_horizontal_nav" />
+                            <brls:BooleanCell
+                                id="setting/advanced/startup_splash" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
+                                title="@i18n/main/setting/advanced/diagnostics"
+                                marginBottom="0px" />
+                            <brls:BooleanCell
+                                id="setting/advanced/player_stats_hud" />
+
+                            <brls:Header
+                                width="auto"
+                                height="auto"
+                                marginTop="20"
                                 title="@i18n/main/setting/ui/header"
                                 marginBottom="0px" />
                             <SelectorCell

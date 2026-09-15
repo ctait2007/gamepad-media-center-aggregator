@@ -1,8 +1,8 @@
 diff --git a/library/include/borealis/core/application.hpp b/library/include/borealis/core/application.hpp
-index 3171304..d8223c0 100644
+index 3171304..256e8f1 100644
 --- a/library/include/borealis/core/application.hpp
 +++ b/library/include/borealis/core/application.hpp
-@@ -355,6 +355,12 @@ class Application
+@@ -355,11 +355,31 @@ class Application
  
      static void tryDeinitFirstResponder(View* view);
  
@@ -12,9 +12,28 @@ index 3171304..d8223c0 100644
 +    // the view is already half destructed and must not be dispatched anymore.
 +    static void onViewDestroyed(View* view);
 +
++    // D-pad auto-repeat gate, per axis, in MICROSECONDS. borealis held every
++    // direction to one flat 100 ms; NuvioTV's DpadThrottleModifier runs a row
++    // faster than a column (80 ms against 112 ms) and lets its "fast
++    // horizontal navigation" setting take the row down again to 48 ms.
++    // Zero on either axis restores the flat default for it.
++    static void setRepeatDelay(Time horizontal, Time vertical);
++
      static void addToWatchedKeys(const BrlsKeyCombination key);
  
      static void removeWatchedKeys(const BrlsKeyCombination key);
+ 
+   private:
++    // The gate for one button, in microseconds: the axis override when it is
++    // set, and borealis' own flat default otherwise.
++    static Time repeatDelayFor(int button);
++
++    inline static Time horizontalRepeatDelay = 0;
++    inline static Time verticalRepeatDelay   = 0;
++
+     inline static bool inited               = false;
+     inline static bool quitRequested        = false;
+     inline static bool debuggingViewEnabled = false;
 diff --git a/library/include/borealis/core/cache_helper.hpp b/library/include/borealis/core/cache_helper.hpp
 index 0236dfe..8dbc815 100644
 --- a/library/include/borealis/core/cache_helper.hpp
@@ -583,9 +602,18 @@ index fcfd649..28c6503 100644
      Image* _1;
      Image* _2;
 diff --git a/library/lib/core/application.cpp b/library/lib/core/application.cpp
-index c7d67dc..cdba644 100644
+index c7d67dc..254cb6f 100644
 --- a/library/lib/core/application.cpp
 +++ b/library/lib/core/application.cpp
+@@ -390,7 +390,7 @@ void Application::processInput()
+             repeating = controllerState.repeatingButtonStop[i] > 0 && cpuTime > controllerState.repeatingButtonStop[i];
+ 
+             if (repeating)
+-                controllerState.repeatingButtonStop[i] = cpuTime + BUTTON_REPEAT_DELAY;
++                controllerState.repeatingButtonStop[i] = cpuTime + Application::repeatDelayFor(i);
+ 
+             if (!oldControllerState.buttons[i])
+                 controllerState.repeatingButtonStop[i] = cpuTime + BUTTOM_REPEAT_TRIGGER;
 @@ -523,9 +523,10 @@ void Application::navigate(FocusDirection direction, bool repeating)
  
      Application::repetitionOldFocus = Application::currentFocus;
@@ -612,10 +640,40 @@ index c7d67dc..cdba644 100644
      }
  
      return true;
-@@ -1065,6 +1069,41 @@ void Application::addToFreeQueue(View* view)
+@@ -1065,6 +1069,71 @@ void Application::addToFreeQueue(View* view)
      Application::deletionPool.push_back(view);
  }
  
++Time Application::repeatDelayFor(int button)
++{
++    switch (button)
++    {
++        case BUTTON_LEFT:
++        case BUTTON_RIGHT:
++        case BUTTON_NAV_LEFT:
++        case BUTTON_NAV_RIGHT:
++            if (Application::horizontalRepeatDelay > 0)
++                return Application::horizontalRepeatDelay;
++            break;
++        case BUTTON_UP:
++        case BUTTON_DOWN:
++        case BUTTON_NAV_UP:
++        case BUTTON_NAV_DOWN:
++            if (Application::verticalRepeatDelay > 0)
++                return Application::verticalRepeatDelay;
++            break;
++        default:
++            break;
++    }
++    return BUTTON_REPEAT_DELAY;
++}
++
++void Application::setRepeatDelay(Time horizontal, Time vertical)
++{
++    Application::horizontalRepeatDelay = horizontal;
++    Application::verticalRepeatDelay   = vertical;
++}
++
 +void Application::onViewDestroyed(View* view)
 +{
 +    // The view is in its destructor: do NOT call any virtual method or fire

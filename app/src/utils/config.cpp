@@ -100,6 +100,9 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {SUB_SECONDARY_LANG, {"sub_secondary_lang"}},
     {SUB_ONLY_PREFERRED_LANGS, {"sub_only_preferred_langs"}},
     {OSD_CLOCK, {"osd_clock"}},
+    {PLAYER_STATS_HUD, {"player_stats_hud"}},
+    {STARTUP_SPLASH, {"startup_splash"}},
+    {FAST_HORIZONTAL_NAV, {"fast_horizontal_nav"}},
     {AMOLED_MODE, {"amoled_mode"}},
     {AMOLED_SURFACES, {"amoled_surfaces"}},
     {SUB_SIZE, {"sub_size"}},
@@ -420,6 +423,7 @@ bool AppConfig::init() {
     MPVCore::NEXT_EPISODE_CARD = this->getItem(NEXT_EPISODE_CARD, true);
     MPVCore::INTRODB = this->getItem(INTRODB, true);
     MPVCore::OSD_CLOCK = this->getItem(OSD_CLOCK, true);
+    MPVCore::PLAYER_STATS_HUD = this->getItem(PLAYER_STATS_HUD, false);
     MPVCore::SKIP_INTRO_ENABLED = this->getItem(SKIP_INTRO_ENABLED, true);
     MPVCore::AUTO_SKIP_INTRO = this->getItem(AUTO_SKIP_INTRO, false);
     MPVCore::AUTO_SKIP_RECAP = this->getItem(AUTO_SKIP_RECAP, false);
