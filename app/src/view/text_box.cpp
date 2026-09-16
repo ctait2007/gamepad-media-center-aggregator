@@ -67,6 +67,7 @@ void TextBox::draw(
     nvgFontFaceId(vg, this->font);
     nvgFontQuality(vg, this->fontQuality);
     nvgTextLineHeight(vg, this->lineHeight);
+    nvgTextLetterSpacing(vg, this->letterSpacing);
     nvgFillColor(vg, a(this->textColor));
 
     nvgTextAlign(vg, horizAlign | NVG_ALIGN_TOP);
@@ -91,6 +92,7 @@ float TextBox::cutText(float width) {
     nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
     nvgFontFaceId(vg, this->font);
     nvgTextLineHeight(vg, this->lineHeight);
+    nvgTextLetterSpacing(vg, this->letterSpacing);
     nvgTextMetrics(vg, nullptr, nullptr, &lineh);
 
     float requiredHeight = this->fontSize;

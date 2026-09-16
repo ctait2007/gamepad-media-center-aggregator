@@ -181,6 +181,8 @@
                             id="series/label/overview"
                             width="60%"
                             fontSize="28"
+                            lineHeight="1.43"
+                            letterSpacing="0.5"
                             maxRows="4"
                             marginBottom="24" />
 

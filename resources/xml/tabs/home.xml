@@ -156,6 +156,8 @@
         <TextBox
             id="home/hero/overview"
             fontSize="28"
+            lineHeight="1.43"
+            letterSpacing="0.5"
             maxRows="3" />
     </brls:Box>
 

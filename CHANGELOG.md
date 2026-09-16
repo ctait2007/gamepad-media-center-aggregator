@@ -259,6 +259,12 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Fixed
 
+- **Body text carried no tracking either.** TextBox lays its own lines out and
+  never set the letter spacing, so a synopsis drew tighter than the settings
+  rows beside it. It takes the reference's tokens now — bodyMedium for the hero
+  and detail synopses, bodySmall for an episode or season blurb — along with
+  their line heights, which were being inherited rather than stated.
+
 - **Wrapped text was indented by a space on every line after the first.** Our
   nanovg counts a word as beginning at the space before it, so a row that broke
   at that space started ON it and the next line was drawn a space-width in. The

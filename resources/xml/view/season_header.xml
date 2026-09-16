@@ -50,6 +50,8 @@
         <TextBox
             id="season/label/overview"
             fontSize="24"
+            lineHeight="1.33"
+            letterSpacing="0.8"
             maxRows="4"
             marginTop="12"
             textColor="@theme/font/grey" />

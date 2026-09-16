@@ -115,6 +115,8 @@
             <TextBox
                 id="episode/card/overview"
                 fontSize="24"
+                lineHeight="1.33"
+                letterSpacing="0.8"
                 maxRows="3"
                 marginBottom="10" />
             <!-- runtime/rating at the left, air date at the right, as the
