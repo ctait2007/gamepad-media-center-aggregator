@@ -292,6 +292,19 @@ its screenshots; where we deviate from it, the entry says so.
   wordmark was squashed into a band that could not hold it. The detail pages'
   logo band is the reference's 100dp too, now counting the 16dp its AsyncImage
   pads away underneath.
+- **The home hero sat 38px too high, and its band moved with the item.**
+  Overlaying our screenshot on the reference's, at the same scale: the synopsis
+  and the row title under it were both a line's worth too high, and the whole
+  block shifted vertically depending on whether the item put its rating on row
+  one or row two. The band's height is a percentage of the CONTENT area (1028 at
+  1080p, the screen less the hint bar) rather than of the screen, so it was
+  short enough that the tallest arrangement overflowed and stopped being
+  bottom-anchored. Sized so the tallest one fits and placed so the synopsis'
+  last line lands where the reference ends it: measured against it, every
+  synopsis line, both meta rows and the first row's title are now within a
+  pixel. The synopsis also carries the half-leading Compose puts above a
+  paragraph's first line and nanovg does not, which is what was left of the gap
+  between the meta and the synopsis.
 - **The season pills vanished entirely.** HScrollingFrame forces its content
   view to the frame's own height in onLayout, so giving the frame `height=auto`
   is circular and resolves to nothing. It carries the pill's height now. The

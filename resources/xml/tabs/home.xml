@@ -56,14 +56,21 @@
     <!-- Bottom-anchored (justifyContent=flexEnd): in the reference the synopsis
          always ends at the same height whatever the logo's size, so the block
          grows UPWARD from its baseline rather than down from the top. Its width
-         stops short of the backdrop's solid part. -->
+         stops short of the backdrop's solid part.
+
+         The height is a percentage of the CONTENT area (1028 at 1080p -- the
+         screen less the hint bar), not of the screen, so this is 501px: enough
+         for the tallest the block gets (logo 200 + two meta rows + a four-line
+         synopsis) and placed so the synopsis' last line and the first row's
+         title land where the reference puts them. Measured against it: the
+         synopsis ends at y=485 and the row title below starts at y=525. -->
     <brls:Box
         id="home/hero"
         width="44%"
-        height="47%"
+        height="48.7%"
         axis="column"
         justifyContent="flexEnd"
-        paddingBottom="32"
+        paddingBottom="3"
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
@@ -119,9 +126,17 @@
 
         <!-- bodyMedium, four rows (ModernHomeHero's descriptionMaxLines). The
              size is scaled to 0.90 in C++ when the posters are portrait, which
-             is what its descriptionScale does and what our default is. -->
+             is what its descriptionScale does and what our default is.
+
+             marginTop is the half-leading Compose puts ABOVE a paragraph's
+             first line and nanovg does not: measured against the reference,
+             its meta row sits 4px further from the synopsis than ours did.
+             Because this column is bottom-anchored the margin lifts the meta
+             rows rather than dropping the synopsis, so the last line stays
+             where the reference ends it. -->
         <TextBox
             id="home/hero/overview"
+            marginTop="4"
             fontSize="28"
             lineHeight="1.43"
             letterSpacing="0.5"
