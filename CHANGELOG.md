@@ -256,9 +256,42 @@ its screenshots; where we deviate from it, the entry says so.
   now and the hero starts at its own 48dp margin instead of clearing a rail.
 - **Backing out of the player no longer rebuilds the home screen.** Only
   Continue Watching refreshes; triangle is still the full refresh.
+- **The home hero's meta is two rows again, built the way the reference builds
+  them.** Row one is what the thing IS: the episode ("S1 E4 · The Luminous Fish
+  Effect") or its content type, joined to its first genre by a literal bullet,
+  then its runtime and its year -- the provider's release string verbatim, so a
+  show reads "2007-2019" rather than just its first year, which meant carrying
+  `releaseInfo` on the item rather than only the four digits we parsed out of
+  it. Row two is the Continue Watching highlight ("NEXT UP", "27M LEFT") and
+  the rating, which rides row two for a series or anything with a highlight and
+  row one otherwise, exactly as `reserveImdbInSecondary` decides it.
+  The separator between elements is `HeroMetaDivider` -- a round 4dp dot in
+  TextTertiary at 78%, sm either side -- and not a "•" glyph sitting on the text
+  baseline. The rating's mark is its 30dp box.
+  Not ported: the age-rating and status badges and the language detail, all of
+  which the reference fills from TMDB enrichment we have not added yet.
 
 ### Fixed
 
+- **Wrapped text repeated a word at every line break.** Dropping spaces from
+  nanovg's "beginning of a word" test stopped a row STARTING at a space (which
+  is what indented every line after the first), but it also stopped the word
+  pointer advancing at all there, while the matching end-of-word pointer kept
+  moving. A break landing on the space then ended the row after one word and
+  began the next row before it -- "...find their way through / through the
+  adult world...". The pointer advances again now, to the character AFTER the
+  space, which is the position both fixes actually wanted.
+- **`imageAlign` did nothing.** borealis recorded the value and never read it
+  back, so every scaling mode centred the image on whichever axis it did not
+  fill. A cut-out logo narrower than its slot floated in the middle of that
+  slot instead of hugging its left edge -- the hero logos on the home page and
+  both detail pages, which is why their sizing looked inconsistent from one
+  item to the next.
+- **The home hero's logo had barely half the room it should.** NuvioTV gives it
+  100dp x 220dp (200 x 440 here); ours was 460 x 118, so anything taller than a
+  wordmark was squashed into a band that could not hold it. The detail pages'
+  logo band is the reference's 100dp too, now counting the 16dp its AsyncImage
+  pads away underneath.
 - **The season pills vanished entirely.** HScrollingFrame forces its content
   view to the frame's own height in onLayout, so giving the frame `height=auto`
   is circular and resolves to nothing. It carries the pill's height now. The

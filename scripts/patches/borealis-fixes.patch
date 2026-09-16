@@ -1148,25 +1148,37 @@ index 59ec77b..b588c34 100644
      this->registerStringXMLAttribute("title", [this](std::string value) {
          this->getAppletFrameItem()->title = value;
 diff --git a/library/lib/extern/nanovg/nanovg.c b/library/lib/extern/nanovg/nanovg.c
-index 8db3844..399eb6a 100644
+index 8db3844..b7582a6 100644
 --- a/library/lib/extern/nanovg/nanovg.c
 +++ b/library/lib/extern/nanovg/nanovg.c
-@@ -2956,9 +2956,13 @@ int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, floa
- 					breakMaxX = rowMaxX;
- 				}
- 				// track last beginning of a word
--				if (((type == NVG_CHAR || type == NVG_CJK_CHAR || type == NVG_SPACE) && ptype == NVG_CONTROL) ||
-+				// NOT on a space itself: a row that breaks at one would then
-+				// start AT the space and the next line is drawn indented by
-+				// its width. A word begins at the first character after the
-+				// space, which the clauses below already cover.
-+				if (((type == NVG_CHAR || type == NVG_CJK_CHAR) && ptype == NVG_CONTROL) ||
+@@ -2959,9 +2959,24 @@ int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, floa
+ 				if (((type == NVG_CHAR || type == NVG_CJK_CHAR || type == NVG_SPACE) && ptype == NVG_CONTROL) ||
                      ((ptype == NVG_CJK_CHAR || ptype == NVG_SPACE) && type == NVG_CHAR) ||
--                    type == NVG_CJK_CHAR || type == NVG_SPACE) {
-+                    type == NVG_CJK_CHAR) {
- 					wordStart = iter.str;
- 					wordStartX = iter.x;
- 					wordMinX = q.x0;
+                     type == NVG_CJK_CHAR || type == NVG_SPACE) {
+-					wordStart = iter.str;
+-					wordStartX = iter.x;
+-					wordMinX = q.x0;
++					if (type == NVG_SPACE) {
++						// A word begins at the first character AFTER the space, not
++						// at the space itself: when the space is the character that
++						// overflows, `next` points here and the following row was
++						// drawn indented by the width of that leading space.
++						// The pointer still has to ADVANCE past the previous word
++						// though -- leaving it on that word (which is what dropping
++						// this clause outright did) desynchronises it from breakEnd,
++						// so the row's last word is emitted again at the start of
++						// the next one.
++						wordStart = iter.next;
++						wordStartX = iter.nextx;
++						wordMinX = iter.nextx;
++					} else {
++						wordStart = iter.str;
++						wordStartX = iter.x;
++						wordMinX = q.x0;
++					}
+                     lastWordSize += wordSize;
+                     wordSize = 0;
+ 				}
 diff --git a/library/lib/platforms/desktop/desktop_font.cpp b/library/lib/platforms/desktop/desktop_font.cpp
 index ddac8a5..d45ef7a 100644
 --- a/library/lib/platforms/desktop/desktop_font.cpp
@@ -2117,7 +2129,7 @@ index 9ede1ca..74c9123 100644
          <brls:Padding />
  
 diff --git a/library/lib/views/image.cpp b/library/lib/views/image.cpp
-index 04db052..b2a8038 100644
+index 04db052..dfcba08 100644
 --- a/library/lib/views/image.cpp
 +++ b/library/lib/views/image.cpp
 @@ -186,7 +186,17 @@ void Image::draw(NVGcontext* vg, float x, float y, float width, float height, St
@@ -2139,6 +2151,36 @@ index 04db052..b2a8038 100644
      }
      else
      {
+@@ -272,6 +282,29 @@ void Image::invalidateImageBounds()
+             fatal("Unimplemented Image scaling type");
+     }
+ 
++    // Honour imageAlign. Every branch above centres the image on whichever
++    // axis it does not fill, and setImageAlign only ever recorded the choice
++    // -- nothing read it back, so `imageAlign` was silently a no-op and a
++    // narrow image in a wide box (a cut-out logo in the hero's 220dp slot, for
++    // one) floated in the middle of that box instead of hugging its edge.
++    switch (this->align)
++    {
++        case ImageAlignment::TOP:
++            this->imageY = 0;
++            break;
++        case ImageAlignment::BOTTOM:
++            this->imageY = height - this->imageHeight;
++            break;
++        case ImageAlignment::LEFT:
++            this->imageX = 0;
++            break;
++        case ImageAlignment::RIGHT:
++            this->imageX = width - this->imageWidth;
++            break;
++        case ImageAlignment::CENTER:
++            break;
++    }
++
+     // Create the paint - actual X and Y positions are updated every frame in draw() to apply translation (scrolling...)
+     NVGcontext* vg = Application::getNVGContext();
+     this->paint    = nvgImagePattern(vg, 0, 0, this->imageWidth, this->imageHeight, 0, this->texture, 1.0f);
 diff --git a/library/lib/views/label.cpp b/library/lib/views/label.cpp
 index 0e0474c..4a2d2e6 100644
 --- a/library/lib/views/label.cpp

@@ -93,7 +93,7 @@
                         <brls:Image
                             id="movie/image/logo"
                             width="690"
-                            height="200"
+                            height="168"
                             visibility="gone"
                             marginBottom="32"
                             scalingType="fit"

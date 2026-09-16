@@ -65,6 +65,10 @@ private:
     /// that lands later can redraw in place without re-running the "new item"
     /// bookkeeping.
     void renderHero();
+    /// Appends one element to a hero meta row with the reference's sm gap.
+    void addHeroMeta(brls::Box* row, brls::View* view);
+    /// Appends the item's rating (source mark + value); false when it has none.
+    bool addHeroRating(brls::Box* row, const plex::Item& item);
     /// Fetch `key`'s full metadata for what the catalog row left out (a
     /// synopsis, a logo). Debounced and memoised — a scroll must not fire one
     /// per card.

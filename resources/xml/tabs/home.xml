@@ -60,10 +60,10 @@
     <brls:Box
         id="home/hero"
         width="44%"
-        height="45%"
+        height="47%"
         axis="column"
         justifyContent="flexEnd"
-        paddingBottom="18"
+        paddingBottom="32"
         paddingLeft="@style/main/content_padding_sides"
         paddingRight="20">
 
@@ -74,10 +74,10 @@
              load and shows the label below instead when it fails. -->
         <brls:Image
             id="home/hero/logo"
-            width="460"
-            height="118"
+            width="440"
+            height="200"
             visibility="gone"
-            marginBottom="14"
+            marginBottom="15"
             scalingType="fit"
             imageAlign="left" />
 
@@ -89,74 +89,34 @@
             fontWeight="semibold"
             singleLine="true"
             visibility="gone"
-            marginBottom="14" />
+            marginBottom="15" />
 
-        <!-- two meta lines like the reference: what the thing IS (episode,
-             genre, year) above what it will cost you (time left, rating) -->
-        <!-- One row, as the reference builds it: what this is, then a trailing
-             group of runtime, year and rating. -->
+        <!-- Two meta rows, as ModernHomeHero's HeroTitleContent builds them.
+             Both are filled from C++ (renderHero) because their contents are a
+             SEQUENCE -- text, dot, text, dot, logo, text -- whose length varies
+             per item, and the separator is NuvioTV's HeroMetaDivider: a round
+             4dp dot in TextTertiary at 78%, not a "•" glyph.
+
+             Row 1 is what the thing IS: "S1 E4 · The Luminous Fish Effect",
+             its first genre, its runtime, its year (or year RANGE, as the
+             provider wrote it), and -- for a movie with nothing to say on row
+             two -- its rating.
+             Row 2 is the Continue Watching highlight ("NEXT UP", "45% WATCHED",
+             "27M LEFT") and the rating that goes with it. -->
         <brls:Box
+            id="home/hero/meta"
             axis="row"
             alignItems="center"
-            height="32"
-            marginBottom="8">
-            <brls:Label
-                id="home/hero/meta"
-                fontSize="24"
-                fontWeight="medium"
-                letterSpacing="1"
-                singleLine="true" />
-            <SVGImage
-                id="home/hero/rating1/icon"
-                width="36"
-                height="18"
-                shrink="0"
-                visibility="gone"
-                marginLeft="14"
-                marginRight="7" />
-            <brls:Label
-                id="home/hero/rating1"
-                fontSize="24"
-                fontWeight="medium"
-                letterSpacing="1"
-                singleLine="true"
-                shrink="0"
-                visibility="gone" />
-        </brls:Box>
+            height="24"
+            marginBottom="15" />
 
         <brls:Box
             id="home/hero/meta2"
             axis="row"
             alignItems="center"
-            height="32"
-            marginBottom="12">
-            <brls:Label
-                id="home/hero/meta2/text"
-                fontSize="24"
-                fontWeight="medium"
-                letterSpacing="1"
-                singleLine="true" />
-            <!-- the rating's own mark (IMDb / RT / TMDb), as on the detail
-                 page — sized to the glyph's aspect in C++ -->
-            <SVGImage
-                id="home/hero/rating/icon"
-                width="36"
-                height="18"
-                shrink="0"
-                visibility="gone"
-                marginRight="7" />
-            <brls:Label
-                id="home/hero/rating"
-                fontSize="24"
-                fontWeight="medium"
-                letterSpacing="1"
-                singleLine="true"
-                shrink="0"
-                visibility="gone" />
-        </brls:Box>
+            height="24"
+            marginBottom="15" />
 
-        <!-- 3 rows, not 4: the band has to hold logo + meta + synopsis with
-             clearance above the first row title in the worst case. -->
         <!-- bodyMedium, four rows (ModernHomeHero's descriptionMaxLines). The
              size is scaled to 0.90 in C++ when the posters are portrait, which
              is what its descriptionScale does and what our default is. -->

@@ -432,6 +432,7 @@ inline void applyMetaCommon(const nlohmann::json& j, media::Item& it) {
     it.title = jstr(j, "name");
     it.summary = jstr(j, "description", jstr(j, "overview"));
     it.year = parseYear(jstr(j, "releaseInfo"));
+    it.releaseInfo = jstr(j, "releaseInfo");
     // Stremio images are ABSOLUTE URLs; imageUrl() passes them through unchanged.
     it.thumb = jstr(j, "poster");
     it.art = jstr(j, "background");

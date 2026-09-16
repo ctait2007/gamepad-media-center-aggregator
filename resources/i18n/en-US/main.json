@@ -300,6 +300,16 @@
         "already_pinned": "Already pinned",
         "pin_missing": "This folder is no longer available. Remove it from Files?"
     },
+    "hero": {
+        "resume": "Resume",
+        "percent_watched": "{}% Watched",
+        "hours_min_left": "{}h {}m left",
+        "min_left": "{}m left",
+        "next_up": "Next Up",
+        "new_episode": "New Episode",
+        "new_season": "New Season",
+        "upcoming": "Upcoming"
+    },
     "download": {
         "start": "Download",
         "cancel": "Cancel Download",

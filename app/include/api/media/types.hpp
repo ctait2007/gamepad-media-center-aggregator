@@ -299,6 +299,10 @@ struct Item {
     std::string title;
     std::string summary;
     int64_t year = 0;
+    // The provider's release string VERBATIM ("1994", "2007-2019", "2016-").
+    // `year` is the first four digits of it; the hero's meta line wants the
+    // range as written, which is what NuvioTV's extractYearOrRange returns.
+    std::string releaseInfo;
     std::string thumb;      // relative poster path
     std::string art;        // relative backdrop path
     std::string clearLogo;  // cut-out logo (Image[] array, type clearLogo)
@@ -358,6 +362,7 @@ inline void from_json(const nlohmann::json& j, Item& r) {
     r.title = jstr(j, "title");
     r.summary = jstr(j, "summary");
     r.year = jint(j, "year");
+    r.releaseInfo = jstr(j, "releaseInfo");
     r.thumb = jstr(j, "thumb");
     r.art = jstr(j, "art");
     r.duration = jint(j, "duration");
@@ -518,6 +523,7 @@ inline void to_json(nlohmann::json& j, const Item& r) {
     j["ratingImage"] = r.ratingImage;
     j["audienceRatingImage"] = r.audienceRatingImage;
     j["originallyAvailableAt"] = r.originallyAvailableAt;
+    j["releaseInfo"]           = r.releaseInfo;
     j["parentRatingKey"] = r.parentRatingKey;
     j["parentTitle"] = r.parentTitle;
     j["parentThumb"] = r.parentThumb;

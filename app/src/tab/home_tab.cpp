@@ -515,23 +515,101 @@ void HomeTab::mergeHeroFields(plex::Item& into, const plex::Item& from) {
     if (into.art.empty()) into.art = from.art;
     if (into.genres.empty()) into.genres = from.genres;
     if (into.year == 0) into.year = from.year;
+    if (into.releaseInfo.empty()) into.releaseInfo = from.releaseInfo;
     if (into.rating == 0) into.rating = from.rating;
     if (into.duration == 0) into.duration = from.duration;
     if (into.title.empty()) into.title = from.title;
+}
+
+namespace {
+
+// NuvioTV's hero meta is built out of three pieces, laid out in a row with a
+// sm (8dp -> 16px) gap between every one of them. These are those pieces.
+
+/// HeroMetaDivider: a round xs (4dp) dot in TextTertiary at 78% opacity.
+/// NOT the "*" bullet glyph -- drawing one as text put the separator on the
+/// text baseline and sized it to the font, where the reference has a dot
+/// centred on the row whatever the type around it does.
+brls::Box* heroMetaDot() {
+    auto* dot = new brls::Box();
+    dot->setWidth(8);
+    dot->setHeight(8);
+    dot->setShrink(0);
+    dot->setCornerRadius(4);
+    dot->setBackgroundColor(nvgRGBA(0x80, 0x80, 0x80, 199));  // TextTertiary @ .78
+    return dot;
+}
+
+/// labelMedium (12sp Medium, 0.5sp tracking) -- the style every hero meta
+/// string uses, in TextSecondary unless it is the Continue Watching highlight,
+/// which the reference draws SemiBold in TextPrimary.
+brls::Label* heroMetaLabel(const std::string& text, NVGcolor color, bool semibold, bool flexible) {
+    auto* label = new brls::Label();
+    label->setText(text);
+    label->setFontSize(24);
+    label->setLetterSpacing(1.0f);
+    label->setTextColor(color);
+    label->setSingleLine(true);
+    label->setFontWeight(semibold ? "semibold" : "medium");
+    // Only the leading run of row one is allowed to give way (the reference
+    // gives it weight(1, fill = false) and leaves everything after it alone).
+    label->setShrink(flexible ? 1.0f : 0.0f);
+    return label;
+}
+
+}  // namespace
+
+/// Appends one child to a hero meta row, with the reference's sm gap before it.
+void HomeTab::addHeroMeta(brls::Box* row, brls::View* view) {
+    if (row->getChildren().size() > 0) view->setMarginLeft(16);
+    row->addView(view);
+}
+
+/// The rating as the reference draws it: the source's own mark in a square box
+/// (30dp -> 60px) with the value xs (4dp -> 8px) after it. Returns false when
+/// the item has no rating or ratings are switched off, in which case nothing is
+/// appended and the caller's layout decisions can rely on that.
+bool HomeTab::addHeroRating(brls::Box* row, const plex::Item& item) {
+    // homeImdbRatingsVisibility.HIDE_ALL takes the hero's rating with it, the
+    // same as the pills on a detail page (utils/rating.hpp).
+    if (!AppConfig::instance().getItem(AppConfig::LAYOUT_SHOW_RATINGS, true)) return false;
+
+    std::string res, value;
+    float aspect = 1.0f;
+    if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
+        res    = info->icon;
+        value  = info->value;
+        aspect = info->aspect;
+    } else if (item.rating > 0) {
+        res   = "icon/ico-star.svg";
+        value = fmt::format("{:.1f}", item.rating);
+    } else {
+        return false;
+    }
+
+    // ContentScale.Fit inside a 60x60 box, which is what Modifier.size(30.dp)
+    // on the reference's AsyncImage means: the glyph keeps its aspect and the
+    // box keeps the row's height honest.
+    auto* icon = new SVGImage();
+    icon->setShrink(0);
+    icon->setWidth(aspect >= 1.0f ? 60.f : 60.f * aspect);
+    icon->setHeight(aspect >= 1.0f ? 60.f / aspect : 60.f);
+    icon->setImageFromSVGRes(res);
+    this->addHeroMeta(row, icon);
+
+    auto* label = heroMetaLabel(value, nvgRGB(0xB3, 0xB3, 0xB3), false, false);
+    label->setMarginLeft(8);  // imdbMetaSpacing = xs
+    row->addView(label);
+    return true;
 }
 
 void HomeTab::renderHero() {
     const plex::Item& item = this->heroItem;
 
     auto* backdrop = dynamic_cast<brls::Image*>(this->getView("home/hero/backdrop"));
-    auto* title = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
-    auto* meta = dynamic_cast<brls::Label*>(this->getView("home/hero/meta"));
-    auto* meta2Text = dynamic_cast<brls::Label*>(this->getView("home/hero/meta2/text"));
-    auto* rating1Icon = dynamic_cast<SVGImage*>(this->getView("home/hero/rating1/icon"));
-    auto* rating1Label = dynamic_cast<brls::Label*>(this->getView("home/hero/rating1"));
-    auto* ratingIcon = dynamic_cast<SVGImage*>(this->getView("home/hero/rating/icon"));
-    auto* ratingLabel = dynamic_cast<brls::Label*>(this->getView("home/hero/rating"));
-    auto* meta2 = this->getView("home/hero/meta2");
+    auto* title    = dynamic_cast<brls::Label*>(this->getView("home/hero/title"));
+    auto* row1     = dynamic_cast<brls::Box*>(this->getView("home/hero/meta"));
+    auto* row2     = dynamic_cast<brls::Box*>(this->getView("home/hero/meta2"));
     auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
 
     // ModernHomeHero scales the hero's type down when the posters are
@@ -546,8 +624,8 @@ void HomeTab::renderHero() {
     }
 
     // Everything sits on the artwork's veil, so it is light in BOTH themes.
-    const NVGcolor onArt = nvgRGB(0xF5, 0xF5, 0xF5);
-    const NVGcolor onArtDim = nvgRGB(0xB3, 0xB3, 0xB3);
+    const NVGcolor onArt      = nvgRGB(0xF5, 0xF5, 0xF5);
+    const NVGcolor onArtDim   = nvgRGB(0xB3, 0xB3, 0xB3);  // TextSecondary
 
     if (backdrop) {
         Image::cancel(backdrop);
@@ -566,111 +644,101 @@ void HomeTab::renderHero() {
     if (title) title->setTextColor(onArt);
     this->applyHeroLogo(item.ratingKey, item.clearLogo);
 
-    auto join = [](const std::vector<std::string>& bits) {
-        std::string line;
-        for (size_t i = 0; i < bits.size(); i++) line += (i ? "  •  " : "") + bits[i];
-        return line;
-    };
+    const bool isSeries = item.type == plex::mediaTypeShow || item.type == plex::mediaTypeEpisode ||
+        item.type == plex::mediaTypeSeason;
+    const bool resuming = item.duration > 0 && item.viewOffset > 0 && item.duration > item.viewOffset;
 
-    // Line 1 — what this is. An episode leads with "S1 E1 · Pilot", as in the
-    // reference, because on the Continue Watching row that is the thing you
-    // are about to resume.
-    if (meta) {
-        std::vector<std::string> bits;
+    // --- the Continue Watching highlight (ModernHomeHero's
+    // secondaryHighlightText), which decides where the rating goes ----------
+    // An item you are part way through says how much is LEFT; one queued up as
+    // the next episode says NEXT UP. Everything the reference derives from
+    // Trakt/Simkl state we cannot know, so those cases collapse into these two.
+    std::string highlight;
+    if (resuming) {
+        int64_t minutes = (item.duration - item.viewOffset) / 60000;
+        int64_t h = minutes / 60, m = minutes % 60;
+        if (h > 0)
+            highlight = brls::getStr("main/hero/hours_min_left", std::to_string(h), std::to_string(m));
+        else
+            highlight = brls::getStr("main/hero/min_left", std::to_string(std::max<int64_t>(m, 1)));
+    } else if (item.type == plex::mediaTypeEpisode && item.viewOffset == 0) {
+        highlight = "main/hero/next_up"_i18n;
+    }
+    std::transform(highlight.begin(), highlight.end(), highlight.begin(),
+        [](unsigned char c) { return std::toupper(c); });
+
+    // reserveImdbInSecondary: a series, or anything carrying a highlight, shows
+    // its rating on row two beside that highlight; a plain movie shows it at
+    // the end of row one.
+    const bool ratingOnRow2 = isSeries || !highlight.empty();
+
+    // --- row one: what this is --------------------------------------------
+    if (row1) {
+        row1->clearViews();
+
+        // leadingMetaText: the episode (or the content type) and the first
+        // genre, joined by a literal bullet -- the reference's
+        // joinToString(" • "), which is a different separator from the dot
+        // between the row's own elements.
+        std::vector<std::string> leading;
         if (item.type == plex::mediaTypeEpisode && (item.parentIndex > 0 || item.index > 0)) {
             std::string ep = fmt::format("S{} E{}", item.parentIndex, item.index);
             if (!item.title.empty()) ep += " · " + item.title;
-            bits.push_back(ep);
+            leading.push_back(ep);
         } else if (item.type == plex::mediaTypeShow) {
-            bits.push_back("main/stremio/series"_i18n);
+            leading.push_back("main/stremio/series"_i18n);
         } else if (item.type == plex::mediaTypeMovie) {
-            bits.push_back("main/stremio/movies"_i18n);
+            leading.push_back("main/stremio/movies"_i18n);
         }
-        for (auto& g : item.genres) {
-            bits.push_back(g);
-            break;  // one genre: the line is single-line and the year matters more
-        }
-        // Runtime lives here, between the genre and the year, as the reference
-        // orders it — not alone on the line below. An item you are part way
-        // through says how much is LEFT instead, and that stays on line two.
-        bool resuming = item.duration > 0 && item.viewOffset > 0 && item.duration > item.viewOffset;
-        if (!resuming) {
+        if (!item.genres.empty() && !item.genres.front().empty()) leading.push_back(item.genres.front());
+
+        std::string leadingText;
+        for (size_t i = 0; i < leading.size(); i++) leadingText += (i ? " • " : "") + leading[i];
+
+        // The trailing group: runtime, year. An episode of something you are
+        // resuming has no runtime of its own in the reference's hero preview,
+        // so only ask for one where it would have.
+        std::vector<std::string> trailing;
+        if (!isSeries) {
             std::string runtime = misc::formatRuntime(item.duration);
-            if (!runtime.empty()) bits.push_back(runtime);
+            if (!runtime.empty()) trailing.push_back(runtime);
         }
-        if (item.year > 0) bits.push_back(std::to_string(item.year));
-        meta->setText(join(bits));
-        meta->setTextColor(onArtDim);
+        // extractYearOrRange: the provider's string verbatim, so a show reads
+        // "2007-2019" and not just its first year.
+        if (!item.releaseInfo.empty())
+            trailing.push_back(item.releaseInfo);
+        else if (item.year > 0)
+            trailing.push_back(std::to_string(item.year));
+
+        if (!leadingText.empty()) this->addHeroMeta(row1, heroMetaLabel(leadingText, onArtDim, false, true));
+        for (size_t i = 0; i < trailing.size(); i++) {
+            this->addHeroMeta(row1, heroMetaDot());
+            this->addHeroMeta(row1, heroMetaLabel(trailing[i], onArtDim, false, false));
+        }
+        bool ratedHere = !ratingOnRow2 && this->addHeroRating(row1, item);
+        // Modifier.size(30.dp) on the rating mark makes the row that carries it
+        // 60px tall; a row of plain labelMedium is 24.
+        row1->setHeight(ratedHere ? 60.f : 24.f);
+        row1->setVisibility(row1->getChildren().empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     }
 
-    // Line 2 — what it will cost you: time left if you are part way in, the
-    // running time otherwise, then the rating.
-    if (meta2Text && ratingIcon && ratingLabel && meta2) {
-        std::vector<std::string> bits;
-        int64_t left = item.duration - item.viewOffset;
-        if (item.duration > 0 && item.viewOffset > 0 && left > 0) {
-            std::string s = brls::getStr("main/download/eta", humanDuration(left));
-            std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::toupper(c); });
-            bits.push_back(s);
-        }
-        std::string line = join(bits);
-
-        // The rating carries its source's own mark here, as it does on the
-        // detail page — "IMDb 7.6" as plain text was the one place the app
-        // named a rating source without showing it. It rides whichever line is
-        // in play: the first for an item you have not started (where the
-        // reference keeps it), the second beside "27M LEFT" for one you have.
-        bool haveRating = false;
-        std::string ratingRes, ratingValue;
-        const float ratingH = 18.f;  // matches the text beside it
-        float ratingW = ratingH;
-        // homeImdbRatingsVisibility.HIDE_ALL takes the hero's rating with it,
-        // the same as the pills on a detail page (utils/rating.hpp).
-        if (!AppConfig::instance().getItem(AppConfig::LAYOUT_SHOW_RATINGS, true)) {
-            // nothing to show
-        } else if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
-            ratingRes = info->icon;
-            ratingValue = info->value;
-            ratingW = ratingH * info->aspect;
-            haveRating = true;
-        } else if (item.rating > 0) {
-            ratingRes = "icon/ico-star.svg";
-            ratingValue = fmt::format("{:.1f}", item.rating);
-            haveRating = true;
-        }
-        if (haveRating) {
-            ratingIcon->setWidth(ratingW);
-            ratingIcon->setHeight(ratingH);
-            ratingIcon->setImageFromSVGRes(ratingRes);
-            ratingLabel->setText(ratingValue);
-        }
-        // resuming -> the second line exists and takes the rating with it;
-        // otherwise the whole line goes and the rating shows on the first.
-        bool onSecondLine = !line.empty();
-        if (haveRating && onSecondLine) line += "  •  ";
-        meta2Text->setText(line);
-        meta2Text->setTextColor(onArtDim);
-        ratingLabel->setTextColor(onArtDim);
-        auto vis = [](bool on) { return on ? brls::Visibility::VISIBLE : brls::Visibility::GONE; };
-        ratingIcon->setVisibility(vis(haveRating && onSecondLine));
-        ratingLabel->setVisibility(vis(haveRating && onSecondLine));
-        meta2->setVisibility(vis(onSecondLine));
-        if (rating1Icon && rating1Label) {
-            bool onFirstLine = haveRating && !onSecondLine;
-            if (onFirstLine) {
-                // sized from the glyph's own aspect, not copied off the other
-                // icon: that one is GONE here, so its laid-out width is 0
-                rating1Icon->setWidth(ratingW);
-                rating1Icon->setHeight(ratingH);
-                rating1Icon->setImageFromSVGRes(ratingRes);
-                rating1Label->setText(ratingValue);
-                rating1Label->setTextColor(onArtDim);
-                // the bullet the reference puts before the trailing rating
-                if (meta && !meta->getFullText().empty()) meta->setText(meta->getFullText() + "  •  ");
+    // --- row two: the Continue Watching highlight and its rating -----------
+    if (row2) {
+        row2->clearViews();
+        if (!highlight.empty()) this->addHeroMeta(row2, heroMetaLabel(highlight, onArt, true, true));
+        if (ratingOnRow2) {
+            bool hadHighlight = !row2->getChildren().empty();
+            // The reference only puts a divider here when both sides exist.
+            size_t before = row2->getChildren().size();
+            if (hadHighlight) this->addHeroMeta(row2, heroMetaDot());
+            if (!this->addHeroRating(row2, item) && hadHighlight) {
+                // no rating after all -- take the divider back off
+                while (row2->getChildren().size() > before) row2->removeView(row2->getChildren().back());
             }
-            rating1Icon->setVisibility(vis(onFirstLine));
-            rating1Label->setVisibility(vis(onFirstLine));
         }
+        bool rated = row2->getChildren().size() > (highlight.empty() ? 0u : 1u);
+        row2->setHeight(rated ? 60.f : 24.f);
+        row2->setVisibility(row2->getChildren().empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     }
 
     if (overview) {
