@@ -304,14 +304,25 @@
                  row of season POSTERS that opened a separate page holding the
                  episode list; the episodes are one D-pad move away now.
                  The pills are built in C++ (one per season). -->
-            <brls:Box
-                id="series/season_pills"
-                axis="row"
+            <!-- The pills scroll sideways, as the reference's LazyRow does:
+                 a show with thirteen seasons cannot fit them across a 1080p
+                 screen, and sharing the width out instead left every one of
+                 them reading "S...". -->
+            <brls:HScrollingFrame
+                height="auto"
                 marginTop="28"
-                marginBottom="14"
-                marginLeft="@style/main/detail_padding_sides"
-                marginRight="@style/main/detail_padding_sides"
-                alignItems="center" />
+                marginBottom="14">
+                <!-- HScrollingFrame refuses padding of its own; the inset
+                     belongs to the content so the pills scroll under it. -->
+                <brls:Box
+                    id="series/season_pills"
+                    axis="row"
+                    width="auto"
+                    height="auto"
+                    paddingLeft="@style/main/detail_padding_sides"
+                    paddingRight="@style/main/detail_padding_sides"
+                    alignItems="center" />
+            </brls:HScrollingFrame>
 
             <!-- The reference fits about three of these across a 1080p
                  screen (~640x415 each), not four and a half: the still is the

@@ -1147,6 +1147,26 @@ index 59ec77b..b588c34 100644
      // Misc
      this->registerStringXMLAttribute("title", [this](std::string value) {
          this->getAppletFrameItem()->title = value;
+diff --git a/library/lib/extern/nanovg/nanovg.c b/library/lib/extern/nanovg/nanovg.c
+index 8db3844..399eb6a 100644
+--- a/library/lib/extern/nanovg/nanovg.c
++++ b/library/lib/extern/nanovg/nanovg.c
+@@ -2956,9 +2956,13 @@ int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, floa
+ 					breakMaxX = rowMaxX;
+ 				}
+ 				// track last beginning of a word
+-				if (((type == NVG_CHAR || type == NVG_CJK_CHAR || type == NVG_SPACE) && ptype == NVG_CONTROL) ||
++				// NOT on a space itself: a row that breaks at one would then
++				// start AT the space and the next line is drawn indented by
++				// its width. A word begins at the first character after the
++				// space, which the clauses below already cover.
++				if (((type == NVG_CHAR || type == NVG_CJK_CHAR) && ptype == NVG_CONTROL) ||
+                     ((ptype == NVG_CJK_CHAR || ptype == NVG_SPACE) && type == NVG_CHAR) ||
+-                    type == NVG_CJK_CHAR || type == NVG_SPACE) {
++                    type == NVG_CJK_CHAR) {
+ 					wordStart = iter.str;
+ 					wordStartX = iter.x;
+ 					wordMinX = q.x0;
 diff --git a/library/lib/platforms/desktop/desktop_font.cpp b/library/lib/platforms/desktop/desktop_font.cpp
 index ddac8a5..d45ef7a 100644
 --- a/library/lib/platforms/desktop/desktop_font.cpp

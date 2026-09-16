@@ -173,8 +173,11 @@ int main(int argc, char* argv[]) {
     conf.initThemes();
 
     // Scroll indicator (scrollbar) visibility — global, driven by config
-    // ("scrollbar", default true). Off = clean captures / a quieter chrome.
-    brls::ScrollingFrame::setScrollingIndicatorVisibleGlobal(conf.getItem(AppConfig::SCROLLBAR, true));
+    // ("scrollbar"). OFF by default: NuvioTV draws no scrollbar anywhere. It
+    // hints at an overflow with a small chevron at the edge that runs off
+    // (SettingsVerticalScrollIndicators) and never with a track, and ours was
+    // landing on top of the settings rows' own boxes.
+    brls::ScrollingFrame::setScrollingIndicatorVisibleGlobal(conf.getItem(AppConfig::SCROLLBAR, false));
 
     // Screenshot/automation harness (GMCA_NAV_PIPE input hook): keep the render
     // + input loop at full speed even while unfocused, so background navigation

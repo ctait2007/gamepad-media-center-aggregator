@@ -43,6 +43,7 @@ std::string displayType(const std::string& t) {
     if (t == "jellyfin") return "Jellyfin";
     if (t == "emby") return "Emby";
     if (t == "stremio") return "Stremio";
+    if (t == "nuvio") return "Nuvio";
     return "Plex";
 }
 

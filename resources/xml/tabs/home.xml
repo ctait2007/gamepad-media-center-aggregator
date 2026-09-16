@@ -109,6 +109,7 @@
                 id="home/hero/rating1/icon"
                 width="36"
                 height="18"
+                shrink="0"
                 visibility="gone"
                 marginLeft="14"
                 marginRight="7" />
@@ -117,6 +118,7 @@
                 fontSize="24"
                 fontWeight="medium"
                 singleLine="true"
+                shrink="0"
                 visibility="gone" />
         </brls:Box>
 
@@ -137,6 +139,7 @@
                 id="home/hero/rating/icon"
                 width="36"
                 height="18"
+                shrink="0"
                 visibility="gone"
                 marginRight="7" />
             <brls:Label
@@ -144,6 +147,7 @@
                 fontSize="24"
                 fontWeight="medium"
                 singleLine="true"
+                shrink="0"
                 visibility="gone" />
         </brls:Box>
 

@@ -6,6 +6,9 @@ PillButton::PillButton(const std::string& text, bool active, std::function<void(
     this->setAlignItems(brls::AlignItems::CENTER);
     this->setJustifyContent(brls::JustifyContent::CENTER);
     this->setFocusable(true);
+    // A pill is as wide as its label. Without this a row of them shares out
+    // the width instead of overflowing, and thirteen seasons all read "S...".
+    this->setShrink(0);
     // Keep the pill's OWN fill when focused. borealis otherwise paints
     // brls/highlight/background over it, which hid the active pill's light
     // capsule and left dark text on a dark fill. The focus ring still draws.

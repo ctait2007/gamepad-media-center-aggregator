@@ -83,10 +83,15 @@
                     id="setting/detail_scroll"
                     grow="1"
                     scrollingBehavior="centered">
+                    <!-- contentPadding: the reference's list is padded xs at
+                         the top and xxl at the bottom, so the last row is not
+                         flush against the card's edge. -->
                     <brls:Box
                         axis="column"
                         width="100%"
-                        height="auto">
+                        height="auto"
+                        paddingTop="8"
+                        paddingBottom="64">
 
                         <!-- Account -->
                         <brls:Box

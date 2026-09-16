@@ -259,6 +259,25 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Fixed
 
+- **Wrapped text was indented by a space on every line after the first.** Our
+  nanovg counts a word as beginning at the space before it, so a row that broke
+  at that space started ON it and the next line was drawn a space-width in. The
+  home hero's synopsis showed it plainly. A word begins at the first character
+  after the space now, which is what upstream does.
+- **No more scrollbars.** NuvioTV draws none anywhere — it hints at an overflow
+  with a small chevron at the edge that runs off, never a track — and ours was
+  landing on top of the settings rows' own boxes. The global indicator now
+  defaults off.
+- **A Nuvio connection called itself PLEX.** `displayType` had a case for
+  Jellyfin, Emby and Stremio and fell through to Plex for everything else.
+- **Thirteen seasons all read "S...".** The season pills shared the width out
+  between them instead of overflowing; they keep their own width now and the
+  row scrolls sideways, as the reference's LazyRow does.
+- **The hero's year and rating were ellipsized** ("20...", "8...") when the
+  line in front of them was long. Only the descriptive part shrinks now.
+- **The last settings row sat flush against the card's edge**, with nothing
+  under it; the list carries the reference's own content padding.
+
 - **A crash after watching a few episodes in one sitting.** A staleness timer
   was re-pulling every catalog row on the way out of the player, at the one
   moment the player's own buffers had not been handed back — a PS4 log shows
