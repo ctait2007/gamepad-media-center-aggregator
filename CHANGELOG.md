@@ -305,6 +305,22 @@ its screenshots; where we deviate from it, the entry says so.
   pixel. The synopsis also carries the half-leading Compose puts above a
   paragraph's first line and nanovg does not, which is what was left of the gap
   between the meta and the synopsis.
+- **Every tracked style drew at double its tracking, and long lines drifted.**
+  fontstash kept the text pen as a whole number of pixels: it rounded each
+  glyph's advance, and it added letter spacing through the kerning term, which
+  it also rounded. Most glyph pairs have no kerning, so a tracking of 0.5px
+  became `(int)(0 + 0.5 + 0.5)` -- a whole pixel -- and anything under 0.5
+  vanished. The rounded advances then compounded, so a line of body copy ended
+  several pixels wide of where a renderer that keeps a fractional pen (Skia,
+  CoreText) puts it, and the error grew with the line. The pen is fractional
+  now; each glyph's quad is still snapped to the pixel grid, so nothing is
+  blurrier, but the error no longer accumulates. Overlaid on the reference,
+  the same sentence at the same size drifted 6px across a line before and
+  stays within 2 now.
+- **The home hero's text column was 16px too wide.** The reference gives it 42%
+  of what is left after a 52dp leading inset and a 48dp trailing one -- 677px.
+  Ours came out at 693, which is enough to change where lines break: with the
+  same insets the same synopsis now breaks in the same places.
 - **The season pills vanished entirely.** HScrollingFrame forces its content
   view to the frame's own height in onLayout, so giving the frame `height=auto`
   is circular and resolves to nothing. It carries the pill's height now. The

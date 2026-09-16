@@ -58,6 +58,13 @@
          grows UPWARD from its baseline rather than down from the top. Its width
          stops short of the backdrop's solid part.
 
+         The width is MODERN_HERO_TEXT_WIDTH_FRACTION: the reference gives the
+         block 42% of what is left after its own leading inset and an xxxl
+         (48dp -> 96) trailing one, which is 677px of text. Ours is 47.35% of
+         the 1776 beside the rail, less the same two insets, for the same 677 --
+         and the same insets mean the same line breaks, not merely a column of
+         the same width.
+
          The height is a percentage of the CONTENT area (1028 at 1080p -- the
          screen less the hint bar), not of the screen, so this is 501px: enough
          for the tallest the block gets (logo 200 + two meta rows + a four-line
@@ -66,13 +73,13 @@
          synopsis ends at y=485 and the row title below starts at y=525. -->
     <brls:Box
         id="home/hero"
-        width="44%"
+        width="47.35%"
         height="48.7%"
         axis="column"
         justifyContent="flexEnd"
         paddingBottom="3"
         paddingLeft="@style/main/content_padding_sides"
-        paddingRight="20">
+        paddingRight="96">
 
         <!-- The item's cut-out logo, as in the reference. Hidden until its
              pixels actually arrive: an advertised logo url is not proof the

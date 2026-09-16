@@ -272,6 +272,49 @@ index 227cd78..63a69d5 100644
      /**
        * Called by frame() to draw the view onscreen.
        * Views should not draw outside of their bounds (they
+diff --git a/library/include/borealis/extern/nanovg/fontstash.h b/library/include/borealis/extern/nanovg/fontstash.h
+index 774a954..4d2c600 100644
+--- a/library/include/borealis/extern/nanovg/fontstash.h
++++ b/library/include/borealis/extern/nanovg/fontstash.h
+@@ -1555,7 +1555,7 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
+ 	glyph->y0 = (short)gy;
+ 	glyph->x1 = (short)(glyph->x0+gw);
+ 	glyph->y1 = (short)(glyph->y0+gh);
+-	glyph->xadv = (short)(scale * advance * 10.0f);
++	glyph->xadv = (short)(scale * advance * 10.0f + 0.5f);
+ 	glyph->xoff = (short)(x0 - pad);
+ 	glyph->yoff = (short)(y0 - pad);
+ 
+@@ -1618,7 +1618,12 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
+ 
+ 	if (prevGlyphIndex != -1) {
+ 		float adv = fons__tt_getGlyphKernAdvance(&font->font, prevGlyphIndex, glyph->index) * scale;
+-		*x += (int)(adv + spacing + 0.5f);
++		// Fractional: see the advance below. Rounding here was worse than a
++		// rounding error -- letter spacing is applied through this term, and
++		// most pairs have no kerning, so a tracking of 0.5px became
++		// (int)(0 + 0.5 + 0.5) = a whole pixel. Every tracked style in the app
++		// was drawing at double the tracking it asked for.
++		*x += adv + spacing;
+ 	}
+ 
+ 	// Each glyph has 2px border to allow good interpolation,
+@@ -1659,7 +1664,14 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
+ 		q->t1 = y1 * stash->ith;
+ 	}
+ 
+-	*x += (int)(glyph->xadv / 10.0f + 0.5f);
++	// Advance the pen by the glyph's EXACT advance, not by a whole number of
++	// pixels. The quad above is still snapped (floorf), so glyphs stay crisp
++	// on the pixel grid; what changes is that the error no longer accumulates.
++	// Rounding every advance made a line of text drift from where a renderer
++	// that keeps a fractional pen (Skia, CoreText, Pango...) puts it -- a
++	// fraction of a pixel per glyph, but tens of glyphs into a line of body
++	// copy it was several pixels, and it grew with the line.
++	*x += glyph->xadv / 10.0f;
+ }
+ 
+ static void fons__flush(FONScontext* stash)
 diff --git a/library/include/borealis/extern/nanovg/nanovg_gxm.h b/library/include/borealis/extern/nanovg/nanovg_gxm.h
 index 8bb4ff7..ea4d9b7 100644
 --- a/library/include/borealis/extern/nanovg/nanovg_gxm.h
