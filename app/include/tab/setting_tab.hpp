@@ -45,6 +45,8 @@ private:
         const char* pageId;
         std::string title;
         std::string subtitle;
+        std::string paneTitle;
+        std::string paneSubtitle;
         SettingsNavItem* item = nullptr;
         brls::View* page = nullptr;
     };

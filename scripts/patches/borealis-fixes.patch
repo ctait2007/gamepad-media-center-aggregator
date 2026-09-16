@@ -476,10 +476,10 @@ index c83c51a..4bd52ba 100644
  
      /**
 diff --git a/library/include/borealis/views/label.hpp b/library/include/borealis/views/label.hpp
-index 62459ba..f554bc1 100644
+index 62459ba..6a2a197 100644
 --- a/library/include/borealis/views/label.hpp
 +++ b/library/include/borealis/views/label.hpp
-@@ -97,6 +97,10 @@ class Label : public View
+@@ -97,13 +97,23 @@ class Label : public View
  
      void setFontSize(float value);
      void setFontQuality(float value);
@@ -488,8 +488,29 @@ index 62459ba..f554bc1 100644
 +    /// (or "regular"/empty to go back). A weight that is not loaded is ignored.
 +    void setFontWeight(const std::string& weight);
      void setLineHeight(float value);
++
++    /// Tracking added between glyphs, in the same units as the font size.
++    /// Material3 text styles carry one and nanovg supports it; Borealis simply
++    /// never exposed it.
++    void setLetterSpacing(float value);
      void setTextColor(NVGcolor color);
  
+     int getFont();
+     float getFontSize();
+     float getFontQuality();
+     float getLineHeight();
++    float getLetterSpacing();
+     NVGcolor getTextColor();
+ 
+     std::string getFullText();
+@@ -159,6 +169,7 @@ class Label : public View
+     int font;
+     float fontSize;
+     float lineHeight;
++    float letterSpacing = 0.0f;
+     float fontQuality;
+ 
+     NVGcolor textColor;
 diff --git a/library/include/borealis/views/recycler.hpp b/library/include/borealis/views/recycler.hpp
 index a29b532..088e19b 100644
 --- a/library/include/borealis/views/recycler.hpp
@@ -2099,10 +2120,18 @@ index 04db052..b2a8038 100644
      else
      {
 diff --git a/library/lib/views/label.cpp b/library/lib/views/label.cpp
-index 0e0474c..58f7c83 100644
+index 0e0474c..4a2d2e6 100644
 --- a/library/lib/views/label.cpp
 +++ b/library/lib/views/label.cpp
-@@ -240,6 +240,14 @@ Label::Label()
+@@ -110,6 +110,7 @@ static YGSize labelMeasureFunc(YGNodeRef node, float width, YGMeasureMode widthM
+     nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+     nvgFontFaceId(vg, label->getFont());
+     nvgTextLineHeight(vg, label->getLineHeight());
++    nvgTextLetterSpacing(vg, label->getLetterSpacing());
+ 
+     // Measure the needed width for the ellipsis
+     float bounds[4];
+@@ -240,9 +241,23 @@ Label::Label()
      this->registerColorXMLAttribute("textColor", [this](NVGcolor color)
          { this->setTextColor(color); });
  
@@ -2117,7 +2146,37 @@ index 0e0474c..58f7c83 100644
      this->registerFloatXMLAttribute("lineHeight", [this](float value)
          { this->setLineHeight(value); });
  
-@@ -597,7 +605,13 @@ void Label::onLayout()
++    // Tracking, in the same units as the font size. Material3 styles carry one
++    // (bodyLarge 0.5sp, bodySmall 0.4sp...), and without it a line of text is
++    // measurably tighter than the same line in the app being matched.
++    this->registerFloatXMLAttribute("letterSpacing", [this](float value)
++        { this->setLetterSpacing(value); });
++
+     this->registerBoolXMLAttribute("animated", [this](bool value)
+         { this->setAnimated(value); });
+ 
+@@ -394,6 +409,12 @@ void Label::setFontQuality(float value)
+     this->invalidate();
+ }
+ 
++void Label::setLetterSpacing(float value)
++{
++    this->letterSpacing = value;
++    this->invalidate();
++}
++
+ void Label::setLineHeight(float value)
+ {
+     this->lineHeight = value;
+@@ -455,6 +476,7 @@ void Label::draw(NVGcontext* vg, float x, float y, float width, float height, St
+     nvgFontFaceId(vg, this->font);
+     nvgFontQuality(vg, this->fontQuality);
+     nvgTextLineHeight(vg, this->lineHeight);
++    nvgTextLetterSpacing(vg, this->letterSpacing);
+     nvgFillColor(vg, a(this->textColor));
+ 
+     // Edit cursor
+@@ -597,9 +619,16 @@ void Label::onLayout()
          // Cannot do it in the measure function because the margins are not applied yet there
          auto vg = Application::getNVGContext();
          nvgFontSize(vg, this->fontSize);
@@ -2131,8 +2190,11 @@ index 0e0474c..58f7c83 100644
 +        nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
          nvgFontFaceId(vg, this->font);
          nvgTextLineHeight(vg, this->lineHeight);
++        nvgTextLetterSpacing(vg, this->letterSpacing);
  
-@@ -628,6 +642,21 @@ void Label::onLayout()
+         std::vector<NVGglyphPosition> positions;
+         positions.resize(stringLength);
+@@ -628,6 +657,21 @@ void Label::onLayout()
      this->resetScrollingAnimation(); // either stops it or restarts it with the new text
  }
  
@@ -2154,6 +2216,18 @@ index 0e0474c..58f7c83 100644
  int Label::getFont()
  {
      return this->font;
+@@ -648,6 +692,11 @@ float Label::getLineHeight()
+     return this->lineHeight;
+ }
+ 
++float Label::getLetterSpacing()
++{
++    return this->letterSpacing;
++}
++
+ NVGcolor Label::getTextColor()
+ {
+     return this->textColor;
 diff --git a/library/lib/views/recycler.cpp b/library/lib/views/recycler.cpp
 index 8e6acb3..76c9249 100644
 --- a/library/lib/views/recycler.cpp

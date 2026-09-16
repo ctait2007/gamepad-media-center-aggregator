@@ -37,4 +37,11 @@ std::string subtitleLangDisplay(const std::string& raw);
 /// Ordered catalog of common subtitle languages for the preference picker.
 const std::vector<LangOption>& subtitleLangCatalog();
 
+/// Every spelling of a language we would recognise, comma-joined and lowercase
+/// ("en,eng,english"). mpv takes a list for `alang`/`slang` and stops at the
+/// first track that matches one of them, so handing it the aliases picks the
+/// right track whether the file says "en", "eng" or "English". Empty for a
+/// language the catalog does not carry.
+std::string langMatchList(const std::string& raw);
+
 }  // namespace media

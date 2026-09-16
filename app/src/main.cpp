@@ -218,6 +218,11 @@ int main(int argc, char* argv[]) {
     brls::Application::setRepeatDelay(
         conf.getItem(AppConfig::FAST_HORIZONTAL_NAV, false) ? 48000 : 80000, 112000);
 
+    // NuvioTV's focus ring is spacing.xxs, which its tokens put at 2dp -- 4px
+    // at the density it lays out for. Borealis' own default is 5, which reads
+    // a touch heavy beside it.
+    brls::Application::getStyle().addMetric("brls/highlight/stroke_width", 4.0f);
+
     // Register custom views (including tabs, which are views)
     brls::Application::registerXMLView("SVGImage", SVGImage::create);
     brls::Application::registerXMLView("DisclosureCell", DisclosureCell::create);

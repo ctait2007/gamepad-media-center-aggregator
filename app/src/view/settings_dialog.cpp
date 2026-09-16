@@ -1,5 +1,7 @@
 #include "view/settings_dialog.hpp"
 
+#include <cmath>
+
 #include "view/svg_image.hpp"
 
 #include <borealis.hpp>
@@ -29,13 +31,33 @@ const NVGcolor kElevated = nvgRGB(0x1A, 0x1A, 0x1A);  // BackgroundElevated
 const NVGcolor kCard = nvgRGB(0x24, 0x24, 0x24);      // BackgroundCard
 const NVGcolor kFocus = nvgRGB(0x33, 0x33, 0x33);     // FocusBackground
 const NVGcolor kBorder = nvgRGB(0x33, 0x33, 0x33);
-const NVGcolor kTextPrimary = nvgRGB(0xF5, 0xF5, 0xF5);
+const NVGcolor kTextPrimary = nvgRGB(0xFF, 0xFF, 0xFF);  // TextPrimary is white
 const NVGcolor kTextSecondary = nvgRGB(0xB3, 0xB3, 0xB3);
 
-brls::Label* label(float size, NVGcolor color) {
+/// How wide a run of text is, in the face a Label would draw it in. Needed
+/// because a Label sized "auto" inside a ROW whose other child grows is
+/// measured against nothing left over and lays out at zero width, which is
+/// how the option's trailing note came to be invisible.
+float textWidth(const std::string& text, float size, float tracking) {
+    NVGcontext* vg = brls::Application::getNVGContext();
+    nvgFontSize(vg, size);
+    nvgFontFaceId(vg, brls::Application::getDefaultFont());
+    nvgTextLetterSpacing(vg, tracking);
+    nvgTextAlign(vg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+    float bounds[4];
+    nvgTextBounds(vg, 0, 0, text.c_str(), nullptr, bounds);
+    nvgTextLetterSpacing(vg, 0);
+    return std::ceil(bounds[2] - bounds[0]) + 2;
+}
+
+brls::Label* label(float size, NVGcolor color, float lineHeight = 0, float tracking = 0,
+    const char* weight = nullptr) {
     auto* l = new brls::Label();
     l->setFontSize(size);
     l->setTextColor(color);
+    if (lineHeight > 0) l->setLineHeight(lineHeight);
+    l->setLetterSpacing(tracking);
+    if (weight) l->setFontWeight(weight);
     // A borealis Label marquees whenever an ANCESTOR holds focus and the text
     // overruns; inside a focused card that slides the option's own name back
     // and forth under the reader.
@@ -61,17 +83,26 @@ public:
         // paints its highlight background over it and the lift disappears.
         this->setHideHighlightBackground(true);
 
+        // Yoga will not shrink the text column to make room for what follows
+        // it -- a Label measured against no remaining space reports zero and
+        // the note ends up over the card's padding -- so the column is given
+        // exactly the room the trailing note and the check leave it.
+        const float trailingWidth = opt.trailing.empty() ? 0 : textWidth(opt.trailing, 24, 0.8f) + kOptionGap * 1.5f;
+        const float checkWidth = selected ? kCheckSize + kOptionGap * 1.5f : 0;
+
         auto* column = new brls::Box();
         column->setAxis(brls::Axis::COLUMN);
-        column->setGrow(1);
+        column->setWidth(width - kOptionPad * 2 - trailingWidth - checkWidth);
 
-        this->titleLabel = label(32, selected ? brls::Application::getTheme().getColor("color/app") : kTextPrimary);
+        // bodyLarge: 16sp Regular, tracked 0.5sp.
+        this->titleLabel = label(32, selected ? brls::Application::getTheme().getColor("color/app") : kTextPrimary,
+            24.0f / 16.0f, 1.0f);
         this->titleLabel->setText(opt.title);
         this->titleLabel->setSingleLine(true);
         column->addView(this->titleLabel);
 
         if (!opt.description.empty()) {
-            auto* desc = label(24, kTextSecondary);
+            auto* desc = label(24, kTextSecondary, 16.0f / 12.0f, 0.8f);  // bodySmall
             desc->setText(opt.description);
             desc->setMarginTop(8);  // spacing.xs
             column->addView(desc);
@@ -79,10 +110,15 @@ public:
         this->addView(column);
 
         if (!opt.trailing.empty()) {
-            auto* note = label(24, kTextSecondary);
+            auto* note = label(24, kTextSecondary, 16.0f / 12.0f, 0.8f);  // bodySmall
             note->setText(opt.trailing);
-            note->setMarginLeft(24);  // spacing.md
+            note->setMarginLeft(kOptionGap * 1.5f);  // spacing.md
             note->setSingleLine(true);
+            // The title column grows; without this yoga squeezes the note to
+            // nothing rather than taking the space off the title.
+            note->setShrink(0);
+            note->setWidth(textWidth(opt.trailing, 24, 0.8f));
+            note->setHorizontalAlign(brls::HorizontalAlign::RIGHT);
             this->addView(note);
         }
 
@@ -90,7 +126,7 @@ public:
             auto* check = new SVGImage();
             check->setWidth(kCheckSize);
             check->setHeight(kCheckSize);
-            check->setMarginLeft(24);  // spacing.md
+            check->setMarginLeft(kOptionGap * 1.5f);  // spacing.md
             check->setImageFromSVGRes("icon/ico-check-light.svg");
             check->setGlyphColor(brls::Application::getTheme().getColor("color/app"));
             this->addView(check);
@@ -142,13 +178,13 @@ public:
         panel->setPadding(kPanelPad, kPanelPad, kPanelPad, kPanelPad);
         this->addView(panel);
 
-        auto* heading = label(44, kTextPrimary);  // titleLarge
+        auto* heading = label(40, kTextPrimary, 28.0f / 20.0f, 0, "medium");  // titleLarge 20sp Medium
         heading->setText(title);
         heading->setSingleLine(true);
         panel->addView(heading);
 
         if (!subtitle.empty()) {
-            auto* sub = label(28, kTextSecondary);  // bodyMedium
+            auto* sub = label(28, kTextSecondary, 20.0f / 14.0f, 0.5f);  // bodyMedium 14sp, 0.25sp
             sub->setText(subtitle);
             sub->setMarginTop(kPanelGap);
             panel->addView(sub);

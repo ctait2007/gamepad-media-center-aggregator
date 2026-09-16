@@ -37,11 +37,13 @@ struct Parts {
     SVGImage* icon = nullptr;         ///< leading glyph, GONE until set
 };
 
-/// Re-skin a cell whose root is the row Box: reshape the padding, height and
-/// focus ring, drop the title into a column with a subtitle under it, and put a
-/// leading icon slot in front. `title` and `value` are the cell's own labels
-/// (`value` may be null for cells that have none).
-Parts skin(brls::Box* row, brls::Label* title, brls::Label* value);
+/// Re-skin a cell whose root is the row Box: reshape the padding, fill, height
+/// and focus ring, drop the title into a column with a subtitle under it, and
+/// put a leading icon slot in front. `title` and `value` are the cell's own
+/// labels (`value` may be null for cells that have none). `header` picks the
+/// reference's SettingsActionRow metrics (18dp padding, an 18dp TextTertiary
+/// chevron) over a settings row's own 14dp/20dp/TextSecondary.
+Parts skin(brls::Box* row, brls::Label* title, brls::Label* value, bool header = false);
 
 void setSubtitle(const Parts& parts, const std::string& text);
 
@@ -58,7 +60,7 @@ void keepPillRing(brls::View* row);
 /// A right-pointing chevron sized and coloured for the trailing slot. Drawn as
 /// an SVG for the same reason DisclosureCell does it: a Label centres an icon
 /// glyph on the TEXT font's metrics, which lands it a few pixels high.
-SVGImage* makeChevron();
+SVGImage* makeChevron(bool header = false);
 
 /// NuvioTV's ExpandMore, for a section header that is open.
 SVGImage* makeExpandMore();
@@ -76,6 +78,10 @@ class SelectorCell : public brls::SelectorCell {
     /// (SettingsPickerOption.description). Pass one per option, or none.
     void setDescriptions(std::vector<std::string> descriptions);
 
+    /// The short note the dialog puts at the right of an option. The reference
+    /// uses it for a language's own code (SettingsPickerOption.trailing).
+    void setTrailings(std::vector<std::string> trailings);
+
     void onLayout() override;
 
     static brls::View* create();
@@ -83,6 +89,7 @@ class SelectorCell : public brls::SelectorCell {
   private:
     settings_row::Parts parts;
     std::vector<std::string> descriptions;
+    std::vector<std::string> trailings;
     brls::Event<int> dismissEvent;
 };
 

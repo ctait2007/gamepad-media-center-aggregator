@@ -35,6 +35,7 @@
 #include "utils/dialog.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <vector>
 
 #ifdef __SWITCH__
@@ -171,10 +172,20 @@ void SettingTab::onCreate() {
         "main/setting/playback/subtitle_lang/auto"_i18n,
         "main/setting/playback/subtitle_lang/off"_i18n,
     };
+    // The reference puts the language's own code at the right of each row
+    // (SettingsPickerOption.trailing), uppercased.
+    std::vector<std::string> catalogCodes;
+    for (auto& l : media::subtitleLangCatalog()) {
+        std::string up = l.code;
+        for (auto& ch : up) ch = (char)std::toupper((unsigned char)ch);
+        catalogCodes.push_back(up);
+    }
+    std::vector<std::string> langTrailings = {"", ""};
     for (auto& l : media::subtitleLangCatalog()) {
         subLangValues.push_back(l.code);
         subLangLabels.push_back(l.display);
     }
+    langTrailings.insert(langTrailings.end(), catalogCodes.begin(), catalogCodes.end());
     std::string subLangCur = conf.getItem(AppConfig::PLAYER_SUBTITLE_LANG, std::string("auto"));
     auto subLangIt = std::find(subLangValues.begin(), subLangValues.end(), subLangCur);
     int subLangIndex = subLangIt != subLangValues.end() ? (int)(subLangIt - subLangValues.begin()) : 0;
@@ -182,16 +193,19 @@ void SettingTab::onCreate() {
         [subLangValues](int selected) {
             AppConfig::instance().setItem(AppConfig::PLAYER_SUBTITLE_LANG, subLangValues[selected]);
         });
+    selectorSubLang->setTrailings(langTrailings);
 
     // secondaryPreferredLanguage, off the same catalog as the preferred one,
     // with "None" where that list has "Automatic" — a second language is an
     // addition, not a fallback.
     std::vector<std::string> secLangValues = {""};
     std::vector<std::string> secLangLabels = {"main/setting/playback/sub_secondary_none"_i18n};
+    std::vector<std::string> secTrailings = {""};
     for (auto& l : media::subtitleLangCatalog()) {
         secLangValues.push_back(l.code);
         secLangLabels.push_back(l.display);
     }
+    secTrailings.insert(secTrailings.end(), catalogCodes.begin(), catalogCodes.end());
     std::string secCur = conf.getItem(AppConfig::SUB_SECONDARY_LANG, std::string(""));
     auto secIt = std::find(secLangValues.begin(), secLangValues.end(), secCur);
     int secIndex = secIt != secLangValues.end() ? (int)(secIt - secLangValues.begin()) : 0;
@@ -199,6 +213,7 @@ void SettingTab::onCreate() {
         [secLangValues](int selected) {
             AppConfig::instance().setItem(AppConfig::SUB_SECONDARY_LANG, secLangValues[selected]);
         });
+    selectorSubSecondaryLang->setTrailings(secTrailings);
 
     btnSubOnlyPreferred->init("main/setting/playback/sub_only_preferred"_i18n,
         conf.getItem(AppConfig::SUB_ONLY_PREFERRED_LANGS, false),
@@ -281,18 +296,31 @@ void SettingTab::onCreate() {
         conf.setItem(AppConfig::OSD_ON_TOGGLE, value);
     });
 
-    // AudioLanguageOption, minus its "original": that one reads TMDB's
-    // original_language, which nothing here carries.
-    int audioLangIdx = conf.getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default")) == "device" ? 1 : 0;
-    selectorAudioLang->init("main/setting/playback/audio_lang"_i18n,
-        {
-            "main/setting/playback/audio_lang_option/default"_i18n,
-            "main/setting/playback/audio_lang_option/device"_i18n,
-        },
-        audioLangIdx, [](int selected) {
-            AppConfig::instance().setItem(
-                AppConfig::PLAYER_AUDIO_LANG, std::string(selected == 1 ? "device" : "default"));
+    // AudioLanguageSelectionDialog: its two workable special options, then the
+    // whole language catalog, exactly as the reference lists it. (Its third
+    // special, "Original language", reads TMDB's original_language, which
+    // nothing here carries.) Picking one sets mpv's alang -- see
+    // MPVCore::init -- so the file's English track is selected when there is
+    // one, whichever spelling it is tagged with.
+    std::vector<std::string> audioLangValues = {"default", "device"};
+    std::vector<std::string> audioLangLabels = {
+        "main/setting/playback/audio_lang_option/default"_i18n,
+        "main/setting/playback/audio_lang_option/device"_i18n,
+    };
+    std::vector<std::string> audioTrailings = {"", ""};
+    for (auto& l : media::subtitleLangCatalog()) {
+        audioLangValues.push_back(l.code);
+        audioLangLabels.push_back(l.display);
+    }
+    audioTrailings.insert(audioTrailings.end(), catalogCodes.begin(), catalogCodes.end());
+    std::string audioCur = conf.getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default"));
+    auto audioIt = std::find(audioLangValues.begin(), audioLangValues.end(), audioCur);
+    int audioLangIdx = audioIt != audioLangValues.end() ? (int)(audioIt - audioLangValues.begin()) : 0;
+    selectorAudioLang->init("main/setting/playback/audio_lang"_i18n, audioLangLabels, audioLangIdx,
+        [audioLangValues](int selected) {
+            AppConfig::instance().setItem(AppConfig::PLAYER_AUDIO_LANG, audioLangValues[selected]);
         });
+    selectorAudioLang->setTrailings(audioTrailings);
 
     btnOsdClock->init("main/setting/playback/osd_clock"_i18n, MPVCore::OSD_CLOCK, [&conf](bool value) {
         MPVCore::OSD_CLOCK = value;
@@ -1053,22 +1081,24 @@ static const char* kCategoryIcons[] = {
     "9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
     "M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z",
     "M8 5v14l11-7z",
-    "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 "
-    "2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z",
     "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 "
     "0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 "
+    "2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z",
 };
 
 void SettingTab::buildCategories() {
+    // SettingsScreen.kt's own order, minus the categories this app has no
+    // counterpart for: About comes BEFORE Advanced there.
     static const char* kPages[] = {
         "setting/page/account",
         "setting/page/appearance",
         "setting/page/layout",
         "setting/page/playback",
-        "setting/page/advanced",
         "setting/page/about",
+        "setting/page/advanced",
     };
-    static const char* kNames[] = {"account", "appearance", "layout", "playback", "advanced", "about"};
+    static const char* kNames[] = {"account", "appearance", "layout", "playback", "about", "advanced"};
 
     this->categories.clear();
     this->boxNav->clearViews();
@@ -1078,8 +1108,17 @@ void SettingTab::buildCategories() {
         if (!page) continue;
         Category c;
         c.pageId = kPages[i];
-        c.title = brls::getStr(std::string("main/setting/category/") + kNames[i] + "/title");
-        c.subtitle = brls::getStr(std::string("main/setting/category/") + kNames[i] + "/subtitle");
+        const std::string base = std::string("main/setting/category/") + kNames[i];
+        c.title = brls::getStr(base + "/title");
+        c.subtitle = brls::getStr(base + "/subtitle");
+        // A category with a screen of its own in the reference names the pane
+        // differently from the rail: the rail says "Playback", the pane says
+        // "Playback Settings" (settings_playback vs playback_title).
+        c.paneTitle = brls::getStr(base + "/pane_title");
+        c.paneSubtitle = brls::getStr(base + "/pane_subtitle");
+        // getStr hands back the key itself when there is no such string.
+        if (c.paneTitle.empty() || c.paneTitle == base + "/pane_title") c.paneTitle = c.title;
+        if (c.paneSubtitle.empty() || c.paneSubtitle == base + "/pane_subtitle") c.paneSubtitle = c.subtitle;
         c.page = page;
         size_t index = this->categories.size();
         c.item = new SettingsNavItem(
@@ -1101,10 +1140,10 @@ void SettingTab::selectCategory(size_t index, bool moveFocus) {
         c.page->setVisibility(on ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
     }
     const Category& c = this->categories[index];
-    this->labelPageTitle->setText(c.title);
-    this->labelPageSubtitle->setText(c.subtitle);
+    this->labelPageTitle->setText(c.paneTitle);
+    this->labelPageSubtitle->setText(c.paneSubtitle);
     this->labelPageSubtitle->setVisibility(
-        c.subtitle.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
+        c.paneSubtitle.empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
 
     // Picking a category hands focus to its first setting rather than leaving
     // it on the rail — you chose the category to get at what is in it. Next

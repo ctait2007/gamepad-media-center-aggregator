@@ -204,7 +204,35 @@ its screenshots; where we deviate from it, the entry says so.
   buttons beside the labelled Play pill, the selected mark-watched inverting
   to a white disc with a black glyph the way its `ActionIconButton` does.
 
+- **Text that measures the same as the reference's.** Its Material3 styles carry
+  tracking (bodyLarge 0.5sp, bodySmall 0.4sp, labelLarge 0.1sp) and Borealis
+  had no notion of it, so every line of text here was measurably tighter: a
+  pixel scan of NuvioTV's own settings screenshots puts "Loading Overlay" at
+  257px where ours drew 244. Labels take a `letterSpacing` now, in code and in
+  XML, and the settings rows use the reference's values — that same title is
+  258px wide.
+- **Playback: the whole language catalogue for preferred AUDIO.** It offered
+  two options, neither of them a language; the reference's own dialog is its
+  two workable specials and then all 78 (AudioLanguageSelectionDialog), each
+  with its code at the right. Picking one sets mpv's `alang` to that code AND
+  its aliases, so a track tagged "eng" or "English" is the English you asked
+  for. The subtitle pickers gained the same trailing codes.
+
 ### Changed
+
+- **The settings screen redrawn again, to the reference's own measurements.**
+  The first pass had the structure right and the chrome wrong. Read off a pixel
+  scan of NuvioTV's screenshots and its tokens together: a row is a 120px pill
+  filled `Background` on a `BackgroundCard` group card inside a
+  `BackgroundElevated` workspace, rows sit 24px apart, the focus ring is 4px
+  and drawn INSIDE the row's bounds the way a Compose border is, the rail is
+  220dp wide with 56dp entries, and a focused row's glyph goes to `Primary`,
+  which in that theme is a grey and not the accent. Its spacing.xxs is 2dp, not
+  4, which several of our numbers had been built on.
+- **The rail and the pane no longer share a title.** The reference names a
+  category one thing in the rail and another in the pane it opens ("Playback"
+  vs "Playback Settings"), and puts About before Advanced. Both now follow it,
+  with its own subtitle text.
 
 - **The player's subtitle panel writes its changes down.** Its steppers moved
   mpv and nothing else, so anything set there was gone by the next launch; they

@@ -181,6 +181,21 @@ std::string subtitleLangDisplay(const std::string& raw) {
     return s.substr(b, e - b);
 }
 
+std::string langMatchList(const std::string& raw) {
+    size_t i = lookup(raw);
+    if (i == std::string::npos) return {};
+    const LangRow& r = rows()[i];
+    std::string out = normalize(r.code);
+    for (const char* a : r.aliases) {
+        std::string n = normalize(a);
+        // A display name with a space is no use to mpv, and a region-tagged
+        // alias would only ever match what the code already matches.
+        if (n.empty() || n.find(' ') != std::string::npos) continue;
+        out += "," + n;
+    }
+    return out;
+}
+
 const std::vector<LangOption>& subtitleLangCatalog() {
     static const std::vector<LangOption> cat = [] {
         std::vector<LangOption> c;

@@ -3,6 +3,8 @@
 //
 
 #include "view/mpv_core.hpp"
+
+#include "api/media/langs.hpp"
 #include "utils/config.hpp"
 #include "utils/misc.hpp"
 #include <fmt/ranges.h>
@@ -224,12 +226,25 @@ void MPVCore::init() {
     mpv_set_option_string(mpv, "subs-fallback", SUBS_FALLBACK ? "yes" : "no");
     // AudioLanguageOption. "default" leaves the file's own choice alone, which
     // is why alang goes unset rather than being set to something; "device" asks
-    // for the app's language first and falls back to the file's when the track
-    // is not there, which is mpv's own behaviour for an unmatched alang.
-    if (AppConfig::instance().getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default")) == "device") {
-        std::string locale = brls::Application::getLocale();
-        std::string two = locale.substr(0, locale.find('-'));
-        if (!two.empty()) mpv_set_option_string(mpv, "alang", two.c_str());
+    // for the app's language, and anything else is one of the catalog's 78
+    // languages. mpv falls back to the file's own track when nothing matches,
+    // which is what the reference relies on too.
+    {
+        const std::string want =
+            AppConfig::instance().getItem(AppConfig::PLAYER_AUDIO_LANG, std::string("default"));
+        std::string alang;
+        if (want == "device") {
+            std::string locale = brls::Application::getLocale();
+            alang = media::langMatchList(locale.substr(0, locale.find('-')));
+            if (alang.empty()) alang = locale.substr(0, locale.find('-'));
+        } else if (want != "default") {
+            // The aliases go in too: a track tagged "eng" and one tagged
+            // "English" are both English, and mpv only matches the strings it
+            // is given.
+            alang = media::langMatchList(want);
+            if (alang.empty()) alang = want;
+        }
+        if (!alang.empty()) mpv_set_option_string(mpv, "alang", alang.c_str());
     }
     // SUBTITLE FACE. mpv's own defaults are a 55 px face with a 3 px outline,
     // which on a TV at this distance is a heavy black-edged wall of text. The

@@ -347,27 +347,31 @@
         "category": {
             "account": {
                 "title": "Account",
-                "subtitle": "Servers and sign-in"
+                "subtitle": "Account and sync status"
             },
             "appearance": {
                 "title": "Appearance",
-                "subtitle": "Theme, colour and text size"
+                "subtitle": "Choose your color theme, font and language"
             },
             "layout": {
                 "title": "Layout",
-                "subtitle": "Rows, libraries and posters"
+                "subtitle": "Home structure and poster styles",
+                "pane_title": "Layout Settings",
+                "pane_subtitle": "Adjust home layout, content visibility, and poster behavior"
             },
             "playback": {
                 "title": "Playback",
-                "subtitle": "Video, audio and subtitles"
-            },
-            "advanced": {
-                "title": "Advanced",
-                "subtitle": "Network, performance and tools"
+                "subtitle": "Player, subtitles, and auto-play",
+                "pane_title": "Playback Settings",
+                "pane_subtitle": "Configure video playback and subtitle options"
             },
             "about": {
                 "title": "About",
-                "subtitle": "Version, changelog and updates"
+                "subtitle": "Version and policies"
+            },
+            "advanced": {
+                "title": "Advanced",
+                "subtitle": "Performance, navigation, cache, and diagnostics"
             }
         },
         "layout": {
