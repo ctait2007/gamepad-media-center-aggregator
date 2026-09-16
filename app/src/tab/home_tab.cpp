@@ -534,6 +534,17 @@ void HomeTab::renderHero() {
     auto* meta2 = this->getView("home/hero/meta2");
     auto* overview = dynamic_cast<TextBox*>(this->getView("home/hero/overview"));
 
+    // ModernHomeHero scales the hero's type down when the posters are
+    // portrait -- descriptionScale 0.90, titleScale 0.92 -- and leaves it alone
+    // when they are landscape. Portrait is this app's default too, so without
+    // this the synopsis drew a size larger than the reference's and fitted a
+    // line less into the same column.
+    static const bool kLandscape = AppConfig::instance().getItem(AppConfig::LAYOUT_LANDSCAPE_POSTERS, false);
+    if (!kLandscape) {
+        if (title) title->setFontSize(56 * 0.92f);
+        if (overview) overview->setFontSize(28 * 0.90f);
+    }
+
     // Everything sits on the artwork's veil, so it is light in BOTH themes.
     const NVGcolor onArt = nvgRGB(0xF5, 0xF5, 0xF5);
     const NVGcolor onArtDim = nvgRGB(0xB3, 0xB3, 0xB3);

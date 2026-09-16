@@ -310,8 +310,12 @@
                  a show with thirteen seasons cannot fit them across a 1080p
                  screen, and sharing the width out instead left every one of
                  them reading "S...". -->
+            <!-- An explicit height: HScrollingFrame forces its content view to
+                 the frame's own height in onLayout, so "auto" is circular and
+                 resolves to nothing -- which is why the pills vanished. 70 is
+                 the pill's own height (PillButton's season style). -->
             <brls:HScrollingFrame
-                height="auto"
+                height="70"
                 marginTop="28"
                 marginBottom="14">
                 <!-- HScrollingFrame refuses padding of its own; the inset

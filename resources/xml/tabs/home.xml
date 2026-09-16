@@ -104,6 +104,7 @@
                 id="home/hero/meta"
                 fontSize="24"
                 fontWeight="medium"
+                letterSpacing="1"
                 singleLine="true" />
             <SVGImage
                 id="home/hero/rating1/icon"
@@ -117,6 +118,7 @@
                 id="home/hero/rating1"
                 fontSize="24"
                 fontWeight="medium"
+                letterSpacing="1"
                 singleLine="true"
                 shrink="0"
                 visibility="gone" />
@@ -132,6 +134,7 @@
                 id="home/hero/meta2/text"
                 fontSize="24"
                 fontWeight="medium"
+                letterSpacing="1"
                 singleLine="true" />
             <!-- the rating's own mark (IMDb / RT / TMDb), as on the detail
                  page — sized to the glyph's aspect in C++ -->
@@ -146,6 +149,7 @@
                 id="home/hero/rating"
                 fontSize="24"
                 fontWeight="medium"
+                letterSpacing="1"
                 singleLine="true"
                 shrink="0"
                 visibility="gone" />
@@ -153,12 +157,15 @@
 
         <!-- 3 rows, not 4: the band has to hold logo + meta + synopsis with
              clearance above the first row title in the worst case. -->
+        <!-- bodyMedium, four rows (ModernHomeHero's descriptionMaxLines). The
+             size is scaled to 0.90 in C++ when the posters are portrait, which
+             is what its descriptionScale does and what our default is. -->
         <TextBox
             id="home/hero/overview"
             fontSize="28"
             lineHeight="1.43"
             letterSpacing="0.5"
-            maxRows="3" />
+            maxRows="4" />
     </brls:Box>
 
     <brls:ScrollingFrame

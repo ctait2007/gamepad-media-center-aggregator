@@ -259,6 +259,18 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Fixed
 
+- **The season pills vanished entirely.** HScrollingFrame forces its content
+  view to the frame's own height in onLayout, so giving the frame `height=auto`
+  is circular and resolves to nothing. It carries the pill's height now. The
+  test addon serves fourteen seasons so this case is exercised rather than
+  assumed.
+- **The home hero's synopsis was a size too large.** ModernHomeHero scales its
+  type down when the posters are portrait — descriptionScale 0.90, titleScale
+  0.92 — and portrait is this app's default too, so ours drew 28px against the
+  reference's 25.2 and fitted a line less into the same column. Measured on its
+  screenshots: 24px glyph band and a 36px line pitch, which is what ours does
+  now. It also shows four lines rather than three, as descriptionMaxLines does.
+
 - **Body text carried no tracking either.** TextBox lays its own lines out and
   never set the letter spacing, so a synopsis drew tighter than the settings
   rows beside it. It takes the reference's tokens now — bodyMedium for the hero
