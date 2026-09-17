@@ -18,6 +18,26 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Added
 
+- **TMDB enrichment, the client half** (`TmdbMetadataService`/`TmdbService`).
+  The reference bakes its own key into the APK at build time -- a
+  `TMDB_API_KEY` buildConfigField read from a private `localProperties` --
+  which is why its users never enter one and why we cannot inherit it: a key
+  committed to a public repository gets scraped and revoked. The service is
+  replicated exactly; the key comes from the user's own free themoviedb.org
+  account, and with no key enrichment is simply off, which is also the
+  reference's default (`enabled` starts false).
+  Ported: `ensureTmdbId`, including the parsing that turns a Stremio
+  "tt1234567:1:4" into a base external id; `fetchEnrichment` over details,
+  images, credits and content ratings, keyed `{id}:{type}:{language}` and
+  cached; `selectBestLocalizedImagePath` (exact region, then the bare language,
+  then that language in any region, then English, then a textless logo) and its
+  default-region map that sends a bare `pt` to pt-PT; `buildShowYearRange`,
+  which is what makes a hero read "2007-2019" rather than "2007";
+  `normalizeTmdbLanguage`; and the artwork sizes -- poster and logo w500,
+  backdrop w1280, company and network logos w300.
+  The thirteen settings and their defaults are `TmdbSettingsDataStore`'s. The
+  screen that drives them is the next change.
+
 - **"Up next" at the end of an episode** (its `PostPlayOverlay` in AutoPlay
   mode). The still, name and "Play" of the next episode, bottom right, on
   `PlayerNextEpisodeRules`' own timing. Focusable, as its card is: it takes
