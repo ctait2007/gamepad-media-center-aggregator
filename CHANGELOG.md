@@ -18,6 +18,19 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Added
 
+- **An Integration settings category, holding TMDB Enrichment.** The reference
+  files TMDB under INTEGRATION alongside Debrid, MDBList and Anime Skip; only
+  TMDB is built, and the category is there so the others have somewhere to go.
+  Thirteen rows in `TmdbSettingsScreen`'s order, its wording verbatim, and its
+  defaults from `TmdbSettingsDataStore`: enrichment and Modern Home off,
+  Continue Watching on, every field on but Release Dates. The language picker
+  is `AVAILABLE_TMDB_LANGUAGES` -- the subtitle catalogue plus English
+  (Australia), (Canada) and (United Kingdom) -- with no "Automatic" entry,
+  since its dialog passes `showNoneOption = false`.
+  The API key row has no counterpart there, for the reason in `api/tmdb.hpp`.
+  It reads "Not set" until one is entered and is a password field, so a key is
+  dotted out on a screen other people may be looking at.
+
 - **TMDB enrichment, the client half** (`TmdbMetadataService`/`TmdbService`).
   The reference bakes its own key into the APK at build time -- a
   `TMDB_API_KEY` buildConfigField read from a private `localProperties` --

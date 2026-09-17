@@ -31,6 +31,7 @@
 #include "view/settings_nav_item.hpp"
 #include "api/plex.hpp"
 #include "api/introdb.hpp"
+#include "api/tmdb.hpp"
 #include "api/media/langs.hpp"
 #include "utils/dialog.hpp"
 
@@ -860,6 +861,96 @@ void SettingTab::onCreate() {
     });
     inputProxy->setVisibility(HTTP::PROXY_STATUS ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
 
+    // --- TMDB enrichment (TmdbSettingsScreen) -----------------------------
+    // The key field is ours: the reference reads BuildConfig.TMDB_API_KEY, a
+    // key baked into its APK, so its screen starts at the enable switch. See
+    // api/tmdb.hpp for why that key cannot come with us.
+    // PASSWORD so the key is dotted out on a screen someone else may be
+    // looking at, and 32 characters because that is exactly how long a TMDB v3
+    // api_key is -- which is the kind the reference's query parameter takes.
+    inputTmdbKey->setType(brls::InputCellType::PASSWORD);
+    inputTmdbKey->setPlaceholder("main/setting/tmdb/api_key_not_set"_i18n);
+    inputTmdbKey->init("main/setting/tmdb/api_key"_i18n,
+        conf.getItem(AppConfig::TMDB_API_KEY, std::string("")), [](std::string value) {
+            // Pasted keys pick up whitespace; TMDB rejects the request rather
+            // than trimming it for us.
+            size_t a = value.find_first_not_of(" \t\r\n");
+            size_t b = value.find_last_not_of(" \t\r\n");
+            value = a == std::string::npos ? "" : value.substr(a, b - a + 1);
+            AppConfig::instance().setItem(AppConfig::TMDB_API_KEY, value);
+            // A new key invalidates every "TMDB had nothing for this" already
+            // cached under the old one.
+            tmdb::clearCache();
+        },
+        "main/setting/tmdb/api_key_not_set"_i18n, "main/setting/tmdb/api_key_placeholder"_i18n, 32);
+
+    btnTmdbEnabled->init("main/setting/tmdb/enable"_i18n, conf.getItem(AppConfig::TMDB_ENABLED, false),
+        [&conf](bool value) {
+            conf.setItem(AppConfig::TMDB_ENABLED, value);
+            tmdb::clearCache();
+        });
+    btnTmdbModernHome->init("main/setting/tmdb/modern_home"_i18n,
+        conf.getItem(AppConfig::TMDB_MODERN_HOME, false),
+        [&conf](bool value) { conf.setItem(AppConfig::TMDB_MODERN_HOME, value); });
+    btnTmdbEnrichCw->init("main/setting/tmdb/enrich_cw"_i18n, conf.getItem(AppConfig::TMDB_ENRICH_CW, true),
+        [&conf](bool value) { conf.setItem(AppConfig::TMDB_ENRICH_CW, value); });
+
+    // AVAILABLE_TMDB_LANGUAGES: the subtitle catalogue plus three English
+    // regions, and no "Automatic" entry -- its dialog passes
+    // showNoneOption = false.
+    std::vector<std::string> tmdbLangValues, tmdbLangLabels, tmdbLangTrailings;
+    for (auto& l : media::subtitleLangCatalog()) {
+        tmdbLangValues.push_back(l.code);
+        tmdbLangLabels.push_back(l.display);
+    }
+    for (auto& extra : {std::pair<const char*, const char*>{"en-AU", "English (Australia)"},
+             {"en-CA", "English (Canada)"}, {"en-GB", "English (United Kingdom)"}}) {
+        tmdbLangValues.push_back(extra.first);
+        tmdbLangLabels.push_back(extra.second);
+    }
+    for (auto& code : tmdbLangValues) {
+        std::string up = code;
+        for (auto& ch : up) ch = (char)std::toupper((unsigned char)ch);
+        tmdbLangTrailings.push_back(up);
+    }
+    std::string tmdbLangCur = conf.getItem(AppConfig::TMDB_LANGUAGE, std::string("en"));
+    auto tmdbLangIt = std::find(tmdbLangValues.begin(), tmdbLangValues.end(), tmdbLangCur);
+    int tmdbLangIndex = tmdbLangIt != tmdbLangValues.end() ? (int)(tmdbLangIt - tmdbLangValues.begin()) : 0;
+    selectorTmdbLanguage->init("main/setting/tmdb/language"_i18n, tmdbLangLabels, tmdbLangIndex,
+        [tmdbLangValues](int selected) {
+            AppConfig::instance().setItem(AppConfig::TMDB_LANGUAGE, tmdbLangValues[selected]);
+            // Language is part of the cache key, but the cache is per-run and
+            // holding the old language's entries would waste the memory.
+            tmdb::clearCache();
+        });
+    selectorTmdbLanguage->setTrailings(tmdbLangTrailings);
+
+    // The per-field switches. All on but Release Dates, as TmdbSettingsDataStore
+    // has them.
+    struct TmdbField {
+        BooleanCell* cell;
+        AppConfig::Item key;
+        const char* name;
+        bool byDefault;
+    };
+    for (const TmdbField& f : std::vector<TmdbField>{
+             {btnTmdbArtwork, AppConfig::TMDB_USE_ARTWORK, "artwork", true},
+             {btnTmdbBasicInfo, AppConfig::TMDB_USE_BASIC_INFO, "basic_info", true},
+             {btnTmdbDetails, AppConfig::TMDB_USE_DETAILS, "details", true},
+             {btnTmdbReleaseDates, AppConfig::TMDB_USE_RELEASE_DATES, "release_dates", false},
+             {btnTmdbCredits, AppConfig::TMDB_USE_CREDITS, "credits", true},
+             {btnTmdbProductions, AppConfig::TMDB_USE_PRODUCTIONS, "productions", true},
+             {btnTmdbNetworks, AppConfig::TMDB_USE_NETWORKS, "networks", true},
+             {btnTmdbEpisodes, AppConfig::TMDB_USE_EPISODES, "episodes", true},
+         }) {
+        AppConfig::Item key = f.key;
+        f.cell->init(brls::getStr(std::string("main/setting/tmdb/") + f.name),
+            conf.getItem(key, f.byDefault), [key](bool value) {
+                AppConfig::instance().setItem(key, value);
+                tmdb::clearCache();
+            });
+    }
+
     btnSync->init("main/setting/others/sync"_i18n, AppConfig::SYNC, [](bool value) {
         AppConfig::SYNC = value;
         AppConfig::instance().setItem(AppConfig::SYNC_SETTING, value);
@@ -1080,6 +1171,8 @@ static const char* kCategoryIcons[] = {
     "0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 "
     "9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
     "M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z",
+    "M19 7h-3V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 "
+    "2-2V9c0-1.1-.9-2-2-2zm-9-2h4v2h-4V5zm9 14H5V9h14v10z",
     "M8 5v14l11-7z",
     "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 "
     "0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
@@ -1094,11 +1187,13 @@ void SettingTab::buildCategories() {
         "setting/page/account",
         "setting/page/appearance",
         "setting/page/layout",
+        "setting/page/integration",
         "setting/page/playback",
         "setting/page/about",
         "setting/page/advanced",
     };
-    static const char* kNames[] = {"account", "appearance", "layout", "playback", "about", "advanced"};
+    static const char* kNames[] = {
+        "account", "appearance", "layout", "integration", "playback", "about", "advanced"};
 
     this->categories.clear();
     this->boxNav->clearViews();

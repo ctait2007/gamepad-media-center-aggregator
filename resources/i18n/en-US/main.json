@@ -369,6 +369,12 @@
                 "pane_title": "Layout Settings",
                 "pane_subtitle": "Adjust home layout, content visibility, and poster behavior"
             },
+            "integration": {
+                "title": "Integration",
+                "subtitle": "Metadata sources",
+                "pane_title": "Integration Settings",
+                "pane_subtitle": "Connect outside services that add to what your addons provide"
+            },
             "playback": {
                 "title": "Playback",
                 "subtitle": "Player, subtitles, and auto-play",
@@ -609,7 +615,9 @@
             "networks": "Networks",
             "networks_sub": "Networks with logos from TMDB",
             "episodes": "Episodes",
-            "episodes_sub": "Episode titles, overviews, thumbnails, and runtime from TMDB"
+            "episodes_sub": "Episode titles, overviews, thumbnails, and runtime from TMDB",
+            "fields": "Fields",
+            "fields_sub": "Which metadata TMDB is allowed to replace"
         },
         "advanced": {
             "performance": "Performance & navigation",

@@ -141,6 +141,22 @@ private:
     BRLS_BIND(BooleanCell, btnTls, "setting/network/tls");
     BRLS_BIND(BooleanCell, btnProxy, "setting/network/proxy_status");
     BRLS_BIND(InputCell, inputProxy, "setting/network/proxy");
+
+    // TMDB enrichment (TmdbSettingsScreen). The key field has no counterpart
+    // there -- the reference ships its own key in the APK; see api/tmdb.hpp.
+    BRLS_BIND(InputCell, inputTmdbKey, "setting/tmdb/api_key");
+    BRLS_BIND(BooleanCell, btnTmdbEnabled, "setting/tmdb/enabled");
+    BRLS_BIND(BooleanCell, btnTmdbModernHome, "setting/tmdb/modern_home");
+    BRLS_BIND(BooleanCell, btnTmdbEnrichCw, "setting/tmdb/enrich_cw");
+    BRLS_BIND(SelectorCell, selectorTmdbLanguage, "setting/tmdb/language");
+    BRLS_BIND(BooleanCell, btnTmdbArtwork, "setting/tmdb/artwork");
+    BRLS_BIND(BooleanCell, btnTmdbBasicInfo, "setting/tmdb/basic_info");
+    BRLS_BIND(BooleanCell, btnTmdbDetails, "setting/tmdb/details");
+    BRLS_BIND(BooleanCell, btnTmdbReleaseDates, "setting/tmdb/release_dates");
+    BRLS_BIND(BooleanCell, btnTmdbCredits, "setting/tmdb/credits");
+    BRLS_BIND(BooleanCell, btnTmdbProductions, "setting/tmdb/productions");
+    BRLS_BIND(BooleanCell, btnTmdbNetworks, "setting/tmdb/networks");
+    BRLS_BIND(BooleanCell, btnTmdbEpisodes, "setting/tmdb/episodes");
     BRLS_BIND(SelectorCell, selectorKeymap, "setting/keymap");
     BRLS_BIND(SelectorCell, selectorLang, "setting/language");
     BRLS_BIND(SelectorCell, selectorTheme, "setting/ui/theme");

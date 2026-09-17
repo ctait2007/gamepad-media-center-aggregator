@@ -274,6 +274,81 @@
                             </SettingsSection>
                         </brls:Box>
 
+                        <!-- Integration. The reference's INTEGRATION category
+                             holds Debrid, TMDB, MDBList and Anime Skip; only
+                             TMDB is built here. -->
+                        <brls:Box
+                            id="setting/page/integration"
+                            width="100%"
+                            height="auto"
+                            axis="column"
+                            visibility="gone">
+                            <SettingsSection
+                                title="@i18n/main/setting/tmdb/title"
+                                subtitle="@i18n/main/setting/tmdb/subtitle"
+                                expanded="true">
+                                <!-- No counterpart in the reference: it ships
+                                     its own key in the APK. See api/tmdb.hpp. -->
+                                <InputCell
+                                    id="setting/tmdb/api_key"
+                                    icon="shield"
+                                    subtitle="@i18n/main/setting/tmdb/api_key_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/enabled"
+                                    icon="tune"
+                                    subtitle="@i18n/main/setting/tmdb/enable_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/modern_home"
+                                    icon="dashboard"
+                                    subtitle="@i18n/main/setting/tmdb/modern_home_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/enrich_cw"
+                                    icon="history"
+                                    subtitle="@i18n/main/setting/tmdb/enrich_cw_sub" />
+                                <SelectorCell
+                                    id="setting/tmdb/language"
+                                    icon="language"
+                                    subtitle="@i18n/main/setting/tmdb/language_sub" />
+                            </SettingsSection>
+                            <SettingsSection
+                                title="@i18n/main/setting/tmdb/fields"
+                                subtitle="@i18n/main/setting/tmdb/fields_sub"
+                                expanded="false">
+                                <BooleanCell
+                                    id="setting/tmdb/artwork"
+                                    icon="image"
+                                    subtitle="@i18n/main/setting/tmdb/artwork_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/basic_info"
+                                    icon="info"
+                                    subtitle="@i18n/main/setting/tmdb/basic_info_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/details"
+                                    icon="list"
+                                    subtitle="@i18n/main/setting/tmdb/details_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/release_dates"
+                                    icon="schedule"
+                                    subtitle="@i18n/main/setting/tmdb/release_dates_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/credits"
+                                    icon="person"
+                                    subtitle="@i18n/main/setting/tmdb/credits_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/productions"
+                                    icon="movie"
+                                    subtitle="@i18n/main/setting/tmdb/productions_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/networks"
+                                    icon="tv"
+                                    subtitle="@i18n/main/setting/tmdb/networks_sub" />
+                                <BooleanCell
+                                    id="setting/tmdb/episodes"
+                                    icon="skip_next"
+                                    subtitle="@i18n/main/setting/tmdb/episodes_sub" />
+                            </SettingsSection>
+                        </brls:Box>
+
                         <!-- Playback -->
                         <brls:Box
                             id="setting/page/playback"
