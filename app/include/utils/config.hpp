@@ -209,6 +209,23 @@ public:
         /// screen instead of sitting in its top-right corner. Off, as it is
         /// there. Read once, at startup, since it is the screen's own layout.
         LAYOUT_FULLSCREEN_HERO,
+        /// TMDB enrichment (TmdbSettingsDataStore). The reference bakes its own
+        /// key into the APK at build time and so has no field for one; ours
+        /// comes from the user, and an empty key means enrichment is off
+        /// whatever the switches say. Names and defaults are the reference's.
+        TMDB_API_KEY,             // "" — no key, no enrichment
+        TMDB_ENABLED,             // false
+        TMDB_MODERN_HOME,         // false — also enrich the home hero and cards
+        TMDB_ENRICH_CW,           // true  — ...and Continue Watching
+        TMDB_LANGUAGE,            // "en"
+        TMDB_USE_ARTWORK,         // true  — logo and backdrop
+        TMDB_USE_BASIC_INFO,      // true  — description, genres, rating
+        TMDB_USE_DETAILS,         // true  — runtime, status, country, language
+        TMDB_USE_RELEASE_DATES,   // false — release and air dates
+        TMDB_USE_CREDITS,         // true  — cast with photos, director, writer
+        TMDB_USE_PRODUCTIONS,     // true  — production companies
+        TMDB_USE_NETWORKS,        // true  — networks with logos
+        TMDB_USE_EPISODES,        // true  — episode titles, stills, runtime
         /// Subtitle face, persisted the way PlayerSettingsDataStore persists
         /// it: the player panel's steppers only ever moved mpv, so every one
         /// of these went back to its default on the next launch.
