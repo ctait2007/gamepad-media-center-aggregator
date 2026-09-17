@@ -321,6 +321,15 @@ its screenshots; where we deviate from it, the entry says so.
   of what is left after a 52dp leading inset and a 48dp trailing one -- 677px.
   Ours came out at 693, which is enough to change where lines break: with the
   same insets the same synopsis now breaks in the same places.
+- **The player's title, and everything else drawn over video, was a washed-out
+  grey.** `color/white` was 70% opaque in the dark theme -- a token named white
+  that was not white. Every place it is used is text over video or artwork (the
+  player's OSD, the stats overlay, the image gallery) and the reference draws
+  all of them at `Color.White`, so the token is white in both variants now and
+  the two OSD lines that genuinely want a dimmed white carry the reference's own
+  0.9 and 0.68 as literals. The title is also SemiBold, as headlineMedium is,
+  and the episode and stream lines under it carry their styles' tracking
+  (titleMedium 0.15sp, bodyMedium 0.25sp) now that tracking lands correctly.
 - **The season pills vanished entirely.** HScrollingFrame forces its content
   view to the frame's own height in onLayout, so giving the frame `height=auto`
   is circular and resolves to nothing. It carries the pill's height now. The

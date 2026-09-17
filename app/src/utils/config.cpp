@@ -1217,8 +1217,14 @@ void AppConfig::initThemes() {
     this->addColor(brls::ThemeVariant::DARK, "color/grey_3", nvgRGBA(160, 160, 160, 160));
     this->addColor(brls::ThemeVariant::LIGHT, "color/danger", nvgRGB(198, 28, 28));
     this->addColor(brls::ThemeVariant::DARK, "color/danger", nvgRGBA(198, 28, 28, 180));
+    // White, in both variants. It used to be 70% opaque in the dark theme,
+    // which is every place this token is used -- the player's OSD, the stats
+    // overlay, the image gallery -- so all of them drew a washed-out grey where
+    // NuvioTV draws Color.White (PlayerScreen's controls overlay). Anything
+    // that wants a dimmed white asks for one: the OSD's episode and stream
+    // lines carry the reference's own 0.9 and 0.68 as literals.
     this->addColor(brls::ThemeVariant::LIGHT, "color/white", nvgRGB(255, 255, 255));
-    this->addColor(brls::ThemeVariant::DARK, "color/white", nvgRGBA(255, 255, 255, 180));
+    this->addColor(brls::ThemeVariant::DARK, "color/white", nvgRGB(255, 255, 255));
     // 分割线颜色
     this->addColor(brls::ThemeVariant::LIGHT, "color/line", nvgRGB(208, 208, 208));
     this->addColor(brls::ThemeVariant::DARK, "color/line", nvgRGB(100, 100, 100));

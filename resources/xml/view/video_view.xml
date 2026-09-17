@@ -120,24 +120,28 @@
         backgroundEndColor="#000000CC"
         background="vertical_linear">
 
-        <!-- headlineMedium, then titleMedium at 0.9, then bodyMedium at 0.68.
-             The last names the stream and appears only while PAUSED, which is
-             when the reference shows it. -->
+        <!-- headlineMedium SemiBold, then titleMedium at 0.9, then bodyMedium
+             at 0.68. The last names the stream and appears only while PAUSED,
+             which is when the reference shows it. Each carries its style's own
+             tracking: headlineMedium has none, titleMedium 0.15sp and
+             bodyMedium 0.25sp. -->
         <brls:Label
             id="video/osd/title"
             fontSize="48"
-            fontWeight="medium"
+            fontWeight="semibold"
             singleLine="true"
             textColor="@theme/color/white" />
         <brls:Label
             id="video/osd/episode"
             fontSize="32"
+            letterSpacing="0.3"
             textColor="#FFFFFFE6"
             singleLine="true"
             visibility="gone" />
         <brls:Label
             id="video/osd/source"
             fontSize="28"
+            letterSpacing="0.5"
             textColor="#FFFFFFAD"
             singleLine="true"
             visibility="gone" />
