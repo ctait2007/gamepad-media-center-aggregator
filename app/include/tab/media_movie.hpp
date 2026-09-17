@@ -65,6 +65,11 @@ private:
     /// renders the fiche from an Item — shared by the server and local-catalog
     /// (offline / downloaded) paths
     void applyMovie(const media::Item& item);
+    /// Draws the fiche from what the addon gave us, then asks TMDB and draws it
+    /// again if there is anything to add. MetaDetailsViewModel enriches on its
+    /// detail screen whenever TMDB is on -- the Modern Home switch is only for
+    /// the home screen -- so this is gated on the master setting alone.
+    void applyMovieEnriched(const media::Item& item);
     void doRelated();
     void updateDownloadButton();
     /// Builds the inline Stremio source list (one row per source) and wires the

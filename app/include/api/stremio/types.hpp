@@ -441,6 +441,13 @@ inline void applyMetaCommon(const nlohmann::json& j, media::Item& it) {
     it.originallyAvailableAt = jstr(j, "released");
     // "United States of America" — the reference's third secondary-meta item
     it.country = jstr(j, "country");
+    // MetaResponseDto/CatalogResponseDto carry both of these, and the reference
+    // reads them straight off the addon: statusText and languageText on its
+    // HeroPreview come from here when TMDB enrichment is off. Language is
+    // upper-cased there ("item.language?.uppercase()"), so it is here too.
+    it.status = jstr(j, "status");
+    it.language = jstr(j, "language");
+    for (auto& ch : it.language) ch = (char)std::toupper((unsigned char)ch);
     // imdbRating is a 0-10 string ("8.7"); expose as the critic rating.
     it.rating = jnum(j, "imdbRating");
     if (it.rating > 0) it.ratingImage = "imdb://image.rating";

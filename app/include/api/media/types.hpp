@@ -323,6 +323,13 @@ struct Item {
     std::string playlistType;  // video | audio | photo — only video ones are playable here
     std::string contentRating;
     std::string country;  // production country, shown in the detail hero's secondary meta
+    /// "Ended", "Returning Series", "Released"... The hero's second meta row
+    /// draws it as a badge beside the age rating, as ModernHomeHero does.
+    /// Only TMDB fills this in; an addon's meta has no equivalent.
+    std::string status;
+    /// ISO 639-1, upper-cased -- ModernHomeHero's languageText, the one entry
+    /// of its secondaryDetails.
+    std::string language;
     double rating = 0.0;          // critic rating 0-10
     double audienceRating = 0.0;  // audience rating 0-10
     std::string ratingImage;          // critic source: imdb://…, rottentomatoes://…, themoviedb://…
@@ -380,6 +387,8 @@ inline void from_json(const nlohmann::json& j, Item& r) {
     r.smart = jbool(j, "smart");
     r.playlistType = jstr(j, "playlistType");
     r.contentRating = jstr(j, "contentRating");
+    r.status = jstr(j, "status");
+    r.language = jstr(j, "language");
     r.rating = jnum(j, "rating");
     r.audienceRating = jnum(j, "audienceRating");
     r.ratingImage = jstr(j, "ratingImage");
@@ -524,6 +533,8 @@ inline void to_json(nlohmann::json& j, const Item& r) {
     j["audienceRatingImage"] = r.audienceRatingImage;
     j["originallyAvailableAt"] = r.originallyAvailableAt;
     j["releaseInfo"]           = r.releaseInfo;
+    j["status"]                = r.status;
+    j["language"]              = r.language;
     j["parentRatingKey"] = r.parentRatingKey;
     j["parentTitle"] = r.parentTitle;
     j["parentThumb"] = r.parentThumb;

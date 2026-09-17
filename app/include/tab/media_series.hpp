@@ -80,6 +80,9 @@ private:
     void doSeries();
     /// renders the show fiche from an Item — shared by server and local paths
     void applySeries(const media::Item& item);
+    /// As MediaMovie::applyMovieEnriched: draw what the addon gave us, then ask
+    /// TMDB and draw again if it adds anything.
+    void applySeriesEnriched(const media::Item& item);
     void doSeason();
     void doRelated();
     void doNextup();

@@ -10,6 +10,7 @@
 #include "utils/rating.hpp"
 #include "api/plex.hpp"
 #include "api/backend.hpp"
+#include "api/tmdb.hpp"
 #include "utils/keybind.hpp"
 #include "utils/network_state.hpp"
 #include "utils/offline_library.hpp"
@@ -557,6 +558,48 @@ brls::Label* heroMetaLabel(const std::string& text, NVGcolor color, bool semibol
     return label;
 }
 
+/// HeroMetaBadge: a 6dp-rounded outline holding one labelMedium SemiBold word
+/// in TextPrimary, its border the same colour at 55%. With two words
+/// (HeroCombinedMetaBadge) they share one outline, separated by a hairline rule
+/// md tall -- which is how "TV-14" and "ENDED" are drawn side by side.
+brls::Box* heroMetaBadge(const std::string& left, const std::string& right, NVGcolor content) {
+    auto* badge = new brls::Box(brls::Axis::ROW);
+    badge->setShrink(0);
+    badge->setHeight(brls::View::AUTO);
+    badge->setCornerRadius(12);           // 6dp
+    badge->setBorderThickness(2);         // hairline
+    badge->setBorderColor(nvgRGBA(content.r * 255, content.g * 255, content.b * 255, 140));  // .55
+    badge->setPaddingLeft(16);            // sm
+    badge->setPaddingRight(16);
+    badge->setPaddingTop(8);              // xs
+    badge->setPaddingBottom(8);
+    badge->setAlignItems(brls::AlignItems::CENTER);
+
+    auto add = [&](const std::string& text) {
+        auto* l = new brls::Label();
+        l->setText(text);
+        l->setFontSize(24);
+        l->setLetterSpacing(1.0f);
+        l->setFontWeight("semibold");
+        l->setTextColor(content);
+        l->setSingleLine(true);
+        badge->addView(l);
+    };
+    add(left);
+    if (!right.empty()) {
+        auto* rule = new brls::Box();
+        rule->setWidth(2);
+        rule->setHeight(24);  // md
+        rule->setShrink(0);
+        rule->setMarginLeft(16);
+        rule->setMarginRight(16);
+        rule->setBackgroundColor(nvgRGBA(content.r * 255, content.g * 255, content.b * 255, 140));
+        badge->addView(rule);
+        add(right);
+    }
+    return badge;
+}
+
 }  // namespace
 
 /// Appends one child to a hero meta row, with the reference's sm gap before it.
@@ -569,23 +612,29 @@ void HomeTab::addHeroMeta(brls::Box* row, brls::View* view) {
 /// (30dp -> 60px) with the value xs (4dp -> 8px) after it. Returns false when
 /// the item has no rating or ratings are switched off, in which case nothing is
 /// appended and the caller's layout decisions can rely on that.
-bool HomeTab::addHeroRating(brls::Box* row, const plex::Item& item) {
+bool HomeTab::heroRatingOf(const plex::Item& item, std::string& res, std::string& value, float& aspect) {
     // homeImdbRatingsVisibility.HIDE_ALL takes the hero's rating with it, the
     // same as the pills on a detail page (utils/rating.hpp).
     if (!AppConfig::instance().getItem(AppConfig::LAYOUT_SHOW_RATINGS, true)) return false;
-
-    std::string res, value;
-    float aspect = 1.0f;
+    aspect = 1.0f;
     if (auto info = rating::parseRatingImage(item.ratingImage, item.rating)) {
         res    = info->icon;
         value  = info->value;
         aspect = info->aspect;
-    } else if (item.rating > 0) {
+        return true;
+    }
+    if (item.rating > 0) {
         res   = "icon/ico-star.svg";
         value = fmt::format("{:.1f}", item.rating);
-    } else {
-        return false;
+        return true;
     }
+    return false;
+}
+
+bool HomeTab::addHeroRating(brls::Box* row, const plex::Item& item) {
+    std::string res, value;
+    float aspect = 1.0f;
+    if (!this->heroRatingOf(item, res, value, aspect)) return false;
 
     // ContentScale.Fit inside a 60x60 box, which is what Modifier.size(30.dp)
     // on the reference's AsyncImage means: the glyph keeps its aspect and the
@@ -725,19 +774,76 @@ void HomeTab::renderHero() {
     // --- row two: the Continue Watching highlight and its rating -----------
     if (row2) {
         row2->clearViews();
-        if (!highlight.empty()) this->addHeroMeta(row2, heroMetaLabel(highlight, onArt, true, true));
-        if (ratingOnRow2) {
-            bool hadHighlight = !row2->getChildren().empty();
-            // The reference only puts a divider here when both sides exist.
-            size_t before = row2->getChildren().size();
-            if (hadHighlight) this->addHeroMeta(row2, heroMetaDot());
-            if (!this->addHeroRating(row2, item) && hadHighlight) {
-                // no rating after all -- take the divider back off
-                while (row2->getChildren().size() > before) row2->removeView(row2->getChildren().back());
-            }
+
+        // The reference's secondary meta, in its order: the Continue Watching
+        // highlight, the age-rating and status badges, the rating, then the
+        // language. Everything but the highlight arrives with TMDB enrichment,
+        // so without it this row is the highlight and the rating, as before.
+        //
+        // What it holds is decided here, before anything is built, because the
+        // dots go BETWEEN sections: appending one and taking it back off when
+        // the next section turns out to be empty is how the first version of
+        // this got the separators wrong.
+        std::string ageRating = item.contentRating;
+        std::string status = item.status;
+        if (!status.empty()) {
+            // Its statusText branch maps the provider's word onto a label and
+            // upper-cases whichever one it lands on.
+            std::string lowered = status;
+            std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+            if (lowered == "continuing" || lowered == "returning series")
+                status = "main/hero/status/continuing"_i18n;
+            else if (lowered == "canceled" || lowered == "cancelled")
+                status = "main/hero/status/cancelled"_i18n;
+            std::transform(status.begin(), status.end(), status.begin(),
+                [](unsigned char c) { return std::toupper(c); });
         }
-        bool rated = row2->getChildren().size() > (highlight.empty() ? 0u : 1u);
-        row2->setHeight(rated ? 60.f : 24.f);
+
+        std::string ratingRes, ratingValue;
+        float ratingAspect = 1.0f;
+        const bool hasBadge = !ageRating.empty() || !status.empty();
+        const bool hasRating = ratingOnRow2 && this->heroRatingOf(item, ratingRes, ratingValue, ratingAspect);
+        const bool hasLanguage = !item.language.empty();
+        const bool hasHighlight = !highlight.empty();
+
+        // Every section that is actually there, so a dot only ever lands
+        // between two of them.
+        bool first = true;
+        auto section = [&]() {
+            if (!first) this->addHeroMeta(row2, heroMetaDot());
+            first = false;
+        };
+
+        if (hasHighlight) {
+            section();
+            this->addHeroMeta(row2, heroMetaLabel(highlight, onArt, true, true));
+        }
+        if (hasBadge) {
+            section();
+            // Both words share one outline (HeroCombinedMetaBadge); either
+            // alone gets its own (HeroMetaBadge).
+            this->addHeroMeta(row2,
+                heroMetaBadge(ageRating.empty() ? status : ageRating,
+                    ageRating.empty() || status.empty() ? "" : status, onArt));
+        }
+        if (hasRating) {
+            section();
+            this->addHeroRating(row2, item);
+        }
+        if (hasLanguage) {
+            section();
+            // secondaryDetails is drawn in TextTertiary, a step dimmer than the
+            // rest of the row.
+            this->addHeroMeta(row2, heroMetaLabel(item.language, nvgRGB(0x80, 0x80, 0x80), false, false));
+        }
+
+        // The rating's 30dp mark is the tallest thing this row can hold; a
+        // badge is its text plus xs padding either side.
+        float height = 24.f;
+        if (hasBadge) height = std::max(height, 24.f + 8.f * 2 + 4.f);
+        if (hasRating) height = std::max(height, 60.f);
+        row2->setHeight(height);
         row2->setVisibility(row2->getChildren().empty() ? brls::Visibility::GONE : brls::Visibility::VISIBLE);
     }
 
@@ -851,6 +957,7 @@ void HomeTab::enrichHero(const std::string& key) {
                     this->heroItem.genres != before.genres || this->heroItem.year != before.year ||
                     this->heroItem.rating != before.rating || this->heroItem.duration != before.duration)
                     this->renderHero();
+                this->enrichHeroFromTmdb(key);
             },
             [ASYNC_TOKEN, key](const std::string& ex) {
                 ASYNC_RELEASE
@@ -858,6 +965,37 @@ void HomeTab::enrichHero(const std::string& key) {
                 this->heroPending.erase(key);
                 brls::Logger::warning("hero enrich {}: {}", key, ex);
             });
+    });
+}
+
+/// The second half of the hero's enrichment: what TMDB has to add on top of the
+/// addon's own metadata.
+///
+/// Gated on tmdbModernHomeEnabled, which is what that switch is FOR -- the
+/// master switch alone enriches a detail screen, and this one extends it to the
+/// home hero and its focused cards. An item you are part way through is
+/// additionally gated on enrichContinueWatching, since that is the switch the
+/// reference puts in front of Continue Watching.
+void HomeTab::enrichHeroFromTmdb(const std::string& key) {
+    if (!tmdb::enabled()) return;
+    AppConfig& conf = AppConfig::instance();
+    if (!conf.getItem(AppConfig::TMDB_MODERN_HOME, false)) return;
+    const bool resuming = this->heroItem.viewOffset > 0;
+    if (resuming && !conf.getItem(AppConfig::TMDB_ENRICH_CW, true)) return;
+
+    ASYNC_RETAIN
+    tmdb::fetch(this->heroItem, [ASYNC_TOKEN, key](tmdb::Enrichment e) {
+        ASYNC_RELEASE
+        if (!e.valid) return;
+        // The user has moved on: the enrichment is cached, so the next rest on
+        // this item picks it up without another request.
+        if (key != this->heroShowing) return;
+        tmdb::apply(this->heroItem, e);
+        // And into the row's own copy, so coming back to this card does not
+        // start from the un-enriched metadata again.
+        auto known = this->heroMeta.find(key);
+        if (known != this->heroMeta.end()) tmdb::apply(known->second, e);
+        this->renderHero();
     });
 }
 

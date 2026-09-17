@@ -65,8 +65,13 @@ private:
     /// that lands later can redraw in place without re-running the "new item"
     /// bookkeeping.
     void renderHero();
+    /// TMDB's half of the hero enrichment (tmdbModernHomeEnabled).
+    void enrichHeroFromTmdb(const std::string& key);
     /// Appends one element to a hero meta row with the reference's sm gap.
     void addHeroMeta(brls::Box* row, brls::View* view);
+    /// The item's rating, without drawing it: false when it has none, or when
+    /// ratings are switched off.
+    static bool heroRatingOf(const plex::Item& item, std::string& res, std::string& value, float& aspect);
     /// Appends the item's rating (source mark + value); false when it has none.
     bool addHeroRating(brls::Box* row, const plex::Item& item);
     /// Fetch `key`'s full metadata for what the catalog row left out (a

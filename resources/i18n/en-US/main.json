@@ -308,7 +308,11 @@
         "next_up": "Next Up",
         "new_episode": "New Episode",
         "new_season": "New Season",
-        "upcoming": "Upcoming"
+        "upcoming": "Upcoming",
+        "status": {
+            "continuing": "Continuing",
+            "cancelled": "Cancelled"
+        }
     },
     "download": {
         "start": "Download",

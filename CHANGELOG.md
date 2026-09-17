@@ -18,6 +18,22 @@ its screenshots; where we deviate from it, the entry says so.
 
 ### Added
 
+- **TMDB enrichment is wired in, and the hero's second meta row is complete.**
+  A detail page enriches whenever TMDB is on, as `MetaDetailsViewModel` does;
+  the home hero additionally wants `tmdbModernHomeEnabled`, which is what that
+  switch is for, and an item you are part way through also wants
+  `enrichContinueWatching`. Each screen draws what the addon gave it first and
+  redraws once TMDB answers -- nothing waits on the network.
+  With the age rating, status and language finally available, the hero's second
+  row is the reference's in full: the Continue Watching highlight, then the age
+  rating and status sharing one 6dp outline (`HeroCombinedMetaBadge`, or
+  `HeroMetaBadge` when only one of them exists), then the rating, then the
+  language in TextTertiary -- each separated by `HeroMetaDivider`'s dot.
+- **`status` and `language` are read from the addon's own meta.**
+  `MetaResponseDto` and `CatalogResponseDto` both carry them and the reference
+  reads them straight off the addon, so a hero shows a status badge without
+  TMDB being on at all. Language is upper-cased, as it is there.
+
 - **An Integration settings category, holding TMDB Enrichment.** The reference
   files TMDB under INTEGRATION alongside Debrid, MDBList and Anime Skip; only
   TMDB is built, and the category is there so the others have somewhere to go.

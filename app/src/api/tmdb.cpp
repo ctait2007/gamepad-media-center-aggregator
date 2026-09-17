@@ -383,6 +383,8 @@ void apply(media::Item& item, const Enrichment& e) {
         if (e.runtimeMinutes > 0) item.duration = e.runtimeMinutes * 60000;
         if (!e.countries.empty()) item.country = e.countries.front();
         if (!e.ageRating.empty()) item.contentRating = e.ageRating;
+        if (!e.status.empty()) item.status = e.status;
+        if (!e.language.empty()) item.language = e.language;
     }
     if (c.getItem(AppConfig::TMDB_USE_RELEASE_DATES, false)) {
         if (!e.releaseInfo.empty()) item.releaseInfo = e.releaseInfo;

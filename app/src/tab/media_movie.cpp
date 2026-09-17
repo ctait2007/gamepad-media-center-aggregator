@@ -12,6 +12,7 @@
 #include "view/recyling_video.hpp"
 #include "view/mpv_core.hpp"
 #include "api/plex.hpp"
+#include "api/tmdb.hpp"
 #include "api/plex/watchlist.hpp"
 #include "api/backend.hpp"
 #include "utils/misc.hpp"
@@ -375,7 +376,7 @@ void MediaMovie::doMovie() {
     if (media::preferLocal(this->localContext)) {
         media::Item it;
         if (OfflineLibrary::instance().getItem(this->itemId, it)) {
-            this->applyMovie(it);
+            this->applyMovieEnriched(it);
             return;
         }
         if (NetworkState::isOffline()) {
@@ -393,7 +394,7 @@ void MediaMovie::doMovie() {
         this->itemId, false,
         [ASYNC_TOKEN](const media::Item& item) {
             ASYNC_RELEASE
-            this->applyMovie(item);
+            this->applyMovieEnriched(item);
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
@@ -430,6 +431,21 @@ void MediaMovie::downloadSource(int mediaIndex) {
 
 // Renders the fiche from an Item — shared by the server and local-catalog
 // (offline / downloaded) paths.
+void MediaMovie::applyMovieEnriched(const media::Item& item) {
+    // Draw first: enrichment is an addition to a screen that should already be
+    // up, never something the screen waits on.
+    this->applyMovie(item);
+    if (!tmdb::enabled()) return;
+    ASYNC_RETAIN
+    tmdb::fetch(item, [ASYNC_TOKEN, item](tmdb::Enrichment e) {
+        ASYNC_RELEASE
+        if (!e.valid) return;
+        media::Item merged = item;
+        tmdb::apply(merged, e);
+        this->applyMovie(merged);
+    });
+}
+
 void MediaMovie::applyMovie(const media::Item& item) {
     this->labelTitle->setText(item.title);
     Image::load(this->imagePoster, item.thumb, 325);

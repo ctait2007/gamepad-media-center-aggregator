@@ -8,6 +8,7 @@
 #include "view/episode_sheet.hpp"
 #include "view/mpv_core.hpp"
 #include "api/plex.hpp"
+#include "api/tmdb.hpp"
 #include "api/plex/watchlist.hpp"
 #include "api/backend.hpp"
 #include "tab/media_series.hpp"
@@ -885,7 +886,7 @@ void MediaSeries::doSeries() {
     if (media::preferLocal(this->localContext)) {
         media::Item it;
         if (OfflineLibrary::instance().getItem(this->seriesId, it)) {
-            this->applySeries(it);
+            this->applySeriesEnriched(it);
             return;
         }
         if (NetworkState::isOffline()) {
@@ -899,7 +900,7 @@ void MediaSeries::doSeries() {
         this->seriesId, true,
         [ASYNC_TOKEN](const media::Item& item) {
             ASYNC_RELEASE
-            this->applySeries(item);
+            this->applySeriesEnriched(item);
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
@@ -935,6 +936,19 @@ void MediaSeries::applyHeroLogo(const std::string& url) {
 }
 
 // Renders the show fiche from an Item — shared by the server and local paths.
+void MediaSeries::applySeriesEnriched(const media::Item& item) {
+    this->applySeries(item);
+    if (!tmdb::enabled()) return;
+    ASYNC_RETAIN
+    tmdb::fetch(item, [ASYNC_TOKEN, item](tmdb::Enrichment e) {
+        ASYNC_RELEASE
+        if (!e.valid) return;
+        media::Item merged = item;
+        tmdb::apply(merged, e);
+        this->applySeries(merged);
+    });
+}
+
 void MediaSeries::applySeries(const media::Item& item) {
     this->labelTitle->setText(item.title);
     Image::load(this->imagePoster, item.thumb, 325);
